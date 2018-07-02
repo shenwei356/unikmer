@@ -19,3 +19,18 @@
 // THE SOFTWARE.
 
 package cmd
+
+import "github.com/spf13/cobra"
+
+// Options contains the global flags
+type Options struct {
+	NumCPUs int
+	OutFile string
+}
+
+func getOptions(cmd *cobra.Command) *Options {
+	return &Options{
+		NumCPUs: getFlagPositiveInt(cmd, "threads"),
+		OutFile: getFlagString(cmd, "out-file"),
+	}
+}

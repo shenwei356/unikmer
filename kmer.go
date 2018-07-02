@@ -38,7 +38,7 @@ func Encode(mer []byte) (code uint64, err error) {
 	}
 	for i := range mer {
 		switch mer[size-1-i] {
-		case 'A', 'a':
+		case 'A', 'a', 'N', 'n':
 			code += uint64(0 << uint(i*2))
 		case 'C', 'c':
 			code += uint64(1 << uint(i*2))

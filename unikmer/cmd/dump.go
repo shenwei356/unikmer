@@ -21,47 +21,68 @@
 package cmd
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
+	"runtime"
 
+	"github.com/shenwei356/breader"
+	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
-// VERSION is the version
-var VERSION = "v0.1.0"
-
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "print version information and check for update",
-	Long: `print version information and check for update
+// dumpCmd represents
+var dumpCmd = &cobra.Command{
+	Use:   "dump",
+	Short: "convert plain text to binary format",
+	Long: `convert plain text to binary format
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		app := "unikmer"
-		fmt.Printf("%s v%s\n", app, VERSION)
-		fmt.Println("\nChecking new version...")
+		opt := getOptions(cmd)
+		runtime.GOMAXPROCS(opt.NumCPUs)
+		files := getFileList(args)
 
-		resp, err := http.Get(fmt.Sprintf("https://github.com/shenwei356/%s/releases/latest", app))
-		if err != nil {
-			checkError(fmt.Errorf("Network error"))
-		}
-		items := strings.Split(resp.Request.URL.String(), "/")
-		version := ""
-		if items[len(items)-1] == "" {
-			version = items[len(items)-2]
-		} else {
-			version = items[len(items)-1]
-		}
-		if version == "v"+VERSION {
-			fmt.Printf("You are using the latest version of %s\n", app)
-		} else {
-			fmt.Printf("New version available: %s %s at %s\n", app, version, resp.Request.URL.String())
+		outfh, err := xopen.Wopen(opt.OutFile)
+		checkError(err)
+		defer outfh.Close()
+
+		var writer *unikmer.Writer
+
+		var k int = -1
+		var l int
+		var reader *breader.BufferedReader
+		var chunk breader.Chunk
+		var data interface{}
+		var line string
+		for _, file := range files {
+			reader, err = breader.NewDefaultBufferedReader(file)
+			checkError(err)
+
+			for chunk = range reader.Ch {
+				checkError(chunk.Err)
+				for _, data = range chunk.Data {
+					line = data.(string)
+					l = len(line)
+					if l == 0 {
+						continue
+					} else if k == -1 {
+						k = l
+					} else if l != k {
+						log.Errorf("Kmer length mismatch, previous: %d, current: %d. %s", k, l, line)
+						return
+					}
+
+					if writer == nil {
+						writer = unikmer.NewWriter(outfh, l)
+					}
+
+					writer.WriteKmer([]byte(line))
+				}
+			}
 		}
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(versionCmd)
+	RootCmd.AddCommand(dumpCmd)
+
 }

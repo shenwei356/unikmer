@@ -55,7 +55,11 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().IntP("num-cpus", "j", runtime.NumCPU(), `number of CPUs to use (default value depends on your computer)`)
+	defaultThreads := runtime.NumCPU()
+	if defaultThreads > 2 {
+		defaultThreads = 2
+	}
 
+	RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs. (default value: 1 for single-CPU PC, 2 for others)")
 	RootCmd.PersistentFlags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 }

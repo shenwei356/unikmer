@@ -39,7 +39,7 @@ var magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
 var ErrInvalidFileFormat = errors.New("unikmer: invalid file format")
 
 // ErrBrokenFile means the file is not complete
-var ErrBrokenFile = errors.New("unikmer: broken file")
+// var ErrBrokenFile = errors.New("unikmer: broken file")
 
 // ErrKMismatch means K size mismatch
 var ErrKMismatch = errors.New("unikmer: K mismatch")
@@ -99,6 +99,7 @@ func (reader *Reader) readHeader() error {
 	if reader.err != nil {
 		return reader.err
 	}
+	// need to check compatibility？
 	reader.Header.Version = fmt.Sprintf("%d.%d", meta[0], meta[1])
 	reader.Header.K = int(meta[2])
 	return nil
@@ -126,7 +127,7 @@ type Writer struct {
 // NewWriter creates a Writer
 func NewWriter(w io.Writer, k int) *Writer {
 	return &Writer{
-		Header: Header{Version: "0.1", K: k},
+		Header: Header{Version: fmt.Sprintf("%d.%d", MainVersion, MinorVersion), K: k},
 		w:      w,
 	}
 }
@@ -143,7 +144,7 @@ func (writer *Writer) writeHeader() error {
 	return nil
 }
 
-// WriteKmer writes
+// WriteKmer writes one Kmer
 func (writer *Writer) WriteKmer(mer []byte) error {
 	writer.kcode, writer.err = NewKmerCode(mer)
 	if writer.err != nil {
@@ -154,17 +155,18 @@ func (writer *Writer) WriteKmer(mer []byte) error {
 
 // Write writes one KmerCode
 func (writer *Writer) Write(kcode KmerCode) error {
+	if writer.Header.K != kcode.K {
+		writer.err = ErrKMismatch
+		return writer.err
+	}
+
+	// lazily write header
 	if !writer.wroteHeader {
 		writer.err = writer.writeHeader()
 		if writer.err != nil {
 			return writer.err
 		}
 		writer.wroteHeader = true
-	}
-
-	if writer.Header.K != kcode.K {
-		writer.err = ErrKMismatch
-		return writer.err
 	}
 
 	writer.err = binary.Write(writer.w, be, kcode.Code)

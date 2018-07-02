@@ -21,13 +21,13 @@
 package unikmer
 
 import (
-	"bufio"
 	"bytes"
-	"compress/gzip"
 	"io"
 	"math/rand"
 	"os"
 	"testing"
+
+	"github.com/shenwei356/xopen"
 )
 
 func genKmers(k int, num int) [][]byte {
@@ -78,19 +78,25 @@ func TestWriter(t *testing.T) {
 }
 
 func write(mers [][]byte, file string) error {
-	w, err := os.Create(file)
+	// w, err := os.Create(file)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer w.Close()
+	//
+	// bw := bufio.NewWriter(w)
+	// defer bw.Flush()
+	//
+	// outfh := gzip.NewWriter(bw)
+	// defer outfh.Close()
+
+	outfh, err := xopen.Wopen(file)
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer outfh.Close()
 
-	bw := bufio.NewWriter(w)
-	defer bw.Flush()
-
-	gz := gzip.NewWriter(bw)
-	defer gz.Close()
-
-	writer := NewWriter(gz, len(mers[0]))
+	writer := NewWriter(outfh, len(mers[0]))
 	for _, mer := range mers {
 		err = writer.WriteKmer(mer)
 		if err != nil {
@@ -106,21 +112,27 @@ func write(mers [][]byte, file string) error {
 }
 
 func read(file string) ([][]byte, error) {
-	r, err := os.Open(file)
+	// r, err := os.Open(file)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer r.Close()
+	//
+	// br := bufio.NewReader(r)
+	//
+	// infh, err := gzip.NewReader(br)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer infh.Close()
+
+	infh, err := xopen.Ropen(file)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer infh.Close()
 
-	br := bufio.NewReader(r)
-
-	gz, err := gzip.NewReader(br)
-	if err != nil {
-		return nil, err
-	}
-	defer gz.Close()
-
-	reader, err := NewReader(gz)
+	reader, err := NewReader(infh)
 	if err != nil {
 		return nil, err
 	}

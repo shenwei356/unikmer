@@ -18,42 +18,65 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package main
+package cmd
 
 import (
 	"io"
-	"os"
 	"runtime"
 
-	colorable "github.com/mattn/go-colorable"
-	"github.com/shenwei356/go-logging"
-	"github.com/shenwei356/unikmer/unikmer/cmd"
+	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/xopen"
+	"github.com/spf13/cobra"
 )
 
-var logFormat = logging.MustStringFormatter(
-	`%{color}[%{level:.4s}]%{color:reset} %{message}`,
-)
+// viewCmd represents
+var viewCmd = &cobra.Command{
+	Use:   "view",
+	Short: "read and output binary format to plain text",
+	Long: `read and output binary format to plain text
 
-func init() {
-	var stderr io.Writer = os.Stderr
-	if runtime.GOOS == "windows" {
-		stderr = colorable.NewColorableStderr()
-	}
-	backend := logging.NewLogBackend(stderr, "", 0)
-	backendFormatter := logging.NewBackendFormatter(backend, logFormat)
-	logging.SetBackend(backendFormatter)
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		opt := getOptions(cmd)
+		runtime.GOMAXPROCS(opt.NumCPUs)
+		files := getFileList(args)
+
+		outfh, err := xopen.Wopen(opt.OutFile)
+		checkError(err)
+		defer outfh.Close()
+
+		var infh *xopen.Reader
+		var reader *unikmer.Reader
+		var kcode unikmer.KmerCode
+
+		for _, file := range files {
+			func() {
+				infh, err = xopen.Ropen(file)
+				checkError(err)
+				defer infh.Close()
+
+				reader, err = unikmer.NewReader(infh)
+				checkError(err)
+
+				for {
+					kcode, err = reader.Read()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						checkError(err)
+					}
+
+					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
+					outfh.WriteString(kcode.String() + "\n")
+				}
+
+			}()
+		}
+	},
 }
 
-func main() {
-	// go tool pprof ./unikmer pprof
-	// f, _ := os.Create("pprof")
-	// pprof.StartCPUProfile(f)
-	// defer pprof.StopCPUProfile()
+func init() {
+	RootCmd.AddCommand(viewCmd)
 
-	cmd.Execute()
-
-	// go tool pprof --alloc_space ./unikmer mprof
-	// f2, _ := os.Create("mprof")
-	// pprof.WriteHeapProfile(f2)
-	// defer f2.Close()
 }
