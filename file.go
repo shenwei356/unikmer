@@ -33,10 +33,11 @@ const MainVersion int64 = 0
 // MinorVersion is the minor version number
 const MinorVersion int64 = 1
 
-var magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
+// Magic number of binary file
+var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
 
 // ErrInvalidFileFormat means invalid file format
-var ErrInvalidFileFormat = errors.New("unikmer: invalid file format")
+var ErrInvalidFileFormat = errors.New("unikmer: invalid binary format")
 
 // ErrBrokenFile means the file is not complete
 // var ErrBrokenFile = errors.New("unikmer: broken file")
@@ -76,7 +77,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 }
 
 func (reader *Reader) readHeader() error {
-	// check magic number
+	// check Magic number
 	var m [8]byte
 	reader.err = binary.Read(reader.r, be, &m)
 	if reader.err != nil {
@@ -84,7 +85,7 @@ func (reader *Reader) readHeader() error {
 	}
 	same := true
 	for i := 0; i < 8; i++ {
-		if magic[i] != m[i] {
+		if Magic[i] != m[i] {
 			same = false
 			break
 		}
@@ -133,7 +134,7 @@ func NewWriter(w io.Writer, k int) *Writer {
 }
 
 func (writer *Writer) writeHeader() error {
-	writer.err = binary.Write(writer.w, be, magic)
+	writer.err = binary.Write(writer.w, be, Magic)
 	if writer.err != nil {
 		return writer.err
 	}

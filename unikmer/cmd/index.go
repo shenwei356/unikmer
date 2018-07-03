@@ -23,17 +23,19 @@ package cmd
 import (
 	"io"
 	"runtime"
+	"sync"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
+	boom "github.com/tylertreat/BoomFilters"
 )
 
-// viewCmd represents
-var viewCmd = &cobra.Command{
-	Use:   "view",
-	Short: "read and output binary format to plain text",
-	Long: `read and output binary format to plain text
+// indexCmd represents
+var indexCmd = &cobra.Command{
+	Use:   "index",
+	Short: "create index for binary file",
+	Long: `create index for binary file
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -41,24 +43,35 @@ var viewCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
-		outFile := getFlagString(cmd, "out-file")
+		if len(files) == 1 && isStdin(files[0]) {
+			log.Errorf(".unik file needed")
+			return
+		}
 
-		outfh, err := xopen.Wopen(outFile)
-		checkError(err)
-		defer outfh.Close()
+		hint := getFlagPositiveInt(cmd, "esti-kmer-num")
 
 		var infh *xopen.Reader
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
+		var mer []byte
+		var err error
 
 		for _, file := range files {
 			func() {
+				if isStdin(file) {
+					log.Warningf("no need to create index for stdin")
+					return
+				}
+
 				infh, err = xopen.Ropen(file)
 				checkError(err)
 				defer infh.Close()
 
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
+
+				sbf := boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
+				ibf := boom.NewInverseBloomFilter(uint(hint / 5))
 
 				for {
 					kcode, err = reader.Read()
@@ -69,9 +82,43 @@ var viewCmd = &cobra.Command{
 						checkError(err)
 					}
 
-					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
-					outfh.WriteString(kcode.String() + "\n")
+					mer = kcode.Bytes()
+					sbf.Add(mer)
+					ibf.Add(mer)
 				}
+
+				// save to files
+				var wg sync.WaitGroup
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					outfhSBF, err := xopen.WopenGzip(file + extSBF)
+					checkError(err)
+					defer outfhSBF.Close()
+
+					err = writeHeader(outfhSBF, reader.K)
+					checkError(err)
+
+					_, err = sbf.WriteTo(outfhSBF)
+					checkError(err)
+				}()
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					outfhIBF, err := xopen.WopenGzip(file + extIBF)
+					checkError(err)
+					defer outfhIBF.Close()
+
+					err = writeHeader(outfhIBF, reader.K)
+					checkError(err)
+
+					_, err = ibf.WriteTo(outfhIBF)
+					checkError(err)
+				}()
+
+				wg.Wait()
 
 			}()
 		}
@@ -79,8 +126,8 @@ var viewCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(viewCmd)
+	RootCmd.AddCommand(indexCmd)
 
-	viewCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
+	indexCmd.Flags().IntP("esti-kmer-num", "n", 100000000, "estimated kmer num length (for initializing Bloom Filter)")
 
 }

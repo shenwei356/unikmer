@@ -43,6 +43,10 @@ func isStdin(file string) bool {
 	return file == "-"
 }
 
+func isStdout(file string) bool {
+	return file == "-"
+}
+
 func getFileList(args []string) []string {
 	files := []string{}
 	if len(args) == 0 {

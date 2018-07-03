@@ -41,7 +41,12 @@ var dumpCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
-		outfh, err := xopen.Wopen(opt.OutFile)
+		outFile := getFlagString(cmd, "out-prefix")
+
+		if !isStdout(outFile) {
+			outFile += extDataFile
+		}
+		outfh, err := xopen.WopenGzip(outFile)
 		checkError(err)
 		defer outfh.Close()
 
@@ -62,6 +67,7 @@ var dumpCmd = &cobra.Command{
 				for _, data = range chunk.Data {
 					line = data.(string)
 					l = len(line)
+
 					if l == 0 {
 						continue
 					} else if k == -1 {
@@ -85,4 +91,5 @@ var dumpCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(dumpCmd)
 
+	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 }

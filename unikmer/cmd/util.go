@@ -25,12 +25,12 @@ import "github.com/spf13/cobra"
 // Options contains the global flags
 type Options struct {
 	NumCPUs int
-	OutFile string
+	Verbose bool
 }
 
 func getOptions(cmd *cobra.Command) *Options {
 	return &Options{
 		NumCPUs: getFlagPositiveInt(cmd, "threads"),
-		OutFile: getFlagString(cmd, "out-file"),
+		Verbose: getFlagBool(cmd, "verbose"),
 	}
 }

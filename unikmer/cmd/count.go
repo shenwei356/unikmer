@@ -36,8 +36,8 @@ import (
 // coutCmd represents
 var coutCmd = &cobra.Command{
 	Use:   "count",
-	Short: "count kmer from FASTA/Q files",
-	Long: `count kmer from FASTA/Q files
+	Short: "count kmer from FASTA/Q sequences",
+	Long: `count kmer from FASTA/Q sequences
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -46,6 +46,7 @@ var coutCmd = &cobra.Command{
 		seq.ValidateSeq = false
 		files := getFileList(args)
 
+		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular-genome")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		if k > 32 {
@@ -53,7 +54,10 @@ var coutCmd = &cobra.Command{
 		}
 		hint := getFlagPositiveInt(cmd, "esti-kmer-num")
 
-		outfh, err := xopen.Wopen(opt.OutFile)
+		if !isStdout(outFile) {
+			outFile += extDataFile
+		}
+		outfh, err := xopen.WopenGzip(outFile)
 		checkError(err)
 		defer outfh.Close()
 
@@ -103,7 +107,7 @@ var coutCmd = &cobra.Command{
 
 					kcode, err = unikmer.NewKmerCode(mer)
 					if err != nil {
-						checkError(err)
+						checkError(fmt.Errorf("encoding '%s': %s", mer, err))
 					}
 					kcodeRC = kcode.RevComp()
 
@@ -118,10 +122,21 @@ var coutCmd = &cobra.Command{
 						sbf.Add(merRC)
 						checkError(writer.Write(kcodeRC))
 					}
-
 				}
 			}
+		}
 
+		// write bloomfilter to file
+		if !isStdout(outFile) {
+			outfhSBF, err := xopen.WopenGzip(outFile + extSBF)
+			checkError(err)
+			defer outfhSBF.Close()
+
+			err = writeHeader(outfhSBF, k)
+			checkError(err)
+
+			_, err = sbf.WriteTo(outfhSBF)
+			checkError(err)
 		}
 	},
 }
@@ -129,7 +144,8 @@ var coutCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(coutCmd)
 
+	coutCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	coutCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
-	coutCmd.Flags().IntP("esti-kmer-num", "n", 100000000, "estimated kmer num length (for initializing ScalableBloomFilter)")
+	coutCmd.Flags().IntP("esti-kmer-num", "n", 100000000, "estimated kmer num length (for initializing Bloom Filter)")
 	coutCmd.Flags().BoolP("circular-genome", "c", false, "circular genome")
 }

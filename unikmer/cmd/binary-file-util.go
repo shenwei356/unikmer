@@ -21,45 +21,56 @@
 package cmd
 
 import (
+	"encoding/binary"
 	"fmt"
-	"os"
-	"runtime"
+	"io"
 
-	"github.com/spf13/cobra"
+	"github.com/shenwei356/unikmer"
 )
 
-// RootCmd represents the base command when called without any subcommands
-var RootCmd = &cobra.Command{
-	Use:   "unikmer",
-	Short: "toolkit for unique kmer",
-	Long: fmt.Sprintf(`toolkit for unique kmer
+const extDataFile = ".unik"
+const extSBF = ".sbf"
+const extIBF = ".ibf"
 
-Version: %s
+var be = binary.BigEndian
 
-Author: Wei Shen <shenwei356@gmail.com>
-
-Documents  : http://shenwei356.github.io/unikmer
-Source code: https://github.com/shenwei356/unikmer
-
-
-`, VERSION),
-}
-
-// Execute adds all child commands to the root command sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+func readHeader(r io.Reader) (unikmer.Header, error) {
+	// check Magic number
+	var m [8]byte
+	var err error
+	err = binary.Read(r, be, &m)
+	if err != nil {
+		return unikmer.Header{}, err
 	}
-}
-
-func init() {
-	defaultThreads := runtime.NumCPU()
-	if defaultThreads > 2 {
-		defaultThreads = 2
+	same := true
+	for i := 0; i < 8; i++ {
+		if unikmer.Magic[i] != m[i] {
+			same = false
+			break
+		}
+	}
+	if !same {
+		return unikmer.Header{}, unikmer.ErrInvalidFileFormat
 	}
 
-	RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs. (default value: 1 for single-CPU PC, 2 for others)")
-	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
+	// read metadata
+	var meta [3]int64
+	err = binary.Read(r, be, &meta)
+	if err != nil {
+		return unikmer.Header{}, err
+	}
+	return unikmer.Header{Version: fmt.Sprintf("%d.%d", meta[0], meta[1]),
+		K: int(meta[2])}, nil
+}
+
+func writeHeader(w io.Writer, k int) error {
+	err := binary.Write(w, be, unikmer.Magic)
+	if err != nil {
+		return nil
+	}
+	err = binary.Write(w, be, [3]int64{unikmer.MainVersion, unikmer.MinorVersion, int64(k)})
+	if err != nil {
+		return nil
+	}
+	return nil
 }
