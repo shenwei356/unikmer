@@ -23,7 +23,7 @@ package cmd
 import (
 	"io"
 	"runtime"
-	"sync"
+	"strings"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/xopen"
@@ -44,7 +44,7 @@ var indexCmd = &cobra.Command{
 		files := getFileList(args)
 
 		if len(files) == 1 && isStdin(files[0]) {
-			log.Errorf(".unik file needed")
+			log.Errorf("%s file needed", extDataFile)
 			return
 		}
 
@@ -57,6 +57,11 @@ var indexCmd = &cobra.Command{
 		var err error
 
 		for _, file := range files {
+			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+				log.Errorf("input should be stdin or %s file", extDataFile)
+				return
+			}
+
 			func() {
 				if isStdin(file) {
 					log.Warningf("no need to create index for stdin")
@@ -88,38 +93,7 @@ var indexCmd = &cobra.Command{
 				}
 
 				// save to files
-				var wg sync.WaitGroup
-
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					outfhSBF, err := xopen.WopenGzip(file + extSBF)
-					checkError(err)
-					defer outfhSBF.Close()
-
-					err = writeHeader(outfhSBF, reader.K)
-					checkError(err)
-
-					_, err = sbf.WriteTo(outfhSBF)
-					checkError(err)
-				}()
-
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					outfhIBF, err := xopen.WopenGzip(file + extIBF)
-					checkError(err)
-					defer outfhIBF.Close()
-
-					err = writeHeader(outfhIBF, reader.K)
-					checkError(err)
-
-					_, err = ibf.WriteTo(outfhIBF)
-					checkError(err)
-				}()
-
-				wg.Wait()
-
+				writeIndex(reader.K, sbf, ibf, file+extSBF, file+extIBF)
 			}()
 		}
 	},

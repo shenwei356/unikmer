@@ -21,12 +21,10 @@
 package cmd
 
 import (
-	"bufio"
-	"compress/gzip"
 	"fmt"
 	"io"
-	"os"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/shenwei356/breader"
@@ -57,8 +55,9 @@ var grepCmd = &cobra.Command{
 		hint := getFlagPositiveInt(cmd, "esti-kmer-num")
 		pattern := getFlagStringSlice(cmd, "pattern")
 		patternFile := getFlagString(cmd, "pattern-file")
-		// invertMatch := getFlagBool(cmd, "invert-match")
+		invertMatch := getFlagBool(cmd, "invert-match")
 		degenerate := getFlagBool(cmd, "degenerate")
+		all := getFlagBool(cmd, "all")
 
 		if len(pattern) == 0 && patternFile == "" {
 			checkError(fmt.Errorf("one of flags -p (--pattern) and -f (--pattern-file) needed"))
@@ -74,6 +73,15 @@ var grepCmd = &cobra.Command{
 
 		file := files[0]
 
+		if strings.HasSuffix(file, extSBF) || strings.HasSuffix(file, extIBF) {
+			log.Errorf("input should be %s file, not %s or %s", extDataFile, extSBF, extIBF)
+			return
+		}
+		if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+			log.Errorf("input should be stdin or %s file", extDataFile)
+			return
+		}
+
 		fileSBF, fileIBF := file+extSBF, file+extIBF
 		fileSBFExists, err := pathutil.Exists(fileSBF)
 		checkError(err)
@@ -83,73 +91,25 @@ var grepCmd = &cobra.Command{
 		var sbf *boom.ScalableBloomFilter
 		var ibf *boom.InverseBloomFilter
 
-		var headerSBF, headerIBF unikmer.Header
-
 		var k int
 
+		var wg sync.WaitGroup // for writing index file
+
 		if !isStdin(file) && fileSBFExists && fileIBFExists { // read index file
-			var wg sync.WaitGroup
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				r, err := os.Open(fileSBF)
-				checkError(err)
-				defer r.Close()
-
-				br := bufio.NewReader(r)
-
-				infh, err := gzip.NewReader(br)
-				checkError(err)
-				defer infh.Close()
-
-				headerSBF, err = readHeader(infh)
-				if err != nil {
-					checkError(fmt.Errorf("read .sbf file '%s': %s", fileSBF, err))
-				}
-
-				sbf = &boom.ScalableBloomFilter{}
-				_, err = sbf.ReadFrom(infh)
-				checkError(err)
-			}()
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				r, err := os.Open(fileIBF)
-				checkError(err)
-				defer r.Close()
-
-				br := bufio.NewReader(r)
-
-				infh, err := gzip.NewReader(br)
-				checkError(err)
-				defer infh.Close()
-
-				headerIBF, err = readHeader(infh)
-				if err != nil {
-					checkError(fmt.Errorf("read .ibf file '%s': %s", fileIBF, err))
-				}
-
-				ibf = &boom.InverseBloomFilter{}
-				_, err = ibf.ReadFrom(infh)
-				checkError(err)
-			}()
-
-			wg.Wait()
-
-			if headerIBF.Version != headerSBF.Version {
-				checkError(fmt.Errorf("version mismatch: %s (.sbf) != %s (.ibf)", headerSBF.Version, headerIBF.Version))
-			}
-			if headerIBF.K != headerSBF.K {
-				checkError(fmt.Errorf("k size mismatch: %d (.sbf) != %d (.ibf)", headerSBF.K, headerIBF.K))
+			if opt.Verbose {
+				log.Infof("read %s and %s files", extSBF, extIBF)
 			}
 
-			k = headerIBF.K
+			sbf, ibf, k = readIndex(fileSBF, fileIBF)
+
+			if opt.Verbose {
+				log.Infof("finish reading %s and %s files", extSBF, extIBF)
+			}
 
 		} else { // read binary file
+			if opt.Verbose {
+				log.Infof("read kmers from %s", file)
+			}
 			sbf = boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
 			ibf = boom.NewInverseBloomFilter(uint(hint / 5))
 
@@ -166,9 +126,6 @@ var grepCmd = &cobra.Command{
 			reader, err = unikmer.NewReader(infh)
 			checkError(err)
 
-			sbf = boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
-			ibf = boom.NewInverseBloomFilter(uint(hint / 5))
-
 			for {
 				kcode, err = reader.Read()
 				if err != nil {
@@ -184,8 +141,27 @@ var grepCmd = &cobra.Command{
 			}
 
 			k = reader.K
-		}
 
+			if opt.Verbose {
+				log.Infof("finish reading kmers from %s", file)
+			}
+
+			// save to files
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if opt.Verbose {
+					log.Infof("save %s and %s files", extSBF, extIBF)
+				}
+
+				writeIndex(reader.K, sbf, ibf, file+extSBF, file+extIBF)
+
+				if opt.Verbose {
+					log.Infof("finish saving %s and %s files", extSBF, extIBF)
+				}
+			}()
+
+		}
 		var queries []string
 		var q string
 		var qb []byte
@@ -199,16 +175,17 @@ var grepCmd = &cobra.Command{
 			for chunk := range reader.Ch {
 				checkError(chunk.Err)
 				for _, data = range chunk.Data {
-					query = data.(string)
+					query = strings.ToUpper(data.(string))
 					if query == "" {
 						continue
 					}
 					if len(query) != k {
-						log.Errorf("length of query sequence (%d) != k size (%d)", len(query), k)
+						log.Warningf("length of query sequence (%d) != k size (%d)", len(query), k)
 					}
 
 					if degenerate {
 						queries = make([]string, 0, 4)
+						// todo
 					} else {
 						queries = []string{query}
 					}
@@ -219,6 +196,26 @@ var grepCmd = &cobra.Command{
 						inIBF = ibf.Test(qb)
 
 						fmt.Printf("%s\t%v\t%v\n", q, inSBF, inIBF)
+
+						// - Scalable Bloom Filter: false-negative == 0, 不在就真不在
+						// - Inverse Bloom Filter : false positive == 0，在就真的在
+						if !invertMatch { //
+							if inIBF {
+								if all {
+									outfh.WriteString(query + "\t" + q + "\n")
+								} else {
+									outfh.WriteString(query + "\n")
+								}
+							}
+						} else {
+							if !inSBF {
+								if all {
+									outfh.WriteString(query + "\t" + q + "\n")
+								} else {
+									outfh.WriteString(query + "\n")
+								}
+							}
+						}
 
 					}
 
@@ -235,6 +232,9 @@ var grepCmd = &cobra.Command{
 
 			}
 		}
+
+		wg.Wait()
+
 	},
 }
 
@@ -248,4 +248,6 @@ func init() {
 	grepCmd.Flags().StringP("pattern-file", "f", "", "pattern file (one record per line)")
 	grepCmd.Flags().BoolP("degenerate", "d", false, "pattern/motif contains degenerate base")
 	grepCmd.Flags().BoolP("invert-match", "v", false, "invert the sense of matching, to select non-matching records")
+
+	grepCmd.Flags().BoolP("all", "a", false, "show more information")
 }

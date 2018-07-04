@@ -20,7 +20,9 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 // Options contains the global flags
 type Options struct {

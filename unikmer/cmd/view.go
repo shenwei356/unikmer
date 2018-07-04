@@ -23,6 +23,7 @@ package cmd
 import (
 	"io"
 	"runtime"
+	"strings"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/xopen"
@@ -52,6 +53,11 @@ var viewCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 
 		for _, file := range files {
+			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+				log.Errorf("input should be stdin or %s file", extDataFile)
+				return
+			}
+
 			func() {
 				infh, err = xopen.Ropen(file)
 				checkError(err)
