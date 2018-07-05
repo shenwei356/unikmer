@@ -25,7 +25,6 @@ import (
 	"io"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
@@ -62,9 +61,18 @@ var grepCmd = &cobra.Command{
 		if len(pattern) == 0 && patternFile == "" {
 			checkError(fmt.Errorf("one of flags -p (--pattern) and -f (--pattern-file) needed"))
 		}
-		ok, err := pathutil.Exists(patternFile)
-		if patternFile != "" && !ok {
-			checkError(fmt.Errorf("pattern file not found: %s", patternFile))
+
+		var err error
+
+		if patternFile != "" {
+			var ok bool
+			ok, err = pathutil.Exists(patternFile)
+			if !ok {
+				checkError(fmt.Errorf("read pattern file: %s", err))
+			}
+			if !ok {
+				checkError(fmt.Errorf("pattern file not found: %s", patternFile))
+			}
 		}
 
 		outfh, err := xopen.Wopen(outFile)
@@ -73,95 +81,52 @@ var grepCmd = &cobra.Command{
 
 		file := files[0]
 
-		if strings.HasSuffix(file, extSBF) || strings.HasSuffix(file, extIBF) {
-			log.Errorf("input should be %s file, not %s or %s", extDataFile, extSBF, extIBF)
-			return
-		}
 		if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
 			log.Errorf("input should be stdin or %s file", extDataFile)
 			return
 		}
 
-		fileSBF, fileIBF := file+extSBF, file+extIBF
-		fileSBFExists, err := pathutil.Exists(fileSBF)
-		checkError(err)
-		fileIBFExists, err := pathutil.Exists(fileIBF)
-		checkError(err)
-
 		var sbf *boom.ScalableBloomFilter
 		var ibf *boom.InverseBloomFilter
 
-		var k int
+		sbf = boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
+		ibf = boom.NewInverseBloomFilter(uint(hint / 5))
 
-		var wg sync.WaitGroup // for writing index file
-
-		if !isStdin(file) && fileSBFExists && fileIBFExists { // read index file
-			if opt.Verbose {
-				log.Infof("read %s and %s files", extSBF, extIBF)
-			}
-
-			sbf, ibf, k = readIndex(fileSBF, fileIBF)
-
-			if opt.Verbose {
-				log.Infof("finish reading %s and %s files", extSBF, extIBF)
-			}
-
-		} else { // read binary file
-			if opt.Verbose {
-				log.Infof("read kmers from %s", file)
-			}
-			sbf = boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
-			ibf = boom.NewInverseBloomFilter(uint(hint / 5))
-
-			var infh *xopen.Reader
-			var reader *unikmer.Reader
-			var kcode unikmer.KmerCode
-			var mer []byte
-			var err error
-
-			infh, err = xopen.Ropen(file)
-			checkError(err)
-			defer infh.Close()
-
-			reader, err = unikmer.NewReader(infh)
-			checkError(err)
-
-			for {
-				kcode, err = reader.Read()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					checkError(err)
-				}
-
-				mer = kcode.Bytes()
-				sbf.Add(mer)
-				ibf.Add(mer)
-			}
-
-			k = reader.K
-
-			if opt.Verbose {
-				log.Infof("finish reading kmers from %s", file)
-			}
-
-			// save to files
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if opt.Verbose {
-					log.Infof("save %s and %s files", extSBF, extIBF)
-				}
-
-				writeIndex(reader.K, sbf, ibf, file+extSBF, file+extIBF)
-
-				if opt.Verbose {
-					log.Infof("finish saving %s and %s files", extSBF, extIBF)
-				}
-			}()
-
+		if opt.Verbose {
+			log.Infof("read kmers from %s", file)
 		}
+
+		var infh *xopen.Reader
+		var reader *unikmer.Reader
+		var kcode unikmer.KmerCode
+		var mer []byte
+		infh, err = xopen.Ropen(file)
+		checkError(err)
+		defer infh.Close()
+
+		reader, err = unikmer.NewReader(infh)
+		checkError(err)
+
+		for {
+			kcode, err = reader.Read()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				checkError(err)
+			}
+
+			mer = kcode.Bytes()
+			sbf.Add(mer)
+			ibf.Add(mer)
+		}
+
+		k := reader.K
+
+		if opt.Verbose {
+			log.Infof("finish reading kmers from %s", file)
+		}
+
 		var queries []string
 		var q string
 		var qb []byte
@@ -232,8 +197,6 @@ var grepCmd = &cobra.Command{
 
 			}
 		}
-
-		wg.Wait()
 
 	},
 }

@@ -126,18 +126,6 @@ var coutCmd = &cobra.Command{
 			}
 		}
 
-		// write bloomfilter to file
-		if !isStdout(outFile) {
-			outfhSBF, err := xopen.WopenGzip(outFile + extSBF)
-			checkError(err)
-			defer outfhSBF.Close()
-
-			err = writeHeader(outfhSBF, k)
-			checkError(err)
-
-			_, err = sbf.WriteTo(outfhSBF)
-			checkError(err)
-		}
 	},
 }
 
