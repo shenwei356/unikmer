@@ -107,6 +107,18 @@ var grepCmd = &cobra.Command{
 		reader, err = unikmer.NewReader(infh)
 		checkError(err)
 
+		k := reader.K
+
+		// check pattern in advance
+		if patternFile == "" {
+			for _, query := range pattern {
+				if len(query) != k {
+					log.Warningf("length of query sequence (%d) != k size (%d): %s", len(query), k, query)
+					return
+				}
+			}
+		}
+
 		for {
 			kcode, err = reader.Read()
 			if err != nil {
@@ -121,69 +133,84 @@ var grepCmd = &cobra.Command{
 			ibf.Add(mer)
 		}
 
-		k := reader.K
-
 		if opt.Verbose {
 			log.Infof("finish reading kmers from %s", file)
 		}
 
-		var queries []string
-		var q string
-		var qb []byte
+		var queries [][]byte
+		var q []byte
 		var inSBF, inIBF bool
+		var hit, notSure bool
 
 		if patternFile != "" {
-			reader, err := breader.NewDefaultBufferedReader(patternFile)
+			var brdr *breader.BufferedReader
+			brdr, err = breader.NewDefaultBufferedReader(patternFile)
 			checkError(err)
 			var data interface{}
 			var query string
-			for chunk := range reader.Ch {
+			for chunk := range brdr.Ch {
 				checkError(chunk.Err)
 				for _, data = range chunk.Data {
-					query = strings.ToUpper(data.(string))
+					query = data.(string)
 					if query == "" {
 						continue
 					}
 					if len(query) != k {
-						log.Warningf("length of query sequence (%d) != k size (%d)", len(query), k)
+						log.Warningf("length of query sequence (%d) != k size (%d): %s", len(query), k, query)
+						continue
 					}
 
+					query = strings.ToUpper(query)
 					if degenerate {
-						queries = make([]string, 0, 4)
-						// todo
+						queries, err = extendDegenerateSeq([]byte(query))
+						if err != nil {
+							checkError(fmt.Errorf("extend degenerate sequence '%s': %s", query, err))
+						}
 					} else {
-						queries = []string{query}
+						queries = [][]byte{[]byte(query)}
 					}
-
 					for _, q = range queries {
-						qb = []byte(q)
-						inSBF = sbf.Test(qb)
-						inIBF = ibf.Test(qb)
+						inSBF = sbf.Test(q)
+						inIBF = ibf.Test(q)
 
-						fmt.Printf("%s\t%v\t%v\n", q, inSBF, inIBF)
+						// fmt.Printf("%s\t%v\t%v\n", q, inSBF, inIBF)
 
 						// - Scalable Bloom Filter: false-negative == 0, 不在就真不在
 						// - Inverse Bloom Filter : false positive == 0，在就真的在
+						hit = false
+						notSure = false
 						if !invertMatch { //
 							if inIBF {
-								if all {
-									outfh.WriteString(query + "\t" + q + "\n")
-								} else {
-									outfh.WriteString(query + "\n")
-								}
+								hit = true
+							} else if !inSBF {
+								hit = false
+							} else { // not sure
+								notSure = true
 							}
 						} else {
 							if !inSBF {
-								if all {
-									outfh.WriteString(query + "\t" + q + "\n")
-								} else {
-									outfh.WriteString(query + "\n")
-								}
+								hit = true
+							} else if inIBF {
+								hit = false
+							} else { // not sure
+								notSure = true
 							}
 						}
 
+						if all {
+							if hit {
+								outfh.WriteString(query + "\t" + string(q) + "\ttrue\n")
+							} else if notSure {
+								outfh.WriteString(query + "\t" + string(q) + "\tnot-sure\n")
+							} else {
+								outfh.WriteString(query + "\t" + string(q) + "\t\n")
+							}
+						} else {
+							if hit {
+								outfh.WriteString(query + "\n")
+							}
+						}
 					}
-
 				}
 			}
 		} else {
@@ -192,9 +219,61 @@ var grepCmd = &cobra.Command{
 					continue
 				}
 				if len(query) != k {
-					log.Errorf("length of query sequence (%d) != k size (%d)", len(query), k)
+					log.Warningf("length of query sequence (%d) != k size (%d): %s", len(query), k, query)
+					continue
 				}
 
+				query = strings.ToUpper(query)
+				if degenerate {
+					queries, err = extendDegenerateSeq([]byte(query))
+					if err != nil {
+						checkError(fmt.Errorf("extend degenerate sequence '%s': %s", query, err))
+					}
+				} else {
+					queries = [][]byte{[]byte(query)}
+				}
+				for _, q = range queries {
+					inSBF = sbf.Test(q)
+					inIBF = ibf.Test(q)
+
+					// fmt.Printf("%s\t%v\t%v\n", q, inSBF, inIBF)
+
+					// - Scalable Bloom Filter: false-negative == 0, 不在就真不在
+					// - Inverse Bloom Filter : false positive == 0，在就真的在
+					hit = false
+					notSure = false
+					if !invertMatch { //
+						if inIBF {
+							hit = true
+						} else if !inSBF {
+							hit = false
+						} else { // not sure
+							notSure = true
+						}
+					} else {
+						if !inSBF {
+							hit = true
+						} else if inIBF {
+							hit = false
+						} else { // not sure
+							notSure = true
+						}
+					}
+
+					if all {
+						if hit {
+							outfh.WriteString(query + "\t" + string(q) + "\ttrue\n")
+						} else if notSure {
+							outfh.WriteString(query + "\t" + string(q) + "\tnot-sure\n")
+						} else {
+							outfh.WriteString(query + "\t" + string(q) + "\t\n")
+						}
+					} else {
+						if hit {
+							outfh.WriteString(query + "\n")
+						}
+					}
+				}
 			}
 		}
 

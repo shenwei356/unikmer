@@ -31,14 +31,14 @@ import (
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "unikmer",
-	Short: "toolkit for unique kmer",
-	Long: fmt.Sprintf(`toolkit for unique kmer
+	Short: "Unique-Kmer Toolkit",
+	Long: fmt.Sprintf(`Unique-Kmer ToolKit
 
 Version: %s
 
 Author: Wei Shen <shenwei356@gmail.com>
 
-Documents  : http://shenwei356.github.io/unikmer
+Documents  : https://shenwei356.github.io/unikmer
 Source code: https://github.com/shenwei356/unikmer
 
 

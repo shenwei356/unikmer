@@ -21,6 +21,7 @@
 package cmd
 
 import (
+	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
 
@@ -35,4 +36,78 @@ func getOptions(cmd *cobra.Command) *Options {
 		NumCPUs: getFlagPositiveInt(cmd, "threads"),
 		Verbose: getFlagBool(cmd, "verbose"),
 	}
+}
+
+var degenerateBaseMapNucl = map[byte]string{
+	'A': "A",
+	'T': "T",
+	'U': "U",
+	'C': "C",
+	'G': "G",
+	'R': "AG",
+	'Y': "CT",
+	'M': "AC",
+	'K': "GT",
+	'S': "CG",
+	'W': "AT",
+	'H': "ACT",
+	'B': "CGT",
+	'V': "ACG",
+	'D': "AGT",
+	'N': "ACGT",
+	'a': "a",
+	't': "t",
+	'u': "u",
+	'c': "c",
+	'g': "g",
+	'r': "ag",
+	'y': "ct",
+	'm': "ac",
+	'k': "gt",
+	's': "cg",
+	'w': "at",
+	'h': "act",
+	'b': "cgt",
+	'v': "acg",
+	'd': "agt",
+	'n': "acgt",
+}
+
+func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
+	dseqs = [][]byte{[]byte{}}
+	var i, j, k int
+	var ok bool
+	var dbases string
+	var dbase byte
+	for _, base := range s {
+		if dbases, ok = degenerateBaseMapNucl[base]; ok {
+			if len(dbases) == 1 {
+				dbase = dbases[0]
+				for i = 0; i < len(dseqs); i++ {
+					dseqs[i] = append(dseqs[i], dbase)
+				}
+			} else {
+				// 2nd
+				more := make([][]byte, len(dseqs)*(len(dbases)-1))
+				k = 0
+				for i = 1; i < len(dbases); i++ {
+					for j = 0; j < len(dseqs); j++ {
+						more[k] = []byte(string(append(dseqs[j], dbases[i])))
+						k++
+					}
+				}
+
+				// 1th
+				for i = 0; i < len(dseqs); i++ {
+					dseqs[i] = append(dseqs[i], dbases[0])
+				}
+
+				dseqs = append(dseqs, more...)
+			}
+
+		} else {
+			return dseqs, unikmer.ErrIllegalBase
+		}
+	}
+	return dseqs, nil
 }
