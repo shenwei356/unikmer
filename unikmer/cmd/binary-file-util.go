@@ -116,8 +116,9 @@ func writeIndex(k int, sbf *boom.ScalableBloomFilter, ibf *boom.InverseBloomFilt
 		// bw := bufio.NewWriter(w)
 		// defer bw.Flush()
 
-		outfhIBF := gzip.NewWriter(w)
-		defer outfhIBF.Close()
+		outfhIBF := w
+		// outfhIBF := gzip.NewWriter(w)
+		// defer outfhIBF.Close()
 
 		// outfhIBF, err := xopen.WopenGzip(fileIBF)
 		// if err != nil {
@@ -187,12 +188,13 @@ func readIndex(fileSBF string, fileIBF string) (sbf *boom.ScalableBloomFilter, i
 
 		// br := bufio.NewReader(r)
 
-		infh, err := gzip.NewReader(r)
 		// infh, err := gzip.NewReader(br)
-		if err != nil {
-			checkError(fmt.Errorf("read %s file '%s': %s", extIBF, fileIBF, err))
-		}
-		defer infh.Close()
+		// if err != nil {
+		// 	checkError(fmt.Errorf("read %s file '%s': %s", extIBF, fileIBF, err))
+		// }
+		// defer infh.Close()
+
+		infh := r
 
 		headerIBF, err = readHeader(infh)
 		if err != nil {
