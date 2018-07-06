@@ -21,6 +21,7 @@
 package cmd
 
 import (
+	"fmt"
 	"runtime"
 
 	"github.com/shenwei356/breader"
@@ -52,12 +53,18 @@ var dumpCmd = &cobra.Command{
 
 		var writer *unikmer.Writer
 
+		m := make(map[uint64]struct{}, mapInitSize)
+
 		var k int = -1
 		var l int
 		var reader *breader.BufferedReader
 		var chunk breader.Chunk
 		var data interface{}
 		var line string
+		var kcode unikmer.KmerCode
+		var ok bool
+		var n int64
+
 		for _, file := range files {
 			reader, err = breader.NewDefaultBufferedReader(file)
 			checkError(err)
@@ -81,9 +88,24 @@ var dumpCmd = &cobra.Command{
 						writer = unikmer.NewWriter(outfh, l)
 					}
 
+					kcode, err = unikmer.NewKmerCode([]byte(line))
+					if err != nil {
+						checkError(fmt.Errorf("encoding '%s': %s", line, err))
+					}
+
+					if _, ok = m[kcode.Code]; !ok {
+						m[kcode.Code] = struct{}{}
+						checkError(writer.Write(kcode))
+						n++
+					}
+
 					writer.WriteKmer([]byte(line))
 				}
 			}
+		}
+
+		if opt.Verbose {
+			log.Infof("%d unique kmers found", n)
 		}
 	},
 }

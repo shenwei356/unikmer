@@ -43,10 +43,6 @@ var unionCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
-		if len(files) < 2 {
-			checkError(fmt.Errorf("at least two file should be given"))
-		}
-
 		outFile := getFlagString(cmd, "out-prefix")
 
 		var err error
@@ -76,7 +72,7 @@ var unionCmd = &cobra.Command{
 			}
 
 			if opt.Verbose {
-				log.Infof("read kmers from %s", file)
+				log.Infof("read kmers from: %s", file)
 			}
 
 			infh, err = xopen.Ropen(file)
@@ -122,7 +118,7 @@ var unionCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("union of %d kmers found", n)
+			log.Infof("%d kmers found", n)
 		}
 	},
 }

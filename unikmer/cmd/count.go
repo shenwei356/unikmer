@@ -70,7 +70,11 @@ var countCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 		var i, j int
 		var ok bool
+		var n int64
 		for _, file := range files {
+			if opt.Verbose {
+				log.Infof("read sequence file: %s", file)
+			}
 			fastxReader, err = fastx.NewDefaultReader(file)
 			checkError(err)
 			for {
@@ -86,8 +90,16 @@ var countCmd = &cobra.Command{
 				for j = 0; j < 2; j++ {
 					if j == 0 { // sequence
 						sequence = record.Seq.Seq
+
+						if opt.Verbose {
+							log.Infof("process sequence: %s", record.ID)
+						}
 					} else { // reverse complement sequence
 						sequence = record.Seq.RevComInplace().Seq
+
+						if opt.Verbose {
+							log.Infof("process reverse complement sequence: %s", record.ID)
+						}
 					}
 
 					originalLen = len(record.Seq.Seq)
@@ -119,10 +131,15 @@ var countCmd = &cobra.Command{
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
 							checkError(writer.Write(kcode))
+							n++
 						}
 					}
 				}
 			}
+		}
+
+		if opt.Verbose {
+			log.Infof("%d unique kmers found", n)
 		}
 	},
 }

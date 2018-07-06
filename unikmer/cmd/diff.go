@@ -43,10 +43,6 @@ var diffCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
-		if len(files) < 2 {
-			checkError(fmt.Errorf("at least two file should be given"))
-		}
-
 		outFile := getFlagString(cmd, "out-prefix")
 
 		var err error
@@ -68,7 +64,7 @@ var diffCmd = &cobra.Command{
 			}
 
 			if opt.Verbose {
-				log.Infof("read kmers from %s", file)
+				log.Infof("read kmers fro: %s", file)
 			}
 
 			infh, err = xopen.Ropen(file)
@@ -148,7 +144,7 @@ var diffCmd = &cobra.Command{
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {
-			log.Infof("set difference of %d kmers found", len(m))
+			log.Infof("%d kmers found", len(m))
 		}
 	},
 }

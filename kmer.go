@@ -30,7 +30,20 @@ var ErrIllegalBase = errors.New("unikmer: illegal base")
 // ErrKOverflow means K > 32
 var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
 
-// Encode converts byte slice to bits
+// Encode converts byte slice to bits.
+//
+//    M       AC
+//    V       ACG
+//    H       ACT
+//    R       AG
+//    D       AGT
+//    W       AT
+//    S       CG
+//    B       CGT
+//    Y       CT
+//    K       GT
+//
+//
 func Encode(mer []byte) (code uint64, err error) {
 	size := len(mer)
 	if size == 0 || size > 32 {
@@ -38,11 +51,11 @@ func Encode(mer []byte) (code uint64, err error) {
 	}
 	for i := range mer {
 		switch mer[size-1-i] {
-		case 'A', 'a', 'N', 'n':
+		case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
 			code += uint64(0 << uint(i*2))
-		case 'C', 'c':
+		case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
 			code += uint64(1 << uint(i*2))
-		case 'G', 'g':
+		case 'G', 'g', 'K', 'k':
 			code += uint64(2 << uint(i*2))
 		case 'T', 't', 'U', 'u':
 			code += uint64(3 << uint(i*2))
