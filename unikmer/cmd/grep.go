@@ -31,7 +31,6 @@ import (
 	"github.com/shenwei356/util/pathutil"
 	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
-	boom "github.com/tylertreat/BoomFilters"
 )
 
 // grepCmd represents
@@ -51,7 +50,6 @@ var grepCmd = &cobra.Command{
 		}
 
 		outFile := getFlagString(cmd, "out-file")
-		hint := getFlagPositiveInt(cmd, "esti-kmer-num")
 		pattern := getFlagStringSlice(cmd, "pattern")
 		patternFile := getFlagString(cmd, "pattern-file")
 		invertMatch := getFlagBool(cmd, "invert-match")
@@ -86,11 +84,7 @@ var grepCmd = &cobra.Command{
 			return
 		}
 
-		var sbf *boom.ScalableBloomFilter
-		var ibf *boom.InverseBloomFilter
-
-		sbf = boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
-		ibf = boom.NewInverseBloomFilter(uint(hint / 5))
+		m := make(map[uint64]struct{}, mapInitSize)
 
 		if opt.Verbose {
 			log.Infof("read kmers from %s", file)
@@ -128,9 +122,7 @@ var grepCmd = &cobra.Command{
 				checkError(err)
 			}
 
-			mer = kcode.Bytes()
-			sbf.Add(mer)
-			ibf.Add(mer)
+			m[kcode.Code] = struct{}{}
 		}
 
 		if opt.Verbose {
@@ -139,8 +131,7 @@ var grepCmd = &cobra.Command{
 
 		var queries [][]byte
 		var q []byte
-		var inSBF, inIBF bool
-		var hit, notSure bool
+		var ok, hit bool
 
 		if patternFile != "" {
 			var brdr *breader.BufferedReader
@@ -170,40 +161,22 @@ var grepCmd = &cobra.Command{
 						queries = [][]byte{[]byte(query)}
 					}
 					for _, q = range queries {
-						inSBF = sbf.Test(q)
-						inIBF = ibf.Test(q)
+						kcode, err = unikmer.NewKmerCode(q)
+						if err != nil {
+							checkError(fmt.Errorf("encoding query '%s': %s", mer, err))
+						}
 
-						// fmt.Printf("%s\t%v\t%v\n", q, inSBF, inIBF)
+						_, ok = m[kcode.Code]
 
-						// - Scalable Bloom Filter: false-negative == 0, 不在就真不在
-						// - Inverse Bloom Filter : false positive == 0，在就真的在
-						hit = false
-						notSure = false
 						if !invertMatch { //
-							if inIBF {
-								hit = true
-							} else if !inSBF {
-								hit = false
-							} else { // not sure
-								notSure = true
-							}
+							hit = ok
 						} else {
-							if !inSBF {
-								hit = true
-							} else if inIBF {
-								hit = false
-							} else { // not sure
-								notSure = true
-							}
+							hit = !ok
 						}
 
 						if all {
 							if hit {
-								outfh.WriteString(query + "\t" + string(q) + "\ttrue\n")
-							} else if notSure {
-								outfh.WriteString(query + "\t" + string(q) + "\tnot-sure\n")
-							} else {
-								outfh.WriteString(query + "\t" + string(q) + "\t\n")
+								outfh.WriteString(query + "\t" + string(q) + "\n")
 							}
 						} else {
 							if hit {
@@ -233,40 +206,22 @@ var grepCmd = &cobra.Command{
 					queries = [][]byte{[]byte(query)}
 				}
 				for _, q = range queries {
-					inSBF = sbf.Test(q)
-					inIBF = ibf.Test(q)
+					kcode, err = unikmer.NewKmerCode(q)
+					if err != nil {
+						checkError(fmt.Errorf("encoding query '%s': %s", mer, err))
+					}
 
-					// fmt.Printf("%s\t%v\t%v\n", q, inSBF, inIBF)
+					_, ok = m[kcode.Code]
 
-					// - Scalable Bloom Filter: false-negative == 0, 不在就真不在
-					// - Inverse Bloom Filter : false positive == 0，在就真的在
-					hit = false
-					notSure = false
 					if !invertMatch { //
-						if inIBF {
-							hit = true
-						} else if !inSBF {
-							hit = false
-						} else { // not sure
-							notSure = true
-						}
+						hit = ok
 					} else {
-						if !inSBF {
-							hit = true
-						} else if inIBF {
-							hit = false
-						} else { // not sure
-							notSure = true
-						}
+						hit = !ok
 					}
 
 					if all {
 						if hit {
-							outfh.WriteString(query + "\t" + string(q) + "\ttrue\n")
-						} else if notSure {
-							outfh.WriteString(query + "\t" + string(q) + "\tnot-sure\n")
-						} else {
-							outfh.WriteString(query + "\t" + string(q) + "\t\n")
+							outfh.WriteString(query + "\t" + string(q) + "\n")
 						}
 					} else {
 						if hit {
@@ -284,7 +239,6 @@ func init() {
 	RootCmd.AddCommand(grepCmd)
 
 	grepCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
-	grepCmd.Flags().IntP("esti-kmer-num", "n", 100000000, "estimated kmer num length (for initializing Bloom Filter)")
 
 	grepCmd.Flags().StringSliceP("pattern", "p", []string{""}, `search pattern (multiple values supported. Attention: use double quotation marks for patterns containing comma, e.g., -p '"A{2,}"'))`)
 	grepCmd.Flags().StringP("pattern-file", "f", "", "pattern file (one record per line)")

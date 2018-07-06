@@ -31,11 +31,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// interCmd represents
-var interCmd = &cobra.Command{
-	Use:   "inter",
-	Short: "intersection of multiple binary files",
-	Long: `intersection of multiple binary files
+// diffCmd represents
+var diffCmd = &cobra.Command{
+	Use:   "diff",
+	Short: "set difference of multiple binary files",
+	Long: `set difference of multiple binary files
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -58,7 +58,7 @@ var interCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 		var k int = -1
 		var firstFile = true
-		var hasInter = true
+		var hasDiff = true
 		var code uint64
 		var ok bool
 		for _, file := range files {
@@ -107,9 +107,9 @@ var interCmd = &cobra.Command{
 				continue
 			}
 
-			// remove unseen kmers
+			// remove seen kmers
 			for code = range m {
-				if m[code] {
+				if !m[code] {
 					m[code] = false
 				} else {
 					delete(m, code)
@@ -117,14 +117,14 @@ var interCmd = &cobra.Command{
 			}
 
 			if len(m) == 0 {
-				hasInter = false
+				hasDiff = false
 				break
 			}
 		}
 
-		if !hasInter {
+		if !hasDiff {
 			if opt.Verbose {
-				log.Infof("no intersection found")
+				log.Infof("no set difference found")
 			}
 			return
 		}
@@ -148,13 +148,13 @@ var interCmd = &cobra.Command{
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {
-			log.Infof("intersection of %d kmers found", len(m))
+			log.Infof("set difference of %d kmers found", len(m))
 		}
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(interCmd)
+	RootCmd.AddCommand(diffCmd)
 
-	interCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 }

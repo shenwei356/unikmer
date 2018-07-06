@@ -31,11 +31,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// interCmd represents
-var interCmd = &cobra.Command{
-	Use:   "inter",
-	Short: "intersection of multiple binary files",
-	Long: `intersection of multiple binary files
+// unionCmd represents
+var unionCmd = &cobra.Command{
+	Use:   "union",
+	Short: "union of multiple binary files",
+	Long: `union of multiple binary files
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -51,16 +51,24 @@ var interCmd = &cobra.Command{
 
 		var err error
 
-		m := make(map[uint64]bool, mapInitSize)
+		m := make(map[uint64]struct{}, mapInitSize)
+
+		if !isStdout(outFile) {
+			outFile += extDataFile
+		}
+		outfh, err := xopen.WopenGzip(outFile)
+		checkError(err)
+		defer outfh.Close()
+
+		var writer *unikmer.Writer
 
 		var infh *xopen.Reader
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
 		var firstFile = true
-		var hasInter = true
-		var code uint64
 		var ok bool
+		var n int64
 		for _, file := range files {
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
 				log.Errorf("input should be stdin or %s file", extDataFile)
@@ -80,6 +88,7 @@ var interCmd = &cobra.Command{
 
 			if k == -1 {
 				k = reader.K
+				writer = unikmer.NewWriter(outfh, k)
 			} else if k != reader.K {
 				checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 			}
@@ -93,12 +102,15 @@ var interCmd = &cobra.Command{
 				}
 
 				if firstFile {
-					m[kcode.Code] = false
+					m[kcode.Code] = struct{}{}
+					writer.Write(kcode)
+					n++
 					continue
 				}
 
-				if _, ok = m[kcode.Code]; ok {
-					m[kcode.Code] = true
+				if _, ok = m[kcode.Code]; !ok {
+					writer.Write(kcode)
+					n++
 				}
 			}
 
@@ -107,54 +119,16 @@ var interCmd = &cobra.Command{
 				continue
 			}
 
-			// remove unseen kmers
-			for code = range m {
-				if m[code] {
-					m[code] = false
-				} else {
-					delete(m, code)
-				}
-			}
-
-			if len(m) == 0 {
-				hasInter = false
-				break
-			}
 		}
-
-		if !hasInter {
-			if opt.Verbose {
-				log.Infof("no intersection found")
-			}
-			return
-		}
-
-		// output
 
 		if opt.Verbose {
-			log.Infof("export kmers")
-		}
-
-		if !isStdout(outFile) {
-			outFile += extDataFile
-		}
-		outfh, err := xopen.WopenGzip(outFile)
-		checkError(err)
-		defer outfh.Close()
-
-		writer := unikmer.NewWriter(outfh, k)
-
-		for code = range m {
-			writer.Write(unikmer.KmerCode{Code: code, K: k})
-		}
-		if opt.Verbose {
-			log.Infof("intersection of %d kmers found", len(m))
+			log.Infof("union of %d kmers found", n)
 		}
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(interCmd)
+	RootCmd.AddCommand(unionCmd)
 
-	interCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	unionCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 }

@@ -29,7 +29,6 @@ import (
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
-	boom "github.com/tylertreat/BoomFilters"
 )
 
 // subsetCmd represents
@@ -58,7 +57,6 @@ Attention:
 		if k > 32 {
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
-		hint := getFlagPositiveInt(cmd, "esti-kmer-num")
 
 		file := files[0]
 
@@ -93,10 +91,11 @@ Attention:
 
 		writer := unikmer.NewWriter(outfh, k)
 
-		sbf := boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
+		m := make(map[uint64]struct{}, mapInitSize)
 
 		var kcode, kcode2 unikmer.KmerCode
 		var mer []byte
+		var ok bool
 		for {
 			kcode, err = reader.Read()
 			if err != nil {
@@ -114,8 +113,8 @@ Attention:
 				checkError(fmt.Errorf("encoding '%s': %s", mer, err))
 			}
 
-			if !sbf.Test(mer) {
-				sbf.Add(mer)
+			if _, ok = m[kcode2.Code]; !ok {
+				m[kcode2.Code] = struct{}{}
 				checkError(writer.Write(kcode2))
 			}
 		}
@@ -127,5 +126,4 @@ func init() {
 
 	subsetCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	subsetCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
-	subsetCmd.Flags().IntP("esti-kmer-num", "n", 100000000, "estimated kmer num length (for initializing Bloom Filter)")
 }

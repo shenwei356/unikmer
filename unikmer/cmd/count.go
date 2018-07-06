@@ -30,11 +30,10 @@ import (
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
-	boom "github.com/tylertreat/BoomFilters"
 )
 
-// coutCmd represents
-var coutCmd = &cobra.Command{
+// countCmd represents
+var countCmd = &cobra.Command{
 	Use:   "count",
 	Short: "count kmer from FASTA/Q sequences",
 	Long: `count kmer from FASTA/Q sequences
@@ -52,7 +51,6 @@ var coutCmd = &cobra.Command{
 		if k > 32 {
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
-		hint := getFlagPositiveInt(cmd, "esti-kmer-num")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -63,15 +61,15 @@ var coutCmd = &cobra.Command{
 
 		writer := unikmer.NewWriter(outfh, k)
 
-		// estimate according to value of  k
-		sbf := boom.NewScalableBloomFilter(uint(hint), 0.01, 0.8)
+		m := make(map[uint64]struct{}, mapInitSize)
 
-		var sequence, mer, merRC []byte
+		var sequence, mer []byte
 		var originalLen, l, end, e int
 		var record *fastx.Record
 		var fastxReader *fastx.Reader
-		var kcode, kcodeRC unikmer.KmerCode
-		var i int
+		var kcode unikmer.KmerCode
+		var i, j int
+		var ok bool
 		for _, file := range files {
 			fastxReader, err = fastx.NewDefaultReader(file)
 			checkError(err)
@@ -85,56 +83,54 @@ var coutCmd = &cobra.Command{
 					break
 				}
 
-				originalLen = len(record.Seq.Seq)
-				sequence = record.Seq.Seq
-				l = len(sequence)
-				end = l - 1
-				if end < 0 {
-					end = 0
-				}
-				for i = 0; i <= end; i++ {
-					e = i + k
-					if e > originalLen {
-						if circular {
-							e = e - originalLen
-							mer = sequence[i:]
-							mer = append(mer, sequence[0:e]...)
+				for j = 0; j < 2; j++ {
+					if j == 0 { // sequence
+						sequence = record.Seq.Seq
+					} else { // reverse complement sequence
+						sequence = record.Seq.RevComInplace().Seq
+					}
+
+					originalLen = len(record.Seq.Seq)
+					l = len(sequence)
+
+					end = l - 1
+					if end < 0 {
+						end = 0
+					}
+					for i = 0; i <= end; i++ {
+						e = i + k
+						if e > originalLen {
+							if circular {
+								e = e - originalLen
+								mer = sequence[i:]
+								mer = append(mer, sequence[0:e]...)
+							} else {
+								break
+							}
 						} else {
-							break
+							mer = sequence[i : i+k]
 						}
-					} else {
-						mer = sequence[i : i+k]
-					}
 
-					kcode, err = unikmer.NewKmerCode(mer)
-					if err != nil {
-						checkError(fmt.Errorf("encoding '%s': %s", mer, err))
-					}
-					kcodeRC = kcode.RevComp()
+						kcode, err = unikmer.NewKmerCode(mer)
+						if err != nil {
+							checkError(fmt.Errorf("encoding '%s': %s", mer, err))
+						}
 
-					mer = kcode.Bytes()
-					if !sbf.Test(mer) {
-						sbf.Add(mer)
-						checkError(writer.Write(kcode))
-					}
-
-					merRC = kcodeRC.Bytes()
-					if !sbf.Test(merRC) {
-						sbf.Add(merRC)
-						checkError(writer.Write(kcodeRC))
+						if _, ok = m[kcode.Code]; !ok {
+							m[kcode.Code] = struct{}{}
+							checkError(writer.Write(kcode))
+						}
 					}
 				}
 			}
 		}
-
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(coutCmd)
+	RootCmd.AddCommand(countCmd)
 
-	coutCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	coutCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
-	coutCmd.Flags().IntP("esti-kmer-num", "n", 100000000, "estimated kmer num length (for initializing Bloom Filter)")
-	coutCmd.Flags().BoolP("circular-genome", "c", false, "circular genome")
+	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	countCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
+	countCmd.Flags().BoolP("circular-genome", "c", false, "circular genome")
 }

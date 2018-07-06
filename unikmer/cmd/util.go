@@ -25,6 +25,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var mapInitSize = 100000
+
 // Options contains the global flags
 type Options struct {
 	NumCPUs int
