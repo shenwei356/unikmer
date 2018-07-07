@@ -58,6 +58,10 @@ var diffCmd = &cobra.Command{
 		var code uint64
 		var ok bool
 		for _, file := range files {
+			if !firstFile && file == files[0] {
+				continue
+			}
+
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
 				log.Errorf("input should be stdin or %s file", extDataFile)
 				return

@@ -66,6 +66,10 @@ var unionCmd = &cobra.Command{
 		var ok bool
 		var n int64
 		for _, file := range files {
+			if !firstFile && file == files[0] {
+				continue
+			}
+
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
 				log.Errorf("input should be stdin or %s file", extDataFile)
 				return

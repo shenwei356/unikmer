@@ -70,7 +70,7 @@ Howto:
 		}
 		checkError(cmd.Root().GenBashCompletionFile(autocompleteTarget))
 
-		log.Infof("bash completion file for SeqKit saved to %s", autocompleteTarget)
+		log.Infof("bash completion file for unikmer saved to %s", autocompleteTarget)
 	},
 }
 
