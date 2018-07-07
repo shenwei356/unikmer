@@ -66,7 +66,8 @@ var unionCmd = &cobra.Command{
 		var ok bool
 		var n int64
 		var flag int
-		for _, file := range files {
+		var nfiles = len(files)
+		for i, file := range files {
 			if !firstFile && file == files[0] {
 				continue
 			}
@@ -77,7 +78,7 @@ var unionCmd = &cobra.Command{
 			}
 
 			if opt.Verbose {
-				log.Infof("read kmers from: %s", file)
+				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
 			}
 
 			flag = func() int {
