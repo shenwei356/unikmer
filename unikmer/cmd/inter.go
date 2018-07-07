@@ -57,6 +57,7 @@ var interCmd = &cobra.Command{
 		var hasInter = true
 		var code uint64
 		var ok bool
+		var flag int
 		for _, file := range files {
 			if !firstFile && file == files[0] {
 				continue
@@ -71,71 +72,85 @@ var interCmd = &cobra.Command{
 				log.Infof("read kmers from: %s", file)
 			}
 
-			infh, err = xopen.Ropen(file)
-			checkError(err)
-			defer infh.Close()
-
-			if len(files) == 1 {
-				if opt.Verbose {
-					log.Infof("directly copy input data when only one file given")
-				}
-				if !isStdout(outFile) {
-					outFile += extDataFile
-				}
-				var outfh *xopen.Writer
-				outfh, err = xopen.WopenGzip(outFile)
+			flag = func() int {
+				infh, err = xopen.Ropen(file)
 				checkError(err)
-				defer outfh.Close()
-				_, err = io.Copy(outfh, infh)
-				if err != nil {
-					checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
-				}
-				return
-			}
+				defer infh.Close()
 
-			reader, err = unikmer.NewReader(infh)
-			checkError(err)
-
-			if k == -1 {
-				k = reader.K
-			} else if k != reader.K {
-				checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-			}
-			for {
-				kcode, err = reader.Read()
-				if err != nil {
-					if err == io.EOF {
-						break
+				if len(files) == 1 {
+					if opt.Verbose {
+						log.Infof("directly copy input data when only one file given")
 					}
+					if !isStdout(outFile) {
+						outFile += extDataFile
+					}
+					var outfh *xopen.Writer
+					outfh, err = xopen.WopenGzip(outFile)
 					checkError(err)
+					defer outfh.Close()
+
+					_, err = io.Copy(outfh, infh)
+					if err != nil {
+						checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
+					}
+					return flagReturn
+				}
+
+				reader, err = unikmer.NewReader(infh)
+				checkError(err)
+
+				if k == -1 {
+					k = reader.K
+				} else if k != reader.K {
+					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+				}
+				for {
+					kcode, err = reader.Read()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						checkError(err)
+					}
+
+					if firstFile {
+						m[kcode.Code] = false
+						continue
+					}
+
+					if _, ok = m[kcode.Code]; ok {
+						m[kcode.Code] = true
+					}
 				}
 
 				if firstFile {
-					m[kcode.Code] = false
-					continue
+					firstFile = false
+					return flagContinue
 				}
 
-				if _, ok = m[kcode.Code]; ok {
-					m[kcode.Code] = true
+				// remove unseen kmers
+				for code = range m {
+					if m[code] {
+						m[code] = false
+					} else {
+						delete(m, code)
+					}
 				}
-			}
 
-			if firstFile {
-				firstFile = false
-				continue
-			}
-
-			// remove unseen kmers
-			for code = range m {
-				if m[code] {
-					m[code] = false
-				} else {
-					delete(m, code)
+				if opt.Verbose {
+					log.Infof("%d kmers remain", len(m))
 				}
-			}
+				if len(m) == 0 {
+					hasInter = false
+					return flagBreak
+				}
 
-			if len(m) == 0 {
-				hasInter = false
+				return flagContinue
+			}()
+
+			if flag == flagReturn {
+				return
+			} else if flag == flagBreak {
 				break
 			}
 		}

@@ -27,6 +27,12 @@ import (
 
 var mapInitSize = 100000
 
+const (
+	flagContinue = iota
+	flagBreak
+	flagReturn
+)
+
 // Options contains the global flags
 type Options struct {
 	NumCPUs int
