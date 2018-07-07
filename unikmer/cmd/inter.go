@@ -71,6 +71,24 @@ var interCmd = &cobra.Command{
 			checkError(err)
 			defer infh.Close()
 
+			if len(files) == 1 {
+				if opt.Verbose {
+					log.Infof("directly copy input data when only one file given")
+				}
+				if !isStdout(outFile) {
+					outFile += extDataFile
+				}
+				var outfh *xopen.Writer
+				outfh, err = xopen.WopenGzip(outFile)
+				checkError(err)
+				defer outfh.Close()
+				_, err = io.Copy(outfh, infh)
+				if err != nil {
+					checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
+				}
+				return
+			}
+
 			reader, err = unikmer.NewReader(infh)
 			checkError(err)
 

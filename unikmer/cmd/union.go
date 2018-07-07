@@ -79,6 +79,18 @@ var unionCmd = &cobra.Command{
 			checkError(err)
 			defer infh.Close()
 
+			if len(files) == 1 {
+				if opt.Verbose {
+					log.Infof("directly copy input data when only one file given")
+				}
+
+				_, err = io.Copy(outfh, infh)
+				if err != nil {
+					checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
+				}
+				return
+			}
+
 			reader, err = unikmer.NewReader(infh)
 			checkError(err)
 
