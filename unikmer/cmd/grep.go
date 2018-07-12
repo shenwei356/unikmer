@@ -50,14 +50,14 @@ var grepCmd = &cobra.Command{
 		}
 
 		outFile := getFlagString(cmd, "out-file")
-		pattern := getFlagStringSlice(cmd, "pattern")
-		patternFile := getFlagString(cmd, "pattern-file")
+		pattern := getFlagStringSlice(cmd, "query")
+		patternFile := getFlagString(cmd, "query-file")
 		invertMatch := getFlagBool(cmd, "invert-match")
 		degenerate := getFlagBool(cmd, "degenerate")
 		all := getFlagBool(cmd, "all")
 
 		if len(pattern) == 0 && patternFile == "" {
-			checkError(fmt.Errorf("one of flags -p (--pattern) and -f (--pattern-file) needed"))
+			checkError(fmt.Errorf("one of flags -q (--query) and -f (--query-file) needed"))
 		}
 
 		var err error
@@ -65,17 +65,13 @@ var grepCmd = &cobra.Command{
 		if patternFile != "" {
 			var ok bool
 			ok, err = pathutil.Exists(patternFile)
-			if !ok {
-				checkError(fmt.Errorf("read pattern file: %s", err))
+			if err != nil {
+				checkError(fmt.Errorf("read query file: %s", err))
 			}
 			if !ok {
-				checkError(fmt.Errorf("pattern file not found: %s", patternFile))
+				checkError(fmt.Errorf("query file not found: %s", patternFile))
 			}
 		}
-
-		outfh, err := xopen.Wopen(outFile)
-		checkError(err)
-		defer outfh.Close()
 
 		file := files[0]
 
@@ -129,6 +125,10 @@ var grepCmd = &cobra.Command{
 			log.Infof("finish reading kmers from %s", file)
 		}
 
+		outfh, err := xopen.Wopen(outFile)
+		checkError(err)
+		defer outfh.Close()
+
 		var queries [][]byte
 		var q []byte
 		var ok, hit bool
@@ -160,6 +160,7 @@ var grepCmd = &cobra.Command{
 					} else {
 						queries = [][]byte{[]byte(query)}
 					}
+
 					for _, q = range queries {
 						kcode, err = unikmer.NewKmerCode(q)
 						if err != nil {
@@ -168,7 +169,7 @@ var grepCmd = &cobra.Command{
 
 						_, ok = m[kcode.Code]
 
-						if !invertMatch { //
+						if !invertMatch {
 							hit = ok
 						} else {
 							hit = !ok
@@ -205,6 +206,7 @@ var grepCmd = &cobra.Command{
 				} else {
 					queries = [][]byte{[]byte(query)}
 				}
+
 				for _, q = range queries {
 					kcode, err = unikmer.NewKmerCode(q)
 					if err != nil {
@@ -213,7 +215,7 @@ var grepCmd = &cobra.Command{
 
 					_, ok = m[kcode.Code]
 
-					if !invertMatch { //
+					if !invertMatch {
 						hit = ok
 					} else {
 						hit = !ok
@@ -240,9 +242,9 @@ func init() {
 
 	grepCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 
-	grepCmd.Flags().StringSliceP("pattern", "p", []string{""}, `search pattern (multiple values supported. Attention: use double quotation marks for patterns containing comma, e.g., -p '"A{2,}"'))`)
-	grepCmd.Flags().StringP("pattern-file", "f", "", "pattern file (one record per line)")
-	grepCmd.Flags().BoolP("degenerate", "d", false, "pattern/motif contains degenerate base")
+	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query kmer (multiple values supported. Attention: use double quotation marks for patterns containing comma, e.g., -p '"A{2,}"'))`)
+	grepCmd.Flags().StringP("query-file", "f", "", "query file (one kmer per line)")
+	grepCmd.Flags().BoolP("degenerate", "d", false, "query kmer contains degenerate base")
 	grepCmd.Flags().BoolP("invert-match", "v", false, "invert the sense of matching, to select non-matching records")
 
 	grepCmd.Flags().BoolP("all", "a", false, "show more information")

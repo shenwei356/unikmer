@@ -105,6 +105,7 @@ var interCmd = &cobra.Command{
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}
+
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -119,6 +120,7 @@ var interCmd = &cobra.Command{
 						continue
 					}
 
+					// mark seen kmer
 					if _, ok = m[kcode.Code]; ok {
 						m[kcode.Code] = true
 					}
@@ -179,6 +181,7 @@ var interCmd = &cobra.Command{
 		writer := unikmer.NewWriter(outfh, k)
 
 		for code = range m {
+			// not need to check err
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {

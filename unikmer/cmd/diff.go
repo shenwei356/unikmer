@@ -84,6 +84,7 @@ var diffCmd = &cobra.Command{
 					if !isStdout(outFile) {
 						outFile += extDataFile
 					}
+
 					var outfh *xopen.Writer
 					outfh, err = xopen.WopenGzip(outFile)
 					checkError(err)
@@ -104,6 +105,7 @@ var diffCmd = &cobra.Command{
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}
+
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -118,6 +120,7 @@ var diffCmd = &cobra.Command{
 						continue
 					}
 
+					// mark seen kmer
 					if _, ok = m[kcode.Code]; ok {
 						m[kcode.Code] = true
 					}

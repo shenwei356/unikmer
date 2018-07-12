@@ -84,7 +84,6 @@ Attention:
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-
 		outfh, err := xopen.WopenGzip(outFile)
 		checkError(err)
 		defer outfh.Close()

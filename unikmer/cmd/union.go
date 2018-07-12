@@ -107,6 +107,7 @@ var unionCmd = &cobra.Command{
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}
+
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -118,13 +119,14 @@ var unionCmd = &cobra.Command{
 
 					if firstFile {
 						m[kcode.Code] = struct{}{}
-						writer.Write(kcode)
+						writer.Write(kcode) // not need to check err
 						n++
 						continue
 					}
 
+					// new kmers
 					if _, ok = m[kcode.Code]; !ok {
-						writer.Write(kcode)
+						writer.Write(kcode) // not need to check err
 						n++
 					}
 				}
@@ -132,6 +134,7 @@ var unionCmd = &cobra.Command{
 				if firstFile {
 					firstFile = false
 				}
+
 				return flagContinue
 			}()
 

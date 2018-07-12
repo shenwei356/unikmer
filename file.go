@@ -106,6 +106,7 @@ func (reader *Reader) readHeader() error {
 	return nil
 }
 
+// Read reads one KmerCode
 func (reader *Reader) Read() (KmerCode, error) {
 	reader.err = binary.Read(reader.r, be, &reader.code)
 	if reader.err != nil {
@@ -134,10 +135,12 @@ func NewWriter(w io.Writer, k int) *Writer {
 }
 
 func (writer *Writer) writeHeader() error {
+	// write magic number
 	writer.err = binary.Write(writer.w, be, Magic)
 	if writer.err != nil {
 		return writer.err
 	}
+	// write header
 	writer.err = binary.Write(writer.w, be, [3]int64{MainVersion, MinorVersion, int64(writer.K)})
 	if writer.err != nil {
 		return writer.err

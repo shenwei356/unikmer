@@ -21,6 +21,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"runtime"
 	"strings"
@@ -30,11 +31,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// viewCmd represents
-var viewCmd = &cobra.Command{
-	Use:   "view",
-	Short: "read and output binary format to plain text",
-	Long: `read and output binary format to plain text
+// concatCmd represents
+var concatCmd = &cobra.Command{
+	Use:   "concat",
+	Short: "concatenate multiple binary files",
+	Long: `concatenate multiple binary files
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -42,21 +43,38 @@ var viewCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
-		outFile := getFlagString(cmd, "out-file")
+		outFile := getFlagString(cmd, "out-prefix")
 
-		outfh, err := xopen.Wopen(outFile)
+		var err error
+
+		if !isStdout(outFile) {
+			outFile += extDataFile
+		}
+		outfh, err := xopen.WopenGzip(outFile)
 		checkError(err)
 		defer outfh.Close()
+
 		var infh *xopen.Reader
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var k int = -1
+		var firstFile = true
+		var flag int
+		var nfiles = len(files)
+		for i, file := range files {
+			if !firstFile && file == files[0] {
+				continue
+			}
 
-		for _, file := range files {
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
 				log.Errorf("input should be stdin or %s file", extDataFile)
 				return
 			}
-			func() {
+
+			if opt.Verbose {
+				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+			}
+
+			flag = func() int {
 				infh, err = xopen.Ropen(file)
 				checkError(err)
 				defer infh.Close()
@@ -64,27 +82,43 @@ var viewCmd = &cobra.Command{
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
-				for {
-					kcode, err = reader.Read()
-					if err != nil {
-						if err == io.EOF {
-							break
-						}
-						checkError(err)
-					}
-
-					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
-					outfh.WriteString(kcode.String() + "\n")
+				if k == -1 {
+					k = reader.K
+				} else if k != reader.K {
+					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}
 
+				if firstFile {
+					err = writeHeader(outfh, k)
+					if err != nil {
+						checkError(fmt.Errorf("write header: %s", err))
+					}
+				}
+
+				_, err = io.Copy(outfh, infh)
+				if err != nil {
+					checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
+				}
+
+				if firstFile {
+					firstFile = false
+				}
+
+				return flagContinue
 			}()
+
+			if flag == flagReturn {
+				return
+			} else if flag == flagBreak {
+				break
+			}
 		}
+
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(viewCmd)
+	RootCmd.AddCommand(concatCmd)
 
-	viewCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
-
+	concatCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 }

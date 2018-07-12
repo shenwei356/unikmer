@@ -106,13 +106,13 @@ func Decode(code uint64, k int) []byte {
 	return mer
 }
 
-// KmerCode is a truct representing a kmer in bits
+// KmerCode is a struct representing a kmer in 64-bits
 type KmerCode struct {
 	Code uint64
 	K    int
 }
 
-// NewKmerCode returns KmerCode
+// NewKmerCode returns a new KmerCode from byte slice
 func NewKmerCode(mer []byte) (KmerCode, error) {
 	code, err := Encode(mer)
 	if err != nil {
@@ -121,7 +121,7 @@ func NewKmerCode(mer []byte) (KmerCode, error) {
 	return KmerCode{code, len(mer)}, err
 }
 
-// Equal checks wether two KmerCodes is the same
+// Equal checks wether two KmerCodes are the same
 func (kcode KmerCode) Equal(kcode2 KmerCode) bool {
 	return kcode.K == kcode2.K && kcode.Code == kcode2.Code
 }
