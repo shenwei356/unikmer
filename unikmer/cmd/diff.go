@@ -44,6 +44,7 @@ var diffCmd = &cobra.Command{
 		files := getFileList(args)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		checkInterval := getFlagPositiveInt(cmd, "check-interval")
 
 		var err error
 
@@ -131,6 +132,10 @@ var diffCmd = &cobra.Command{
 					return flagContinue
 				}
 
+				if checkInterval > 1 && !(i == len(files)-1 || i%2 == 0) {
+					return flagContinue
+				}
+
 				// remove seen kmers
 				for code = range m {
 					if !m[code] {
@@ -193,4 +198,5 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	diffCmd.Flags().IntP("check-interval", "i", 5, `check kmers every N files, N > 1 could save some time`)
 }

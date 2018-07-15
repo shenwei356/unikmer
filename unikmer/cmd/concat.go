@@ -61,10 +61,6 @@ var concatCmd = &cobra.Command{
 		var flag int
 		var nfiles = len(files)
 		for i, file := range files {
-			if !firstFile && file == files[0] {
-				continue
-			}
-
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
 				log.Errorf("input should be stdin or %s file", extDataFile)
 				return
