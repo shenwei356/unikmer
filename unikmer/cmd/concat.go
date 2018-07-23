@@ -54,10 +54,12 @@ var concatCmd = &cobra.Command{
 		checkError(err)
 		defer outfh.Close()
 
+		var writer *unikmer.Writer
+
 		var infh *xopen.Reader
 		var reader *unikmer.Reader
+		var kcode unikmer.KmerCode
 		var k int = -1
-		var firstFile = true
 		var flag int
 		var nfiles = len(files)
 		for i, file := range files {
@@ -80,24 +82,21 @@ var concatCmd = &cobra.Command{
 
 				if k == -1 {
 					k = reader.K
+					writer = unikmer.NewWriter(outfh, k)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}
 
-				if firstFile {
-					err = writeHeader(outfh, k)
+				for {
+					kcode, err = reader.Read()
 					if err != nil {
-						checkError(fmt.Errorf("write header: %s", err))
+						if err == io.EOF {
+							break
+						}
+						checkError(err)
 					}
-				}
 
-				_, err = io.Copy(outfh, infh)
-				if err != nil {
-					checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
-				}
-
-				if firstFile {
-					firstFile = false
+					writer.Write(kcode) // not need to check err
 				}
 
 				return flagContinue

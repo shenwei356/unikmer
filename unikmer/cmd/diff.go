@@ -198,5 +198,5 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	diffCmd.Flags().IntP("check-interval", "i", 5, `check kmers every N files, N > 1 could save some time`)
+	diffCmd.Flags().IntP("check-interval", "i", 10, `check kmers every N files, N > 1 could save some time`)
 }
