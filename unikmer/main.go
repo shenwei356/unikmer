@@ -31,7 +31,7 @@ import (
 )
 
 var logFormat = logging.MustStringFormatter(
-	`%{color}[%{level:.4s}]%{color:reset} %{message}`,
+	`%{time:15:04:05.000} %{color}[%{level:.4s}]%{color:reset} %{message}`,
 )
 
 func init() {
