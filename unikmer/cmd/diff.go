@@ -66,8 +66,7 @@ var diffCmd = &cobra.Command{
 			}
 
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				log.Errorf("input should be stdin or %s file", extDataFile)
-				return
+				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 			}
 
 			if opt.Verbose {
@@ -78,10 +77,8 @@ var diffCmd = &cobra.Command{
 				infh, err = xopen.Ropen(file)
 				checkError(err)
 				defer infh.Close()
+
 				if len(files) == 1 {
-					if opt.Verbose {
-						log.Infof("directly copy input data when only one file given")
-					}
 					if !isStdout(outFile) {
 						outFile += extDataFile
 					}
@@ -91,9 +88,22 @@ var diffCmd = &cobra.Command{
 					checkError(err)
 					defer outfh.Close()
 
-					_, err = io.Copy(outfh, infh)
-					if err != nil {
-						checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
+					writer := unikmer.NewWriter(outfh, k)
+
+					m := make(map[uint64]struct{}, mapInitSize)
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						if _, ok = m[kcode.Code]; !ok {
+							m[kcode.Code] = struct{}{}
+							writer.Write(kcode) // not need to check er
+						}
 					}
 					return flagReturn
 				}
@@ -138,7 +148,7 @@ var diffCmd = &cobra.Command{
 
 				// remove seen kmers
 				if opt.Verbose {
-					log.Infof("remove seen kmers ...")
+					log.Infof("remove seen Kmers")
 				}
 
 				for code = range m {
@@ -150,7 +160,7 @@ var diffCmd = &cobra.Command{
 				}
 
 				if opt.Verbose {
-					log.Infof("%d kmers remain", len(m))
+					log.Infof("%d Kmers remain", len(m))
 				}
 				if len(m) == 0 {
 					hasDiff = false
@@ -177,7 +187,7 @@ var diffCmd = &cobra.Command{
 		// output
 
 		if opt.Verbose {
-			log.Infof("export kmers")
+			log.Infof("export Kmers")
 		}
 
 		if !isStdout(outFile) {
@@ -193,7 +203,7 @@ var diffCmd = &cobra.Command{
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {
-			log.Infof("%d kmers found", len(m))
+			log.Infof("%d Kmers found", len(m))
 		}
 	},
 }

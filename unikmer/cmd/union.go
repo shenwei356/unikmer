@@ -74,8 +74,7 @@ var unionCmd = &cobra.Command{
 			}
 
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				log.Errorf("input should be stdin or %s file", extDataFile)
-				return
+				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 			}
 
 			if opt.Verbose {
@@ -125,7 +124,7 @@ var unionCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("%d kmers found", n)
+			log.Infof("%d Kmers found", n)
 		}
 	},
 }

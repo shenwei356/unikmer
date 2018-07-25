@@ -65,8 +65,7 @@ var interCmd = &cobra.Command{
 			}
 
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				log.Errorf("input should be stdin or %s file", extDataFile)
-				return
+				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 			}
 
 			if opt.Verbose {
@@ -79,9 +78,6 @@ var interCmd = &cobra.Command{
 				defer infh.Close()
 
 				if len(files) == 1 {
-					if opt.Verbose {
-						log.Infof("directly copy input data when only one file given")
-					}
 					if !isStdout(outFile) {
 						outFile += extDataFile
 					}
@@ -90,10 +86,24 @@ var interCmd = &cobra.Command{
 					checkError(err)
 					defer outfh.Close()
 
-					_, err = io.Copy(outfh, infh)
-					if err != nil {
-						checkError(fmt.Errorf("copy input file '%s' to output '%s': %s", file, outFile, err))
+					writer := unikmer.NewWriter(outfh, k)
+
+					m := make(map[uint64]struct{}, mapInitSize)
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						if _, ok = m[kcode.Code]; !ok {
+							m[kcode.Code] = struct{}{}
+							writer.Write(kcode) // not need to check er
+						}
 					}
+
 					return flagReturn
 				}
 
@@ -185,7 +195,7 @@ var interCmd = &cobra.Command{
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {
-			log.Infof("%d kmers found", len(m))
+			log.Infof("%d Kmers found", len(m))
 		}
 	},
 }

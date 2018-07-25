@@ -21,6 +21,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"runtime"
 	"strings"
@@ -53,8 +54,7 @@ var viewCmd = &cobra.Command{
 
 		for _, file := range files {
 			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				log.Errorf("input should be stdin or %s file", extDataFile)
-				return
+				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 			}
 			func() {
 				infh, err = xopen.Ropen(file)

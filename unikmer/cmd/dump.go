@@ -33,8 +33,8 @@ import (
 // dumpCmd represents
 var dumpCmd = &cobra.Command{
 	Use:   "dump",
-	Short: "convert plain text to binary format",
-	Long: `convert plain text to binary format
+	Short: "convert plain Kmer text to binary format",
+	Long: `convert plain Kmer text to binary format
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -43,6 +43,7 @@ var dumpCmd = &cobra.Command{
 		files := getFileList(args)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		noDedup := getFlagBool(cmd, "no-dedup")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -53,7 +54,10 @@ var dumpCmd = &cobra.Command{
 
 		var writer *unikmer.Writer
 
-		m := make(map[uint64]struct{}, mapInitSize)
+		var m map[uint64]struct{}
+		if !noDedup {
+			m = make(map[uint64]struct{}, mapInitSize)
+		}
 
 		var k int = -1
 		var l int
@@ -80,8 +84,7 @@ var dumpCmd = &cobra.Command{
 					} else if k == -1 {
 						k = l
 					} else if l != k {
-						log.Errorf("Kmer length mismatch, previous: %d, current: %d. %s", k, l, line)
-						return
+						checkError(fmt.Errorf("Kmer length mismatch, previous: %d, current: %d. %s", k, l, line))
 					}
 
 					if writer == nil {
@@ -93,19 +96,22 @@ var dumpCmd = &cobra.Command{
 						checkError(fmt.Errorf("encoding '%s': %s", line, err))
 					}
 
-					if _, ok = m[kcode.Code]; !ok {
-						m[kcode.Code] = struct{}{}
+					if noDedup {
 						checkError(writer.Write(kcode))
 						n++
+					} else {
+						if _, ok = m[kcode.Code]; !ok {
+							m[kcode.Code] = struct{}{}
+							checkError(writer.Write(kcode))
+							n++
+						}
 					}
-
-					writer.WriteKmer([]byte(line))
 				}
 			}
 		}
 
 		if opt.Verbose {
-			log.Infof("%d unique kmers found", n)
+			log.Infof("%d unique Kmers found", n)
 		}
 	},
 }
@@ -114,4 +120,5 @@ func init() {
 	RootCmd.AddCommand(dumpCmd)
 
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	dumpCmd.Flags().BoolP("no-dedup", "D", false, `do not deduplicate kmers, this can save some time and memory`)
 }

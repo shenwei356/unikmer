@@ -35,8 +35,8 @@ import (
 // countCmd represents
 var countCmd = &cobra.Command{
 	Use:   "count",
-	Short: "count kmer from FASTA/Q sequences",
-	Long: `count kmer from FASTA/Q sequences
+	Short: "count Kmer from FASTA/Q sequences",
+	Long: `count Kmer from FASTA/Q sequences
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -139,7 +139,7 @@ var countCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("%d unique kmers found", n)
+			log.Infof("%d unique Kmers found", n)
 		}
 	},
 }

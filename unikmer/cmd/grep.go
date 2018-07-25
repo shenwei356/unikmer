@@ -36,8 +36,8 @@ import (
 // grepCmd represents
 var grepCmd = &cobra.Command{
 	Use:   "grep",
-	Short: "search kmer from binary file",
-	Long: `search kmer from binary file
+	Short: "search Kmer from binary file",
+	Long: `search Kmer from binary file
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -76,14 +76,13 @@ var grepCmd = &cobra.Command{
 		file := files[0]
 
 		if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-			log.Errorf("input should be stdin or %s file", extDataFile)
-			return
+			checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 		}
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		if opt.Verbose {
-			log.Infof("read kmers from %s", file)
+			log.Infof("read Kmers from %s", file)
 		}
 
 		var infh *xopen.Reader
@@ -122,7 +121,7 @@ var grepCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("finish reading kmers from %s", file)
+			log.Infof("finish reading Kmers from %s", file)
 		}
 
 		outfh, err := xopen.Wopen(outFile)
@@ -242,10 +241,10 @@ func init() {
 
 	grepCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 
-	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query kmer (multiple values supported. Attention: use double quotation marks for patterns containing comma, e.g., -p '"A{2,}"'))`)
-	grepCmd.Flags().StringP("query-file", "f", "", "query file (one kmer per line)")
-	grepCmd.Flags().BoolP("degenerate", "d", false, "query kmer contains degenerate base")
+	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query Kmer(s) (multiple values delimted by comma supported)`)
+	grepCmd.Flags().StringP("query-file", "f", "", "query file (one Kmer per line)")
+	grepCmd.Flags().BoolP("degenerate", "d", false, "query Kmer contains degenerate base")
 	grepCmd.Flags().BoolP("invert-match", "v", false, "invert the sense of matching, to select non-matching records")
 
-	grepCmd.Flags().BoolP("all", "a", false, "show more information")
+	grepCmd.Flags().BoolP("all", "a", false, "show more information: extra column of matched Kmers")
 }
