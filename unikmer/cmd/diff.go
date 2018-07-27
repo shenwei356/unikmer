@@ -25,6 +25,7 @@ import (
 	"io"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/xopen"
@@ -40,11 +41,13 @@ var diffCmd = &cobra.Command{
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		checkInterval := getFlagPositiveInt(cmd, "check-interval")
+		// checkInterval := getFlagPositiveInt(cmd, "check-interval")
+		threads := opt.NumCPUs
+
+		runtime.GOMAXPROCS(threads)
 
 		var err error
 
@@ -54,69 +57,38 @@ var diffCmd = &cobra.Command{
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
-		var firstFile = true
-		var hasDiff = true
-		var code uint64
 		var ok bool
-		var flag int
 		var nfiles = len(files)
-		for i, file := range files {
-			if !firstFile && file == files[0] {
-				continue
-			}
 
-			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
-			}
+		// -----------------------------------------------------------------------
 
-			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
-			}
+		file := files[0]
+		if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+			checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
+		}
+		if opt.Verbose {
+			log.Infof("process file (%d/%d): %s", 1, nfiles, file)
+		}
 
-			flag = func() int {
+		// only one file given
+		if len(files) == 1 {
+			func() {
 				infh, err = xopen.Ropen(file)
 				checkError(err)
 				defer infh.Close()
 
-				if len(files) == 1 {
-					if !isStdout(outFile) {
-						outFile += extDataFile
-					}
-
-					var outfh *xopen.Writer
-					outfh, err = xopen.WopenGzip(outFile)
-					checkError(err)
-					defer outfh.Close()
-
-					writer := unikmer.NewWriter(outfh, k)
-
-					m := make(map[uint64]struct{}, mapInitSize)
-					for {
-						kcode, err = reader.Read()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(err)
-						}
-
-						if _, ok = m[kcode.Code]; !ok {
-							m[kcode.Code] = struct{}{}
-							writer.Write(kcode) // not need to check er
-						}
-					}
-					return flagReturn
+				if !isStdout(outFile) {
+					outFile += extDataFile
 				}
 
-				reader, err = unikmer.NewReader(infh)
+				var outfh *xopen.Writer
+				outfh, err = xopen.WopenGzip(outFile)
 				checkError(err)
+				defer outfh.Close()
 
-				if k == -1 {
-					k = reader.K
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				}
+				writer := unikmer.NewWriter(outfh, k)
 
+				m := make(map[uint64]struct{}, mapInitSize)
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -126,54 +98,199 @@ var diffCmd = &cobra.Command{
 						checkError(err)
 					}
 
-					if firstFile {
-						m[kcode.Code] = false
-						continue
-					}
-
-					// mark seen kmer
-					if _, ok = m[kcode.Code]; ok {
-						m[kcode.Code] = true
+					if _, ok = m[kcode.Code]; !ok {
+						m[kcode.Code] = struct{}{}
+						writer.Write(kcode) // not need to check er
 					}
 				}
-
-				if firstFile {
-					firstFile = false
-					return flagContinue
-				}
-
-				if checkInterval > 1 && !(i == len(files)-1 || i%checkInterval == 0) {
-					return flagContinue
-				}
-
-				// remove seen kmers
-				if opt.Verbose {
-					log.Infof("remove seen Kmers")
-				}
-
-				for code = range m {
-					if m[code] {
-						delete(m, code)
-					}
-				}
-
-				if opt.Verbose {
-					log.Infof("%d Kmers remain", len(m))
-				}
-				if len(m) == 0 {
-					hasDiff = false
-					return flagBreak
-				}
-
-				return flagContinue
 			}()
 
-			if flag == flagReturn {
-				return
-			} else if flag == flagBreak {
-				break
-			}
+			return
 		}
+
+		// -----------------------------------------------------------------------
+
+		// > 1 files
+
+		// read firstFile
+
+		infh, err = xopen.Ropen(file)
+		checkError(err)
+		defer infh.Close()
+
+		reader, err = unikmer.NewReader(infh)
+		checkError(err)
+
+		k = reader.K
+
+		for {
+			kcode, err = reader.Read()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				checkError(err)
+			}
+
+			m[kcode.Code] = false
+		}
+
+		if opt.Verbose {
+			log.Infof("%d Kmers loaded", len(m))
+		}
+		// -----------------------------------------------------------------------
+
+		done := make(chan int)
+
+		toStop := make(chan int, 1)
+		doneDone := make(chan int)
+		go func() {
+			<-toStop
+			close(done)
+			doneDone <- 1
+		}()
+
+		// ---------------
+
+		type iFile struct {
+			i    int
+			file string
+		}
+
+		chFile := make(chan iFile, threads)
+		doneSendFile := make(chan int)
+
+		maps := make(map[int]map[uint64]bool, threads)
+		maps[0] = m
+
+		// clone maps
+		if opt.Verbose {
+			log.Infof("clone data for parallization")
+		}
+		var wg sync.WaitGroup
+		for i := 1; i < opt.NumCPUs; i++ {
+			wg.Add(1)
+			go func(i int) {
+				m1 := make(map[uint64]bool, len(m))
+				for k := range m {
+					m1[k] = false
+				}
+				wg.Done()
+				maps[i] = m1
+			}(i)
+		}
+		wg.Wait()
+		if opt.Verbose {
+			log.Infof("done cloning data")
+		}
+
+		// -----------------------------------------------------------------------
+		hasDiff := true
+		var wgWorkers sync.WaitGroup
+		for i := 0; i < opt.NumCPUs; i++ { // workers
+			wgWorkers.Add(1)
+
+			go func(i int) {
+				defer func() {
+					if opt.Verbose {
+						log.Infof("worker %d finished with %d Kmers", i, len(maps[i]))
+					}
+					wgWorkers.Done()
+				}()
+
+				if opt.Verbose {
+					log.Infof("worker %d started", i)
+				}
+
+				var code uint64
+				var ifile iFile
+				var file string
+				var infh *xopen.Reader
+				var reader *unikmer.Reader
+				var kcode unikmer.KmerCode
+				var ok, mark bool
+				m1 := maps[i]
+				for {
+					select {
+					case <-done:
+						return
+					default:
+					}
+
+					ifile, ok = <-chFile
+					if !ok {
+						return
+					}
+					file = ifile.file
+
+					if opt.Verbose {
+						log.Infof("(worker %d) process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
+					}
+
+					infh, err = xopen.Ropen(file)
+					checkError(err)
+					defer infh.Close()
+
+					reader, err = unikmer.NewReader(infh)
+					checkError(err)
+
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						// mark seen kmer
+						if _, ok = m1[kcode.Code]; ok {
+							m1[kcode.Code] = true
+						}
+					}
+
+					// remove seen kmers
+					for code, mark = range m1 {
+						if mark {
+							delete(m1, code)
+						}
+					}
+
+					if opt.Verbose {
+						log.Infof("(worker %d) %d Kmers remain", i, len(m1))
+					}
+					if len(m1) == 0 {
+						hasDiff = false
+						toStop <- 1
+						return
+					}
+				}
+			}(i)
+		}
+
+		// send file
+		go func() {
+			for i, file := range files[1:] {
+				if file == files[0] {
+					continue
+				}
+				if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+					checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
+				}
+				chFile <- iFile{i + 1, file}
+			}
+			close(chFile)
+			doneSendFile <- 1
+		}()
+
+		<-doneSendFile
+		wgWorkers.Wait()
+		toStop <- 1
+		<-doneDone
 
 		if !hasDiff {
 			if opt.Verbose {
@@ -181,6 +298,37 @@ var diffCmd = &cobra.Command{
 			}
 			return
 		}
+
+		var m0 map[uint64]bool
+		var code uint64
+		for _, m := range maps {
+			if len(m) == 0 {
+				continue
+			}
+
+			if m0 == nil {
+				m0 = m
+				continue
+			}
+			for code = range m0 {
+				if _, ok = m[code]; !ok { // it's already been deleted in other m
+					delete(m0, code) // so it should be deleted
+				}
+			}
+
+			if len(m0) == 0 {
+				break
+			}
+		}
+
+		if len(m0) == 0 {
+			if opt.Verbose {
+				log.Infof("no set difference found")
+			}
+			return
+		}
+
+		// -----------------------------------------------------------------------
 
 		// output
 
@@ -197,11 +345,11 @@ var diffCmd = &cobra.Command{
 
 		writer := unikmer.NewWriter(outfh, k)
 
-		for code = range m {
+		for code := range m0 {
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {
-			log.Infof("%d Kmers found", len(m))
+			log.Infof("%d Kmers saved", len(m0))
 		}
 	},
 }
