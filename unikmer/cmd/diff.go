@@ -116,7 +116,6 @@ var diffCmd = &cobra.Command{
 
 		infh, err = xopen.Ropen(file)
 		checkError(err)
-		defer infh.Close()
 
 		reader, err = unikmer.NewReader(infh)
 		checkError(err)
@@ -134,6 +133,8 @@ var diffCmd = &cobra.Command{
 
 			m[kcode.Code] = false
 		}
+
+		infh.Close()
 
 		if opt.Verbose {
 			log.Infof("%d Kmers loaded", len(m))
@@ -229,7 +230,6 @@ var diffCmd = &cobra.Command{
 
 					infh, err = xopen.Ropen(file)
 					checkError(err)
-					defer infh.Close()
 
 					reader, err = unikmer.NewReader(infh)
 					checkError(err)
@@ -252,6 +252,8 @@ var diffCmd = &cobra.Command{
 							m1[kcode.Code] = true
 						}
 					}
+
+					infh.Close()
 
 					// remove seen kmers
 					for code, mark = range m1 {
