@@ -41,8 +41,8 @@ type Options struct {
 
 func getOptions(cmd *cobra.Command) *Options {
 	return &Options{
-		// NumCPUs: getFlagPositiveInt(cmd, "threads"),
-		NumCPUs: 1,
+		NumCPUs: getFlagPositiveInt(cmd, "threads"),
+		// NumCPUs: 1,
 		Verbose: getFlagBool(cmd, "verbose"),
 	}
 }

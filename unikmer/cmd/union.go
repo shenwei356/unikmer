@@ -124,7 +124,7 @@ var unionCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("%d Kmers found", n)
+			log.Infof("%d Kmers saved", n)
 		}
 	},
 }

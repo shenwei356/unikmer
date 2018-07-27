@@ -23,6 +23,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/spf13/cobra"
 )
@@ -31,7 +32,7 @@ import (
 var RootCmd = &cobra.Command{
 	Use:   "unikmer",
 	Short: "Unique-Kmer Toolkit",
-	Long: fmt.Sprintf(`Unique-Kmer ToolKit
+	Long: fmt.Sprintf(`Unique-Kmer Toolkit
 
 Version: %s
 
@@ -54,11 +55,11 @@ func Execute() {
 }
 
 func init() {
-	// defaultThreads := runtime.NumCPU()
-	// if defaultThreads > 2 {
-	// 	defaultThreads = 2
-	// }
+	defaultThreads := runtime.NumCPU()
+	if defaultThreads > 2 {
+		defaultThreads = 2
+	}
 
-	// RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs. (default value: 1 for single-CPU PC, 2 for others)")
+	RootCmd.PersistentFlags().IntP("threads", "t", defaultThreads, "threads. (default value: 1 for single-CPU PC, 2 for others)")
 	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
 }

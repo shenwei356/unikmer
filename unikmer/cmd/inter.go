@@ -195,7 +195,7 @@ var interCmd = &cobra.Command{
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		if opt.Verbose {
-			log.Infof("%d Kmers found", len(m))
+			log.Infof("%d Kmers saved", len(m))
 		}
 	},
 }

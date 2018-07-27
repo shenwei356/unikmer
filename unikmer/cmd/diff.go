@@ -152,9 +152,7 @@ var diffCmd = &cobra.Command{
 				}
 
 				for code = range m {
-					if !m[code] {
-						m[code] = false
-					} else {
+					if m[code] {
 						delete(m, code)
 					}
 				}
