@@ -24,25 +24,34 @@ import (
 	"errors"
 )
 
-// ErrIllegalBase means that base beyond "ACGTU" was detected
+// ErrIllegalBase means that base beyond IUPAC symbols are  detected.
 var ErrIllegalBase = errors.New("unikmer: illegal base")
 
-// ErrKOverflow means K > 32
+// ErrKOverflow means K > 32.
 var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
 
 // Encode converts byte slice to bits.
 //
-//    M       AC
-//    V       ACG
-//    H       ACT
-//    R       AG
-//    D       AGT
-//    W       AT
-//    S       CG
-//    B       CGT
-//    Y       CT
-//    K       GT
+// Codes:
 //
+// 	  A    00
+// 	  C    01
+// 	  G    10
+// 	  T    11
+//
+// For degenerate bases, only the first base is kept.
+//
+//     M       AC     A
+//     V       ACG    A
+//     H       ACT    A
+//     R       AG     A
+//     D       AGT    A
+//     W       AT     A
+//     S       CG     C
+//     B       CGT    C
+//     Y       CT     C
+//     K       GT     G
+//     N       ACGT   A
 //
 func Encode(mer []byte) (code uint64, err error) {
 	size := len(mer)
@@ -66,7 +75,7 @@ func Encode(mer []byte) (code uint64, err error) {
 	return code, nil
 }
 
-// Reverse returns code of reversed sequence
+// Reverse returns code of the reversed sequence.
 func Reverse(code uint64, k int) (c uint64) {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
@@ -78,7 +87,7 @@ func Reverse(code uint64, k int) (c uint64) {
 	return
 }
 
-// Complement return code of complement sequence
+// Complement returns code of complement sequence.
 func Complement(code uint64, k int) (c uint64) {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
@@ -90,29 +99,29 @@ func Complement(code uint64, k int) (c uint64) {
 	return
 }
 
-// code2base is for mapping code to base
-var code2base = [4]byte{'A', 'C', 'G', 'T'}
+// bit2base is for mapping bit to base.
+var bit2base = [4]byte{'A', 'C', 'G', 'T'}
 
-// Decode converts the bits to origional seq
+// Decode converts the code to origional seq
 func Decode(code uint64, k int) []byte {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
 	}
 	mer := make([]byte, k)
 	for i := 0; i < k; i++ {
-		mer[k-1-i] = code2base[code&3]
+		mer[k-1-i] = bit2base[code&3]
 		code >>= 2
 	}
 	return mer
 }
 
-// KmerCode is a struct representing a kmer in 64-bits
+// KmerCode is a struct representing a kmer in 64-bits.
 type KmerCode struct {
 	Code uint64
 	K    int
 }
 
-// NewKmerCode returns a new KmerCode from byte slice
+// NewKmerCode returns a new KmerCode struct from byte slice.
 func NewKmerCode(mer []byte) (KmerCode, error) {
 	code, err := Encode(mer)
 	if err != nil {
@@ -121,27 +130,27 @@ func NewKmerCode(mer []byte) (KmerCode, error) {
 	return KmerCode{code, len(mer)}, err
 }
 
-// Equal checks wether two KmerCodes are the same
+// Equal checks wether two KmerCodes are the same.
 func (kcode KmerCode) Equal(kcode2 KmerCode) bool {
 	return kcode.K == kcode2.K && kcode.Code == kcode2.Code
 }
 
-// Rev returns KmerCode of the reverse sequence
+// Rev returns KmerCode of the reverse sequence.
 func (kcode KmerCode) Rev() KmerCode {
 	return KmerCode{Reverse(kcode.Code, kcode.K), kcode.K}
 }
 
-// Comp returns KmerCode of the complement sequence
+// Comp returns KmerCode of the complement sequence.
 func (kcode KmerCode) Comp() KmerCode {
 	return KmerCode{Complement(kcode.Code, kcode.K), kcode.K}
 }
 
-// RevComp returns KmerCode of the reverse complement sequence
+// RevComp returns KmerCode of the reverse complement sequence.
 func (kcode KmerCode) RevComp() KmerCode {
 	return kcode.Rev().Comp()
 }
 
-// Bytes returns kmer in []byte
+// Bytes returns kmer in []byte.
 func (kcode KmerCode) Bytes() []byte {
 	return Decode(kcode.Code, kcode.K)
 }

@@ -12,4 +12,9 @@
 *.out
 
 *.directory
-unikmer/unikmer
+unikmer/unikmer*
+unikmer/binaries*
+doc/site/*
+
+*ssshtest
+testdata/*.unik

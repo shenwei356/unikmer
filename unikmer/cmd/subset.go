@@ -34,8 +34,8 @@ import (
 // subsetCmd represents
 var subsetCmd = &cobra.Command{
 	Use:   "subset",
-	Short: "extract smaller kmers from binary file",
-	Long: `extract smaller kmers from binary file
+	Short: "extract smaller Kmers from binary file",
+	Long: `extract smaller Kmers from binary file
 
 Attention:
   - It's faster than re-counting from sequence file but in cost of losing

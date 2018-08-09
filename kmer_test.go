@@ -39,7 +39,7 @@ func init() {
 	for i := 0; i < randomMersN; i++ {
 		randomMers[i] = make([]byte, rand.Intn(32)+1)
 		for j := range randomMers[i] {
-			randomMers[i][j] = code2base[rand.Intn(4)]
+			randomMers[i][j] = bit2base[rand.Intn(4)]
 		}
 	}
 

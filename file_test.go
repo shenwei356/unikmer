@@ -36,7 +36,7 @@ func genKmers(k int, num int) [][]byte {
 	for i := 0; i < num; i++ {
 		mers[i] = make([]byte, k)
 		for j = 0; j < k; j++ {
-			mers[i][j] = code2base[rand.Intn(4)]
+			mers[i][j] = bit2base[rand.Intn(4)]
 		}
 	}
 	return mers

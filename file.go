@@ -27,22 +27,22 @@ import (
 	"io"
 )
 
-// MainVersion is the main version number
+// MainVersion is the main version number.
 const MainVersion int64 = 0
 
-// MinorVersion is the minor version number
+// MinorVersion is the minor version number.
 const MinorVersion int64 = 1
 
-// Magic number of binary file
+// Magic number of binary file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
 
-// ErrInvalidFileFormat means invalid file format
+// ErrInvalidFileFormat means invalid file format.
 var ErrInvalidFileFormat = errors.New("unikmer: invalid binary format")
 
-// ErrBrokenFile means the file is not complete
+// ErrBrokenFile means the file is not complete.
 // var ErrBrokenFile = errors.New("unikmer: broken file")
 
-// ErrKMismatch means K size mismatch
+// ErrKMismatch means K size mismatch.
 var ErrKMismatch = errors.New("unikmer: K mismatch")
 
 var be = binary.BigEndian
@@ -57,7 +57,7 @@ func (h Header) String() string {
 	return fmt.Sprintf("unikmer binary kmer data file v%s, K=%d", h.Version, h.K)
 }
 
-// Reader is for reading KmerCode
+// Reader is for reading KmerCode.
 type Reader struct {
 	Header
 	r    io.Reader
@@ -66,7 +66,7 @@ type Reader struct {
 	size uint64
 }
 
-// NewReader returns a Reader
+// NewReader returns a Reader.
 func NewReader(r io.Reader) (*Reader, error) {
 	reader := &Reader{r: r}
 	reader.err = reader.readHeader()
@@ -106,7 +106,7 @@ func (reader *Reader) readHeader() error {
 	return nil
 }
 
-// Read reads one KmerCode
+// Read reads one KmerCode.
 func (reader *Reader) Read() (KmerCode, error) {
 	reader.err = binary.Read(reader.r, be, &reader.code)
 	if reader.err != nil {
@@ -116,7 +116,7 @@ func (reader *Reader) Read() (KmerCode, error) {
 	return KmerCode{Code: reader.code, K: reader.Header.K}, nil
 }
 
-// Writer writes KmerCode
+// Writer writes KmerCode.
 type Writer struct {
 	Header
 	w           io.Writer
@@ -126,7 +126,7 @@ type Writer struct {
 	size        int64
 }
 
-// NewWriter creates a Writer
+// NewWriter creates a Writer.
 func NewWriter(w io.Writer, k int) *Writer {
 	return &Writer{
 		Header: Header{Version: fmt.Sprintf("%d.%d", MainVersion, MinorVersion), K: k},
@@ -148,7 +148,7 @@ func (writer *Writer) writeHeader() error {
 	return nil
 }
 
-// WriteKmer writes one Kmer
+// WriteKmer writes one Kmer.
 func (writer *Writer) WriteKmer(mer []byte) error {
 	writer.kcode, writer.err = NewKmerCode(mer)
 	if writer.err != nil {
@@ -157,7 +157,7 @@ func (writer *Writer) WriteKmer(mer []byte) error {
 	return writer.Write(writer.kcode)
 }
 
-// Write writes one KmerCode
+// Write writes one KmerCode.
 func (writer *Writer) Write(kcode KmerCode) error {
 	if writer.Header.K != kcode.K {
 		writer.err = ErrKMismatch
@@ -181,7 +181,7 @@ func (writer *Writer) Write(kcode KmerCode) error {
 	return nil
 }
 
-// Flush writes the size to the end
+// Flush is not used actually.
 func (writer *Writer) Flush() error {
 	// writer.err = binary.Write(writer.w, be, writer.size)
 	// if writer.err != nil {
