@@ -32,7 +32,14 @@ import (
 var RootCmd = &cobra.Command{
 	Use:   "unikmer",
 	Short: "Unique-Kmer Toolkit",
-	Long: fmt.Sprintf(`Unique-Kmer Toolkit
+	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
+
+A command-line toolkit providing functions including counting, format
+convertion, set operations and searching on unique Kmers (k <= 32) while
+NOT recording Kmer frequencies.
+
+Evert Kmer (k <= 32) is encoded into 'uint64', and Kmers are stored in builtin
+'map' in RAM, no probabilistic data structures are used.
 
 Version: %s
 

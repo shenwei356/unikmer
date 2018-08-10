@@ -1,8 +1,12 @@
 # unikmer
 
 unikmer (unique Kmer) is a golang package and a command-line toolkit for
-manipulating [Kmers](https://en.wikipedia.org/wiki/K-mer) while NOT recording
-Kmer frequencies.
+manipulating [Kmers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
+while NOT recording Kmer frequencies.
+
+Evert Kmer (k <= 32) is encoded into `uint64`,
+and Kmers are stored in builtin `map` in RAM,
+no probabilistic data structures are used (I've tested and abandon them).
 
 ## The package
 
@@ -10,7 +14,7 @@ Kmer frequencies.
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
 The unikmer package provides basic manipulations of unique Kmers (NOT including
-Kmer frequencies) and its binary file.
+Kmer frequencies) and provides serialization methods.
 
 ### Installation
 
@@ -18,20 +22,19 @@ Kmer frequencies) and its binary file.
 
 ### Benchmark
 
-    $ go test . -bench=Bench*
+    $ go test . -bench=Bench* -benchmem
     goos: linux
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
-    BenchmarkEncodeK32-4            20000000                98.1 ns/op
-    BenchmarkDecodeK32-4            20000000                 102 ns/op
-    BenchmarkRevK32-4               20000000                64.2 ns/op
-    BenchmarkCompK32-4              20000000                54.8 ns/op
-    BenchmarkRevCompK32-4           10000000                 116 ns/op
-
+    BenchmarkEncodeK32-4    20000000   90.9 ns/op    0 B/op    0 allocs/op
+    BenchmarkDecodeK32-4    20000000    103 ns/op   32 B/op    1 allocs/op
+    BenchmarkRevK32-4       20000000   61.9 ns/op    0 B/op    0 allocs/op
+    BenchmarkCompK32-4      30000000   53.9 ns/op    0 B/op    0 allocs/op
+    BenchmarkRevCompK32-4   10000000    115 ns/op    0 B/op    0 allocs/op
 
 ## The toolkit
 
-`unikmer` is a command-line toolkit provides some functions including counting,
+`unikmer` is a command-line toolkit providing some functions including counting,
 format convertion, set operations and searching on unique Kmers.
 
 ### Installation
@@ -56,10 +59,10 @@ format convertion, set operations and searching on unique Kmers.
 
 1. Set operations
 
-        concat          concatenate multiple binary files
-        diff            set difference of multiple binary files
         inter           intersection of multiple binary files
         union           union of multiple binary files
+        concat          concatenate multiple binary files without removing duplicates
+        diff            set difference of multiple binary files
 
 1. Searching
 
@@ -73,59 +76,73 @@ format convertion, set operations and searching on unique Kmers.
 
 ### Quick Start
 
+
+    # memusg is for compute time and RAM usage: https://github.com/shenwei356/memusg
+
     # counting
-    $ time unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz
-    real    0m5.209s
-    user    0m6.864s
-    sys     0m0.169s
+    $ memusg -t unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz
+
+    elapsed time: 6.228s
+    peak rss: 430.18 MB
 
     $ ls -lh Ecoli-MG1655.fasta.gz*
     -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.unik
+    -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
 
 
     # view
-    $ unikmer view Ecoli-MG1655.fasta.gz.unik | head -n 3
+    $ unikmer view Ecoli-MG1655.fasta.gz.k31.unik | head -n 3
     AGCTTTTCATTCTGACTGCAACGGGCAATAT
     GCTTTTCATTCTGACTGCAACGGGCAATATG
     CTTTTCATTCTGACTGCAACGGGCAATATGT
 
-    $ unikmer view Ecoli-MG1655.fasta.gz.unik | wc -l
+    $ memusg -t unikmer view Ecoli-MG1655.fasta.gz.k31.unik | wc -l
+
+    elapsed time: 2.908s
+    peak rss: 19.34 MB
+
     9108538
 
 
     # union
-    $ unikmer union Ecoli-MG1655.fasta.gz.unik Ecoli-IAI39.fasta.gz.unik -o union
+    $ memusg -t unikmer union Ecoli-MG1655.fasta.gz.k31.unik Ecoli-IAI39.fasta.gz.k31.unik -o union
 
+    elapsed time: 10.103s
+    peak rss: 773.04 MB
 
     # intersection
-    $ unikmer inter Ecoli-MG1655.fasta.gz.unik Ecoli-IAI39.fasta.gz.unik -o inter
+    $ memusg -t unikmer inter Ecoli-MG1655.fasta.gz.k31.unik Ecoli-IAI39.fasta.gz.k31.unik -o inter
+
+    elapsed time: 7.955s
+    peak rss: 400.71 MB
 
 
     # difference
-    $ unikmer diff -t 4 Ecoli-MG1655.fasta.gz.unik Ecoli-IAI39.fasta.gz.unik -o diff
+    $ memusg -t unikmer diff -t 1 Ecoli-MG1655.fasta.gz.k31.unik Ecoli-IAI39.fasta.gz.k31.unik -o diff
 
+    elapsed time: 8.137s
+    peak rss: 400.45 MB
 
     # -------------------------------------------------------------------------
 
     $ ls -lh
     -rw-rw-r--. 1 shenwei shenwei 1.6M Aug  9 23:19 Ecoli-IAI39.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  25M Aug  9 23:29 Ecoli-IAI39.fasta.gz.unik
+    -rw-rw-r--. 1 shenwei shenwei  25M Aug  9 23:29 Ecoli-IAI39.fasta.gz.k31.unik
     -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.unik
-    -rw-rw-r--. 1 shenwei shenwei  38M Aug  9 23:32 union.unik
-    -rw-rw-r--. 1 shenwei shenwei  35M Aug  9 23:33 inter.unik
-    -rw-rw-r--. 1 shenwei shenwei  35M Aug  9 23:34 diff.unik
+    -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
+    -rw-rw-r--. 1 shenwei shenwei  38M Aug  9 23:32 union.k31.unik
+    -rw-rw-r--. 1 shenwei shenwei  35M Aug  9 23:33 inter.k31.unik
+    -rw-rw-r--. 1 shenwei shenwei  35M Aug  9 23:34 diff.k31.unik
 
-    $ unikmer view Ecoli-MG1655.fasta.gz.unik | wc -l
+    $ unikmer view Ecoli-MG1655.fasta.gz.k31.unik | wc -l
     9108538
-    $ unikmer view Ecoli-IAI39.fasta.gz.unik | wc -l
+    $ unikmer view Ecoli-IAI39.fasta.gz.k31.unik | wc -l
     9821960
-    $ unikmer view union.unik | wc -l
+    $ unikmer view union.k31.unik | wc -l
     14402956
-    $ unikmer view inter.unik | wc -l
+    $ unikmer view inter.k31.unik | wc -l
     4527542
-    $ unikmer view diff.unik | wc -l
+    $ unikmer view diff.k31.unik | wc -l
     4580996
 
 

@@ -34,8 +34,8 @@ import (
 // concatCmd represents
 var concatCmd = &cobra.Command{
 	Use:   "concat",
-	Short: "concatenate multiple binary files",
-	Long: `concatenate multiple binary files
+	Short: "concatenate multiple binary files without removing duplicates",
+	Long: `concatenate multiple binary files without removing duplicates
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

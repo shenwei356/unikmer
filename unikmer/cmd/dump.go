@@ -120,5 +120,5 @@ func init() {
 	RootCmd.AddCommand(dumpCmd)
 
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	dumpCmd.Flags().BoolP("no-dedup", "D", false, `do not deduplicate kmers, this can save some time and memory`)
+	dumpCmd.Flags().BoolP("no-dedup", "D", false, `do not deduplicate Kmers, this can save some time and memory`)
 }

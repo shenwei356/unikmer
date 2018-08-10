@@ -38,13 +38,16 @@ var diffCmd = &cobra.Command{
 	Short: "set difference of multiple binary files",
 	Long: `set difference of multiple binary files
 
+Tips:
+  1. Increasing threads number (-t/--threads) to accelerate computation,
+     in cost of more memory occupation.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		files := getFileList(args)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		// checkInterval := getFlagPositiveInt(cmd, "check-interval")
 		threads := opt.NumCPUs
 
 		runtime.GOMAXPROCS(threads)
@@ -360,5 +363,4 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	diffCmd.Flags().IntP("check-interval", "i", 5, `check kmers every N files, N > 1 could save some time`)
 }
