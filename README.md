@@ -6,7 +6,7 @@ while NOT recording Kmer frequencies.
 
 Evert Kmer (k <= 32) is encoded into `uint64`,
 and Kmers are stored in builtin `map` in RAM,
-no probabilistic data structures are used (I've tested and abandon them).
+no probabilistic data structures are used (I've tested and abandoned them).
 
 ## The package
 
