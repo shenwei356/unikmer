@@ -8,6 +8,25 @@ Every Kmer (k <= 32) is encoded into `uint64`,
 and Kmers are stored in builtin `map` in RAM,
 no probabilistic data structures are used (I've tested and abandoned them).
 
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## Table of Contents
+
+- [The package](#the-package)
+    - [Installation](#installation)
+    - [Benchmark](#benchmark)
+- [The toolkit](#the-toolkit)
+    - [Installation](#installation-1)
+    - [Commands](#commands)
+    - [Binary file (.unik)](#binary-file-unik)
+    - [Quick Start](#quick-start)
+- [Contributing](#contributing)
+- [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+
 ## The package
 
 [![GoDoc](https://godoc.org/github.com/shenwei356/unikmer?status.svg)](https://godoc.org/github.com/shenwei356/unikmer)
@@ -45,48 +64,6 @@ format convertion, set operations and searching on unique Kmers.
 
         conda install unikmer
 
-### Binary file (.unik)
-
-Kmers are saved in gzipped binary file with file extension `.unik`.
-
-Here's the compression rate comparison with `gzip`.
-Plain text of Kmers are exported by `unikmer view` and
-compressed by `gzip` (default parameters).
-Decompressed `.unik` (`.unik.dec`) format is also compared.
-
-    $ ./compression-rates.sh Ecoli-MG1655.fasta.gz > compression-rates.tsv
-    $ csvtk -t pretty compression-rates.tsv
-    K    plain       .gz        .unik.dec   .unik      .gz(%)   .unik.dec(%)   .unik(%)
-    1    8           64         64          69         800.0    800.0          862.5
-    3    256         159        544         160        62.1     212.5          62.5
-    5    6144        2070       8224        2267       33.7     133.9          36.9
-    7    131072      40153      131104      42178      30.6     100.0          32.2
-    9    2596420     744013     2077168     811277     28.7     80.0           31.2
-    11   35092056    8862922    23394736    11083277   25.3     66.7           31.6
-    13   107877000   22057558   61644032    32476722   20.4     57.1           30.1
-    15   142791328   25348131   71395696    43253150   17.8     50.0           30.3
-    17   163085652   27351927   72482544    47477859   16.8     44.4           29.1
-    19   181600840   27560992   72640368    47963931   15.2     40.0           26.4
-    21   199931204   27939876   72702288    34248156   14.0     36.4           17.1
-    23   218238336   27757535   72746144    30860501   12.7     33.3           14.1
-    25   236543320   28206395   72782592    24413804   11.9     30.8           10.3
-    27   254849280   28019791   72814112    27276395   11.0     28.6           10.7
-    29   273158820   28261557   72842384    21435152   10.3     26.7           7.8
-    31   291473216   28052530   72868336    23774695   9.6      25.0           8.2
-
-    # plot
-    $ csvtk cut -t -f 1,6-8  compression-rates.tsv \
-        | csvtk -t rename2 -f 2-4 -p "\(%\)" \
-        | csvtk -t gather  -k group  -v value -f 2-4 \
-        | csvtk plot line -t -x 1 -y 3 -g 2 \
-            --x-min 3 --x-max 40  --y-max 100 --ylab "compression rate (%)" \
-            --title Ecoli-MG1655.fasta.gz \
-        > compression-rates.tsv.png
-
-![compression-rates.tsv.png](testdata/compression-rates.tsv.png)
-
-
-
 ### Commands
 
 1. Counting
@@ -115,6 +92,32 @@ Decompressed `.unik` (`.unik.dec`) format is also compared.
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update
+
+### Binary file (.unik)
+
+Kmers are saved in gzipped binary file with file extension `.unik`.
+
+Here's the compression rate comparison with `gzip`.
+Plain text of Kmers are exported by `unikmer view` and
+compressed by `gzip` (default parameters).
+Decompressed `.unik` (`.unik.dec`) format is also compared.
+
+    $ ./compression-rates.sh Ecoli-MG1655.fasta.gz > compression-rates.tsv
+
+    # plot
+    $ csvtk cut -t -f 1,6-8  compression-rates.tsv \
+        | csvtk -t rename2 -f 2-4 -p "\(%\)" \
+        | csvtk -t gather  -k group  -v value -f 2-4 \
+        | csvtk plot line -t -x 1 -y 3 -g 2 \
+            --x-min 3 --x-max 40  --y-max 100 --ylab "compression rate (%)" \
+            --title Ecoli-MG1655.fasta.gz \
+        > compression-rates.tsv.png
+
+![compression-rates.tsv.png](testdata/compression-rates.tsv.png)
+
+Although the `.unik` file format, i.e., gzipped `uint64`s, does not have
+absolute advantage in compression rate compared to gzipped plain Kmers,
+it's faster for parsing and decreases RAM usage.
 
 ### Quick Start
 
