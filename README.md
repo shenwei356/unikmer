@@ -4,7 +4,7 @@ unikmer (unique Kmer) is a golang package and a command-line toolkit for
 manipulating [Kmers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
 while NOT recording Kmer frequencies.
 
-Evert Kmer (k <= 32) is encoded into `uint64`,
+Every Kmer (k <= 32) is encoded into `uint64`,
 and Kmers are stored in builtin `map` in RAM,
 no probabilistic data structures are used (I've tested and abandoned them).
 
