@@ -102,7 +102,7 @@ func Complement(code uint64, k int) (c uint64) {
 // bit2base is for mapping bit to base.
 var bit2base = [4]byte{'A', 'C', 'G', 'T'}
 
-// Decode converts the code to origional seq
+// Decode converts the code to original seq
 func Decode(code uint64, k int) []byte {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
