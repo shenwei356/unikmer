@@ -45,6 +45,46 @@ format convertion, set operations and searching on unique Kmers.
 
         conda install unikmer
 
+### Binary file (.unik)
+
+Kmers are saved in gzipped binary file with file extension `.unik`.
+
+Here's the compression rate comparison with `gzip`.
+Plain text of Kmers are exported by `unikmer view` and
+compressed by `gzip` (default parameters).
+
+    $ ./compression-rates.sh Ecoli-MG1655.fasta.gz > compression-rates.tsv
+    $ csvtk -t pretty compression-rates.tsv
+    K    plain       .gz        .unik      .gz(%)    .unik(%)
+    1    8           64         69         800.000   862.500
+    3    256         159        160        62.109    62.500
+    5    6144        2070       2267       33.691    36.898
+    7    131072      40153      42178      30.634    32.179
+    9    2596420     744013     811277     28.655    31.246
+    11   35092056    8862922    11083277   25.256    31.583
+    13   107877000   22057558   32476722   20.447    30.105
+    15   142791328   25348131   43253150   17.752    30.291
+    17   163085652   27351927   47477859   16.772    29.112
+    19   181600840   27560992   47963931   15.177    26.412
+    21   199931204   27939876   34248156   13.975    17.130
+    23   218238336   27757535   30860501   12.719    14.141
+    25   236543320   28206395   24413804   11.924    10.321
+    27   254849280   28019791   27276395   10.995    10.703
+    29   273158820   28261557   21435152   10.346    7.847
+    31   291473216   28052530   23774695   9.624     8.157
+
+    # plot
+    $ csvtk cut -t -f 1,5,6  compression-rates.tsv \
+        | csvtk -t gather  -k group  -v value -f 2,3 \
+        | csvtk plot line -t -x 1 -y 3 -g 2 \
+            --x-min 3 --x-max 40  --y-max 100 --ylab "compression rate (%)" \
+            --title Ecoli-MG1655.fasta.gz \
+        > compression-rates.tsv.png
+
+![compression-rates.tsv.png](testdata/compression-rates.tsv.png)
+
+
+
 ### Commands
 
 1. Counting
