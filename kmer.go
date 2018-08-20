@@ -81,7 +81,7 @@ func Reverse(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c += (code % 4) << uint((k-i-1)*2)
+		c += (code & 3) << uint((k-i-1)*2)
 		code >>= 2
 	}
 	return
@@ -93,7 +93,7 @@ func Complement(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c += (3 - (code % 4)) << uint(i*2)
+		c += (3 - (code & 3)) << uint(i*2)
 		code >>= 2
 	}
 	return
