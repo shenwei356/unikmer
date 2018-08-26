@@ -83,8 +83,13 @@ var interCmd = &cobra.Command{
 					if !isStdout(outFile) {
 						outFile += extDataFile
 					}
-					outfh, w, err := outStream(outFile)
-					defer w.Close()
+					outfh, gw, w, err := outStream(outFile)
+					checkError(err)
+					defer func() {
+						outfh.Flush()
+						gw.Close()
+						w.Close()
+					}()
 
 					writer := unikmer.NewWriter(outfh, k)
 
@@ -184,10 +189,11 @@ var interCmd = &cobra.Command{
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, w, err := outStream(outFile)
+		outfh, gw, w, err := outStream(outFile)
 		checkError(err)
 		defer func() {
-			outfh.Close()
+			outfh.Flush()
+			gw.Close()
 			w.Close()
 		}()
 

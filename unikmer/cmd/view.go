@@ -49,7 +49,7 @@ var viewCmd = &cobra.Command{
 
 		outfh, err := xopen.Wopen(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer outfh.Flush()
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader

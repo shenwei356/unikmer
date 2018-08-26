@@ -85,10 +85,11 @@ Tips:
 				if !isStdout(outFile) {
 					outFile += extDataFile
 				}
-				outfh, w, err := outStream(outFile)
+				outfh, gw, w, err := outStream(outFile)
 				checkError(err)
 				defer func() {
-					outfh.Close()
+					outfh.Flush()
+					gw.Close()
 					w.Close()
 				}()
 
@@ -348,10 +349,11 @@ Tips:
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, w, err := outStream(outFile)
+		outfh, gw, w, err := outStream(outFile)
 		checkError(err)
 		defer func() {
-			outfh.Close()
+			outfh.Flush()
+			gw.Close()
 			w.Close()
 		}()
 

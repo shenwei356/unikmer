@@ -127,7 +127,7 @@ func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
 	return dseqs, nil
 }
 
-func outStream(file string) (io.WriteCloser, *os.File, error) {
+func outStream(file string) (*bufio.Writer, io.WriteCloser, *os.File, error) {
 	var err error
 	var w *os.File
 	if file == "-" {
@@ -135,10 +135,12 @@ func outStream(file string) (io.WriteCloser, *os.File, error) {
 	} else {
 		w, err = os.Create(file)
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to write %s: %s", file, err)
+			return nil, nil, nil, fmt.Errorf("fail to write %s: %s", file, err)
 		}
 	}
-	return gzip.NewWriter(w), w, nil
+
+	gw := gzip.NewWriter(w)
+	return bufio.NewWriterSize(gw, os.Getpagesize()*2), gw, w, nil
 }
 
 func inStream(file string) (*bufio.Reader, *os.File, error) {
@@ -157,6 +159,6 @@ func inStream(file string) (*bufio.Reader, *os.File, error) {
 	if err != nil {
 		return nil, r, err
 	}
-	b := bufio.NewReaderSize(gr, os.Getpagesize()*2)
-	return b, r, nil
+
+	return bufio.NewReaderSize(gr, os.Getpagesize()*2), r, nil
 }

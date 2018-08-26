@@ -130,7 +130,7 @@ var grepCmd = &cobra.Command{
 
 		outfh, err := xopen.Wopen(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer outfh.Flush()
 
 		var queries [][]byte
 		var q []byte
