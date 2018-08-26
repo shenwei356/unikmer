@@ -53,6 +53,12 @@ Attention:
 			checkError(fmt.Errorf("no more than one file should be given"))
 		}
 
+		for _, file := range files {
+			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+				checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
+			}
+		}
+
 		outFile := getFlagString(cmd, "out-prefix")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		if k > 32 {
@@ -60,11 +66,6 @@ Attention:
 		}
 
 		file := files[0]
-
-		if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-			log.Errorf("input should be stdin or %s file", extDataFile)
-			return
-		}
 
 		var err error
 		var infh *bufio.Reader

@@ -45,6 +45,12 @@ var viewCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
+		for _, file := range files {
+			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+				checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
+			}
+		}
+
 		outFile := getFlagString(cmd, "out-file")
 
 		outfh, err := xopen.Wopen(outFile)
@@ -56,9 +62,6 @@ var viewCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 
 		for _, file := range files {
-			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
-			}
 			func() {
 				infh, r, err = inStream(file)
 				checkError(err)

@@ -44,6 +44,12 @@ var interCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
+		for _, file := range files {
+			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+				checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
+			}
+		}
+
 		outFile := getFlagString(cmd, "out-prefix")
 
 		var err error
@@ -64,10 +70,6 @@ var interCmd = &cobra.Command{
 		for i, file := range files {
 			if !firstFile && file == files[0] {
 				continue
-			}
-
-			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 			}
 
 			if opt.Verbose {

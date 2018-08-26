@@ -48,6 +48,12 @@ Tips:
 		opt := getOptions(cmd)
 		files := getFileList(args)
 
+		for _, file := range files {
+			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
+				checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
+			}
+		}
+
 		outFile := getFlagString(cmd, "out-prefix")
 		threads := opt.NumCPUs
 
@@ -68,9 +74,6 @@ Tips:
 		// -----------------------------------------------------------------------
 
 		file := files[0]
-		if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-			checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
-		}
 		if opt.Verbose {
 			log.Infof("process file (%d/%d): %s", 1, nfiles, file)
 		}
@@ -288,9 +291,7 @@ Tips:
 				if file == files[0] {
 					continue
 				}
-				if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-					checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
-				}
+
 				chFile <- iFile{i + 1, file}
 			}
 			close(chFile)
