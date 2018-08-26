@@ -21,14 +21,15 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +57,8 @@ Tips:
 
 		m := make(map[uint64]bool, mapInitSize)
 
-		var infh *xopen.Reader
+		var infh *bufio.Reader
+		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
@@ -76,18 +78,19 @@ Tips:
 		// only one file given
 		if len(files) == 1 {
 			func() {
-				infh, err = xopen.Ropen(file)
+				infh, r, err = inStream(file)
 				checkError(err)
-				defer infh.Close()
+				defer r.Close()
 
 				if !isStdout(outFile) {
 					outFile += extDataFile
 				}
-
-				var outfh *xopen.Writer
-				outfh, err = xopen.WopenGzip(outFile)
+				outfh, w, err := outStream(outFile)
 				checkError(err)
-				defer outfh.Close()
+				defer func() {
+					outfh.Close()
+					w.Close()
+				}()
 
 				writer := unikmer.NewWriter(outfh, k)
 
@@ -117,7 +120,7 @@ Tips:
 
 		// read firstFile
 
-		infh, err = xopen.Ropen(file)
+		infh, r, err = inStream(file)
 		checkError(err)
 
 		reader, err = unikmer.NewReader(infh)
@@ -137,7 +140,7 @@ Tips:
 			m[kcode.Code] = false
 		}
 
-		infh.Close()
+		r.Close()
 
 		if opt.Verbose {
 			log.Infof("%d Kmers loaded", len(m))
@@ -209,7 +212,8 @@ Tips:
 				var code uint64
 				var ifile iFile
 				var file string
-				var infh *xopen.Reader
+				var infh *bufio.Reader
+				var r *os.File
 				var reader *unikmer.Reader
 				var kcode unikmer.KmerCode
 				var ok, mark bool
@@ -231,7 +235,7 @@ Tips:
 						log.Infof("(worker %d) process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
 					}
 
-					infh, err = xopen.Ropen(file)
+					infh, r, err = inStream(file)
 					checkError(err)
 
 					reader, err = unikmer.NewReader(infh)
@@ -256,7 +260,7 @@ Tips:
 						}
 					}
 
-					infh.Close()
+					r.Close()
 
 					// remove seen kmers
 					for code, mark = range m1 {
@@ -344,9 +348,12 @@ Tips:
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, err := xopen.WopenGzip(outFile)
+		outfh, w, err := outStream(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer func() {
+			outfh.Close()
+			w.Close()
+		}()
 
 		writer := unikmer.NewWriter(outfh, k)
 

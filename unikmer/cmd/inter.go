@@ -21,13 +21,14 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +50,8 @@ var interCmd = &cobra.Command{
 
 		m := make(map[uint64]bool, mapInitSize)
 
-		var infh *xopen.Reader
+		var infh *bufio.Reader
+		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
@@ -73,18 +75,16 @@ var interCmd = &cobra.Command{
 			}
 
 			flag = func() int {
-				infh, err = xopen.Ropen(file)
+				infh, r, err = inStream(file)
 				checkError(err)
-				defer infh.Close()
+				defer r.Close()
 
 				if len(files) == 1 {
 					if !isStdout(outFile) {
 						outFile += extDataFile
 					}
-					var outfh *xopen.Writer
-					outfh, err = xopen.WopenGzip(outFile)
-					checkError(err)
-					defer outfh.Close()
+					outfh, w, err := outStream(outFile)
+					defer w.Close()
 
 					writer := unikmer.NewWriter(outfh, k)
 
@@ -184,9 +184,12 @@ var interCmd = &cobra.Command{
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, err := xopen.WopenGzip(outFile)
+		outfh, w, err := outStream(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer func() {
+			outfh.Close()
+			w.Close()
+		}()
 
 		writer := unikmer.NewWriter(outfh, k)
 

@@ -28,7 +28,6 @@ import (
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -55,9 +54,12 @@ var countCmd = &cobra.Command{
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, err := xopen.WopenGzip(outFile)
+		outfh, w, err := outStream(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer func() {
+			outfh.Close()
+			w.Close()
+		}()
 
 		writer := unikmer.NewWriter(outfh, k)
 

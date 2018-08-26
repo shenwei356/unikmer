@@ -21,8 +21,10 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 
@@ -85,13 +87,15 @@ var grepCmd = &cobra.Command{
 			log.Infof("read Kmers from %s", file)
 		}
 
-		var infh *xopen.Reader
+		var infh *bufio.Reader
+		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var mer []byte
-		infh, err = xopen.Ropen(file)
+
+		infh, r, err = inStream(file)
 		checkError(err)
-		defer infh.Close()
+		defer r.Close()
 
 		reader, err = unikmer.NewReader(infh)
 		checkError(err)

@@ -21,13 +21,14 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -66,11 +67,12 @@ Attention:
 		}
 
 		var err error
-		var infh *xopen.Reader
+		var infh *bufio.Reader
+		var r *os.File
 
-		infh, err = xopen.Ropen(file)
+		infh, r, err = inStream(file)
 		checkError(err)
-		defer infh.Close()
+		defer r.Close()
 
 		var reader *unikmer.Reader
 		reader, err = unikmer.NewReader(infh)
@@ -84,9 +86,12 @@ Attention:
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, err := xopen.WopenGzip(outFile)
+		outfh, w, err := outStream(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer func() {
+			outfh.Close()
+			w.Close()
+		}()
 
 		writer := unikmer.NewWriter(outfh, k)
 

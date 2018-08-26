@@ -26,7 +26,6 @@ import (
 
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -48,9 +47,12 @@ var dumpCmd = &cobra.Command{
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, err := xopen.WopenGzip(outFile)
+		outfh, w, err := outStream(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer func() {
+			outfh.Close()
+			w.Close()
+		}()
 
 		var writer *unikmer.Writer
 

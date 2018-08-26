@@ -21,8 +21,10 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 
@@ -48,7 +50,8 @@ var viewCmd = &cobra.Command{
 		outfh, err := xopen.Wopen(outFile)
 		checkError(err)
 		defer outfh.Close()
-		var infh *xopen.Reader
+		var infh *bufio.Reader
+		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 
@@ -57,9 +60,9 @@ var viewCmd = &cobra.Command{
 				checkError(fmt.Errorf("input should be stdin or %s file", extDataFile))
 			}
 			func() {
-				infh, err = xopen.Ropen(file)
+				infh, r, err = inStream(file)
 				checkError(err)
-				defer infh.Close()
+				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)

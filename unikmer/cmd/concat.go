@@ -21,13 +21,14 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -50,13 +51,17 @@ var concatCmd = &cobra.Command{
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, err := xopen.WopenGzip(outFile)
+		outfh, w, err := outStream(outFile)
 		checkError(err)
-		defer outfh.Close()
+		defer func() {
+			outfh.Close()
+			w.Close()
+		}()
 
 		var writer *unikmer.Writer
 
-		var infh *xopen.Reader
+		var infh *bufio.Reader
+		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
@@ -72,9 +77,9 @@ var concatCmd = &cobra.Command{
 			}
 
 			flag = func() int {
-				infh, err = xopen.Ropen(file)
+				infh, r, err = inStream(file)
 				checkError(err)
-				defer infh.Close()
+				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
