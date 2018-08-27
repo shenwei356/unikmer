@@ -26,7 +26,6 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/shenwei356/unikmer"
@@ -48,11 +47,7 @@ Tips:
 		opt := getOptions(cmd)
 		files := getFileList(args)
 
-		for _, file := range files {
-			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
-			}
-		}
+		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		threads := opt.NumCPUs

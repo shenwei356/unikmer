@@ -21,7 +21,11 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 )
 
@@ -121,4 +125,22 @@ func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
 		}
 	}
 	return dseqs, nil
+}
+
+func checkFiles(files []string) {
+	for _, file := range files {
+		if isStdin(file) {
+			continue
+		}
+		ok, err := pathutil.Exists(file)
+		if err != nil {
+			checkError(fmt.Errorf("fail to read file %s: %s", file, err))
+		}
+		if !ok {
+			checkError(fmt.Errorf("file (linked file) does not exist: %s", file))
+		}
+		if !strings.HasSuffix(file, extDataFile) {
+			checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
+		}
+	}
 }

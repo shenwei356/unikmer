@@ -26,7 +26,6 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
@@ -44,11 +43,7 @@ var concatCmd = &cobra.Command{
 		runtime.GOMAXPROCS(opt.NumCPUs)
 		files := getFileList(args)
 
-		for _, file := range files {
-			if !isStdin(file) && !strings.HasSuffix(file, extDataFile) {
-				checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
-			}
-		}
+		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
 

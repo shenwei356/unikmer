@@ -125,7 +125,7 @@ it's faster for parsing and decreases RAM usage.
     # memusg is for compute time and RAM usage: https://github.com/shenwei356/memusg
 
     # counting
-    $ memusg -t unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz
+    $ memusg -t unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k31
 
     elapsed time: 6.228s
     peak rss: 430.18 MB
