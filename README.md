@@ -102,18 +102,21 @@ Plain text of Kmers are exported by `unikmer view` and
 compressed by `gzip` (default parameters).
 Decompressed `.unik` (`.unik.dec`) format is also compared.
 
-    $ ./compression-rates.sh Ecoli-MG1655.fasta.gz > compression-rates.tsv
+    $ f=Ecoli-MG1655.fasta.gz
+    $ ./cr.sh $ > $f.cr.tsv
 
     # plot
-    $ csvtk cut -t -f 1,6-8  compression-rates.tsv \
+    $ csvtk cut -t -f 1,6-8 $f.cr.tsv \
         | csvtk -t rename2 -f 2-4 -p "\(%\)" \
         | csvtk -t gather  -k group  -v value -f 2-4 \
         | csvtk plot line -t -x 1 -y 3 -g 2 \
             --x-min 3 --x-max 40  --y-max 100 --ylab "compression rate (%)" \
-            --title Ecoli-MG1655.fasta.gz \
-        > compression-rates.tsv.png
+            --width 4.4 --height 3.3 \
+            --title $f \
+        > $f.cr.tsv.png
 
-![compression-rates.tsv.png](testdata/compression-rates.tsv.png)
+![Ecoli-MG1655.fasta.gz.cr.tsv.png](testdata/Ecoli-MG1655.fasta.gz.cr.tsv.png)
+![A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png](testdata/A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png)
 
 Although the `.unik` file format, i.e., gzipped `uint64`s, does not have
 absolute advantage in compression rate compared to gzipped plain Kmers,
