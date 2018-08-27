@@ -21,12 +21,6 @@
 package cmd
 
 import (
-	"bufio"
-	"fmt"
-	"io"
-	"os"
-
-	gzip "github.com/klauspost/pgzip"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -41,15 +35,17 @@ const (
 
 // Options contains the global flags
 type Options struct {
-	NumCPUs int
-	Verbose bool
+	NumCPUs  int
+	Verbose  bool
+	Compress bool
 }
 
 func getOptions(cmd *cobra.Command) *Options {
 	return &Options{
 		NumCPUs: getFlagPositiveInt(cmd, "threads"),
 		// NumCPUs: 1,
-		Verbose: getFlagBool(cmd, "verbose"),
+		Verbose:  getFlagBool(cmd, "verbose"),
+		Compress: !getFlagBool(cmd, "no-compress"),
 	}
 }
 
@@ -125,40 +121,4 @@ func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
 		}
 	}
 	return dseqs, nil
-}
-
-func outStream(file string) (*bufio.Writer, io.WriteCloser, *os.File, error) {
-	var err error
-	var w *os.File
-	if file == "-" {
-		w = os.Stdout
-	} else {
-		w, err = os.Create(file)
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("fail to write %s: %s", file, err)
-		}
-	}
-
-	gw := gzip.NewWriter(w)
-	return bufio.NewWriterSize(gw, os.Getpagesize()*2), gw, w, nil
-}
-
-func inStream(file string) (*bufio.Reader, *os.File, error) {
-	var err error
-	var r *os.File
-	if file == "-" {
-		r = os.Stdin
-	} else {
-		r, err = os.Open(file)
-		if err != nil {
-			return nil, nil, fmt.Errorf("fail to read %s: %s", file, err)
-		}
-	}
-
-	gr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, r, err
-	}
-
-	return bufio.NewReaderSize(gr, os.Getpagesize()*2), r, nil
 }

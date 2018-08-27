@@ -54,11 +54,13 @@ var countCmd = &cobra.Command{
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, gw, w, err := outStream(outFile)
+		outfh, gw, w, err := outStream(outFile, opt.Compress)
 		checkError(err)
 		defer func() {
 			outfh.Flush()
-			gw.Close()
+			if gw != nil {
+				gw.Close()
+			}
 			w.Close()
 		}()
 

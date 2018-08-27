@@ -58,16 +58,17 @@ func Encode(mer []byte) (code uint64, err error) {
 	if size == 0 || size > 32 {
 		return 0, ErrKOverflow
 	}
+
 	for i := range mer {
 		switch mer[size-1-i] {
-		case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
-			code += uint64(0 << uint(i*2))
-		case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
-			code += uint64(1 << uint(i*2))
 		case 'G', 'g', 'K', 'k':
-			code += uint64(2 << uint(i*2))
+			code |= 2 << uint64(i*2)
 		case 'T', 't', 'U', 'u':
-			code += uint64(3 << uint(i*2))
+			code |= 3 << uint64(i*2)
+		case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
+			code |= 1 << uint64(i*2)
+		case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
+			code |= 0 << uint64(i*2)
 		default:
 			return code, ErrIllegalBase
 		}
@@ -81,7 +82,7 @@ func Reverse(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c += (code & 3) << uint((k-i-1)*2)
+		c |= (code & 3) << uint((k-i-1)*2)
 		code >>= 2
 	}
 	return
@@ -93,7 +94,7 @@ func Complement(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c += (3 - (code & 3)) << uint(i*2)
+		c |= (3 - (code & 3)) << uint(i*2)
 		code >>= 2
 	}
 	return
