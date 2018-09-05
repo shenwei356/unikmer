@@ -82,6 +82,7 @@ format convertion, set operations and searching on unique Kmers.
         union           union of multiple binary files
         concat          concatenate multiple binary files without removing duplicates
         diff            set difference of multiple binary files
+        sample          sample Kmers from binary files
 
 1. Searching
 

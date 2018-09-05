@@ -35,7 +35,9 @@ import (
 var sampleCmd = &cobra.Command{
 	Use:   "sample",
 	Short: "sample Kmers from binary files",
-	Long: `sample Kmers from binary files
+	Long: `sample Kmers from binary files.
+
+The sampling type is fixed sampling.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
