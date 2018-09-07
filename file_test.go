@@ -23,6 +23,7 @@ package unikmer
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"math/rand"
 	"os"
@@ -43,36 +44,41 @@ func genKmers(k int, num int) [][]byte {
 
 // TestWriterReader tests Writer and Writer
 func TestWriter(t *testing.T) {
-	var file = "t.unik"
+	var file string
 
 	var mers, mers2 [][]byte
 	var err error
 
-	mers = genKmers(21, 10000)
+	for k := 1; k <= 32; k++ {
+		func() {
+			file = fmt.Sprintf("t.k%d.unik", k)
+			mers = genKmers(k, 10000)
 
-	err = write(mers, file)
-	if err != nil {
-		t.Error(err)
-	}
-	defer func() {
-		err = os.Remove(file)
-		if err != nil {
-			t.Error(err)
-		}
-	}()
+			err = write(mers, file)
+			if err != nil {
+				t.Error(err)
+			}
+			defer func() {
+				err = os.Remove(file)
+				if err != nil {
+					t.Error(err)
+				}
+			}()
 
-	mers2, err = read(file)
-	if err != nil {
-		t.Error(err)
-	}
+			mers2, err = read(file)
+			if err != nil {
+				t.Error(err)
+			}
 
-	if len(mers2) != len(mers) {
-		t.Errorf("write and read: number err")
-	}
-	for i := 0; i < len(mers); i++ {
-		if !bytes.Equal(mers[i], mers2[i]) {
-			t.Errorf("write and read: data mismatch")
-		}
+			if len(mers2) != len(mers) {
+				t.Errorf("write and read: number err")
+			}
+			for i := 0; i < len(mers); i++ {
+				if !bytes.Equal(mers[i], mers2[i]) {
+					t.Errorf("write and read: data mismatch")
+				}
+			}
+		}()
 	}
 }
 
