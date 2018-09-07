@@ -54,6 +54,7 @@ func TestWriter(t *testing.T) {
 			func(compact bool) {
 				mers = genKmers(k, 1000)
 
+				file = fmt.Sprintf("t.k%d.unik", k)
 				err = write(mers, file, compact)
 				if err != nil {
 					t.Error(err)
