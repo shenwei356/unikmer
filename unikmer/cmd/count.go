@@ -45,7 +45,7 @@ var countCmd = &cobra.Command{
 		files := getFileList(args)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		circular := getFlagBool(cmd, "circular-genome")
+		circular := getFlagBool(cmd, "circular")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		if k > 32 {
 			checkError(fmt.Errorf("k > 32 not supported"))
@@ -65,6 +65,7 @@ var countCmd = &cobra.Command{
 		}()
 
 		writer := unikmer.NewWriter(outfh, k)
+		writer.Compact = opt.Compact
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
@@ -154,5 +155,5 @@ func init() {
 
 	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	countCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
-	countCmd.Flags().BoolP("circular-genome", "c", false, "circular genome")
+	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 }

@@ -93,6 +93,7 @@ Attention:
 		}()
 
 		writer := unikmer.NewWriter(outfh, k)
+		writer.Compact = opt.Compact
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
