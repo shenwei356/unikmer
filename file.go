@@ -64,6 +64,8 @@ type Reader struct {
 	err  error
 	code uint64
 	size uint64
+
+	buf []byte
 }
 
 // NewReader returns a Reader.
@@ -103,16 +105,20 @@ func (reader *Reader) readHeader() error {
 	// need to check compatibility？
 	reader.Header.Version = fmt.Sprintf("%d.%d", meta[0], meta[1])
 	reader.Header.K = int(meta[2])
+
+	reader.buf = make([]byte, int(reader.Header.K+3)/4)
 	return nil
 }
 
 // Read reads one KmerCode.
 func (reader *Reader) Read() (KmerCode, error) {
-	reader.err = binary.Read(reader.r, be, &reader.code)
+	reader.err = binary.Read(reader.r, be, &reader.buf)
 	if reader.err != nil {
 		return KmerCode{}, reader.err
 	}
 	reader.size++
+	reader.code = uvarint(reader.buf, len(reader.buf))
+	// fmt.Printf("%d, %b, %b\n", len(reader.buf), reader.buf, reader.code)
 	return KmerCode{Code: reader.code, K: reader.Header.K}, nil
 }
 
@@ -124,6 +130,8 @@ type Writer struct {
 	wroteHeader bool
 	err         error
 	size        int64
+
+	buf []byte
 }
 
 // NewWriter creates a Writer.
@@ -131,6 +139,7 @@ func NewWriter(w io.Writer, k int) *Writer {
 	return &Writer{
 		Header: Header{Version: fmt.Sprintf("%d.%d", MainVersion, MinorVersion), K: k},
 		w:      w,
+		buf:    make([]byte, int(k+3)/4),
 	}
 }
 
@@ -173,7 +182,10 @@ func (writer *Writer) Write(kcode KmerCode) error {
 		writer.wroteHeader = true
 	}
 
-	writer.err = binary.Write(writer.w, be, kcode.Code)
+	// fmt.Println(len(writer.buf), kcode.K, kcode.Code, kcode)
+	putUvarint(writer.buf, kcode.Code)
+	// fmt.Printf("=%d, %b, %b\n", len(writer.buf), writer.buf, kcode.Code)
+	writer.err = binary.Write(writer.w, be, writer.buf)
 	if writer.err != nil {
 		return writer.err
 	}
