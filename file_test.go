@@ -23,6 +23,7 @@ package unikmer
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"math/rand"
 	"os"
@@ -43,7 +44,7 @@ func genKmers(k int, num int) [][]byte {
 
 // TestWriterReader tests Writer and Writer
 func TestWriter(t *testing.T) {
-	var file = "t.unik"
+	var file string
 
 	var mers, mers2 [][]byte
 	var err error
