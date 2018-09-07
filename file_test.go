@@ -49,40 +49,41 @@ func TestWriter(t *testing.T) {
 	var mers, mers2 [][]byte
 	var err error
 
-	for k := 1; k <= 32; k++ {
-		func() {
-			file = fmt.Sprintf("t.k%d.unik", k)
-			mers = genKmers(k, 10000)
+	for k := 21; k <= 21; k++ {
+		for _, compact := range []bool{false, true} {
+			func(compact bool) {
+				mers = genKmers(k, 1000)
 
-			err = write(mers, file)
-			if err != nil {
-				t.Error(err)
-			}
-			defer func() {
-				err = os.Remove(file)
+				err = write(mers, file, compact)
 				if err != nil {
 					t.Error(err)
 				}
-			}()
+				defer func() {
+					err = os.Remove(file)
+					if err != nil {
+						t.Error(err)
+					}
+				}()
 
-			mers2, err = read(file)
-			if err != nil {
-				t.Error(err)
-			}
-
-			if len(mers2) != len(mers) {
-				t.Errorf("write and read: number err")
-			}
-			for i := 0; i < len(mers); i++ {
-				if !bytes.Equal(mers[i], mers2[i]) {
-					t.Errorf("write and read: data mismatch")
+				mers2, err = read(file)
+				if err != nil {
+					t.Error(err)
 				}
-			}
-		}()
+
+				if len(mers2) != len(mers) {
+					t.Errorf("write and read: number err")
+				}
+				for i := 0; i < len(mers); i++ {
+					if !bytes.Equal(mers[i], mers2[i]) {
+						t.Errorf("write and read: data mismatch. %d: %d vs %d", i, mers[i], mers2[i])
+					}
+				}
+			}(compact)
+		}
 	}
 }
 
-func write(mers [][]byte, file string) error {
+func write(mers [][]byte, file string, compact bool) error {
 	w, err := os.Create(file)
 	if err != nil {
 		return err
@@ -93,6 +94,7 @@ func write(mers [][]byte, file string) error {
 	defer outfh.Flush()
 
 	writer := NewWriter(outfh, len(mers[0]))
+	writer.Compact = compact
 	for _, mer := range mers {
 		err = writer.WriteKmer(mer)
 		if err != nil {

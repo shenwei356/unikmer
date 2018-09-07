@@ -87,6 +87,7 @@ var concatCmd = &cobra.Command{
 				if k == -1 {
 					k = reader.K
 					writer = unikmer.NewWriter(outfh, k)
+					writer.Compact = opt.Compact
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}

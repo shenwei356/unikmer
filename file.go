@@ -31,7 +31,9 @@ import (
 const MainVersion int64 = 0
 
 // MinorVersion is the minor version number.
-const MinorVersion int64 = 1
+// 1 for regular format where KmerCode(uint64) is saved in fixed-length uint64,
+// 2 for compact format where KmerCode(uint64) is saved in variable-length byte array.
+const MinorVersion int64 = 2
 
 // Magic number of binary file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
@@ -49,12 +51,14 @@ var be = binary.BigEndian
 
 // Header contains metadata
 type Header struct {
-	Version string
-	K       int
+	MainVersion  int64
+	MinorVersion int64
+	K            int
 }
 
 func (h Header) String() string {
-	return fmt.Sprintf("unikmer binary kmer data file v%s, K=%d", h.Version, h.K)
+	return fmt.Sprintf("unikmer binary kmer data file v%d.%d, K=%d",
+		h.MainVersion, h.MinorVersion, h.K)
 }
 
 // Reader is for reading KmerCode.
@@ -64,6 +68,10 @@ type Reader struct {
 	err  error
 	code uint64
 	size uint64
+
+	Compact bool // Compact is a global variable for saving KmerCode in variable-length byte array.
+	buf     []byte
+	bufsize int
 }
 
 // NewReader returns a Reader.
@@ -101,17 +109,30 @@ func (reader *Reader) readHeader() error {
 		return reader.err
 	}
 	// need to check compatibility？
-	reader.Header.Version = fmt.Sprintf("%d.%d", meta[0], meta[1])
+	reader.Header.MainVersion = meta[0]
+	reader.Header.MinorVersion = meta[1]
+	if reader.Header.MinorVersion == 2 {
+		reader.Compact = true
+	}
 	reader.Header.K = int(meta[2])
+
+	reader.buf = make([]byte, 8)
+	reader.bufsize = int(reader.Header.K+3) / 4
 	return nil
 }
 
 // Read reads one KmerCode.
 func (reader *Reader) Read() (KmerCode, error) {
-	reader.err = binary.Read(reader.r, be, &reader.code)
+	if reader.Compact {
+		reader.err = binary.Read(reader.r, be, reader.buf[8-reader.bufsize:])
+		reader.code = be.Uint64(reader.buf)
+	} else {
+		reader.err = binary.Read(reader.r, be, &reader.code)
+	}
 	if reader.err != nil {
 		return KmerCode{}, reader.err
 	}
+
 	reader.size++
 	return KmerCode{Code: reader.code, K: reader.Header.K}, nil
 }
@@ -124,13 +145,19 @@ type Writer struct {
 	wroteHeader bool
 	err         error
 	size        int64
+
+	Compact bool // Compact is a global variable for saving KmerCode in variable-length byte array.
+	buf     []byte
+	bufsize int
 }
 
 // NewWriter creates a Writer.
 func NewWriter(w io.Writer, k int) *Writer {
 	return &Writer{
-		Header: Header{Version: fmt.Sprintf("%d.%d", MainVersion, MinorVersion), K: k},
-		w:      w,
+		Header:  Header{MainVersion: MainVersion, MinorVersion: MinorVersion, K: k},
+		w:       w,
+		buf:     make([]byte, 8),
+		bufsize: int(k+3) / 4,
 	}
 }
 
@@ -141,7 +168,13 @@ func (writer *Writer) writeHeader() error {
 		return writer.err
 	}
 	// write header
-	writer.err = binary.Write(writer.w, be, [3]int64{MainVersion, MinorVersion, int64(writer.K)})
+	var minorVersion int64
+	if writer.Compact {
+		minorVersion = 2
+	} else {
+		minorVersion = 1
+	}
+	writer.err = binary.Write(writer.w, be, [3]int64{MainVersion, minorVersion, int64(writer.K)})
 	if writer.err != nil {
 		return writer.err
 	}
@@ -173,7 +206,12 @@ func (writer *Writer) Write(kcode KmerCode) error {
 		writer.wroteHeader = true
 	}
 
-	writer.err = binary.Write(writer.w, be, kcode.Code)
+	if writer.Compact {
+		be.PutUint64(writer.buf, kcode.Code)
+		writer.err = binary.Write(writer.w, be, writer.buf[8-writer.bufsize:])
+	} else {
+		writer.err = binary.Write(writer.w, be, kcode.Code)
+	}
 	if writer.err != nil {
 		return writer.err
 	}

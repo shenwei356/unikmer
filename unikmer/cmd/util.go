@@ -42,6 +42,7 @@ type Options struct {
 	NumCPUs  int
 	Verbose  bool
 	Compress bool
+	Compact  bool
 }
 
 func getOptions(cmd *cobra.Command) *Options {
@@ -50,6 +51,7 @@ func getOptions(cmd *cobra.Command) *Options {
 		// NumCPUs: 1,
 		Verbose:  getFlagBool(cmd, "verbose"),
 		Compress: !getFlagBool(cmd, "no-compress"),
+		Compact:  getFlagBool(cmd, "compact"),
 	}
 }
 

@@ -69,5 +69,6 @@ func init() {
 
 	RootCmd.PersistentFlags().IntP("threads", "t", defaultThreads, "threads. (default value: 1 for single-CPU PC, 2 for others)")
 	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
-	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file")
+	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file (not recommended)")
+	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write more compact binary file with little loss of speed")
 }
