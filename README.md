@@ -96,32 +96,31 @@ format convertion, set operations and searching on unique Kmers.
 
 ### Binary file (.unik)
 
-Kmers are saved in gzipped binary file with file extension `.unik`.
+Kmers (represented in `uint64` in RAM ) are serialized in 8-Byte
+(or less Bytes for shorter Kmers in compact format) arrays and
+compressed in gzip format with extension of `.unik`.
 
-Here's the compression rate comparison with `gzip`.
-Plain text of Kmers are exported by `unikmer view` and
-compressed by `gzip` (default parameters).
-Decompressed `.unik` (`.unik.dec`) format is also compared.
-
-    $ f=Ecoli-MG1655.fasta.gz
-    $ ./cr.sh $ > $f.cr.tsv
-
-    # plot
-    $ csvtk cut -t -f 1,6-8 $f.cr.tsv \
-        | csvtk -t rename2 -f 2-4 -p "\(%\)" \
-        | csvtk -t gather  -k group  -v value -f 2-4 \
-        | csvtk plot line -t -x 1 -y 3 -g 2 \
-            --x-min 3 --x-max 40  --y-max 100 --ylab "compression rate (%)" \
-            --width 4.4 --height 3.3 \
-            --title $f \
-        > $f.cr.tsv.png
+#### Compression rate comparison
 
 ![Ecoli-MG1655.fasta.gz.cr.tsv.png](testdata/Ecoli-MG1655.fasta.gz.cr.tsv.png)
 ![A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png](testdata/A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png)
 
-Although the `.unik` file format, i.e., gzipped `uint64`s, does not have
-absolute advantage in compression rate compared to gzipped plain Kmers,
-it's faster for parsing and decreases RAM usage.
+label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-format<sup>c</sup>|comment
+:---------------|:----------------------:|:-------------------------:|:------------------------:|:------------------------------------------------------
+`plain`         |                        |                           |                          |plain text
+`plain.gz`      |                        |✔                          |                          |gzipped plain text
+`.unik`         |✔                       |✔                          |                          |gzipped encoded kmer in fixed-length byte array
+`.unik.cpt`     |✔                       |✔                          |✔                         |gzipped encoded kmer in shorter fixed-length byte array
+`.unik.ungz`    |✔                       |                           |                          |encoded kmer in fixed-length byte array
+`.unik.cpt.ungz`|✔                       |                           |✔                         |encoded kmer in shorter fixed-length byte array
+
+- <sup>a</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes.
+- <sup>b</sup> Kmers file is compressed in gzip format by default,
+  users can switch on global option `-C/--no-compress` to output non-compressed file.
+- <sup>c</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes by default.
+ However few Bytes are needed for short Kmers, e.g., 4 Bytes are enough for
+  15-mers (30 bits). This makes the file more compact with smaller file size,
+  controled by global option `-c/--compact `.
 
 ### Quick Start
 

@@ -1,0 +1,7 @@
+label,encoded-kmer<sup>a</sup>,gzip-compressed<sup>b</sup>,compact-format<sup>c</sup>,comment
+`plain`,,,,plain text
+`plain.gz`,,✔,,gzipped plain text
+`.unik`,✔,✔,,gzipped encoded kmer in fixed-length byte array
+`.unik.cpt`,✔,✔,✔,gzipped encoded kmer in shorter fixed-length byte array
+`.unik.ungz`,✔,,,encoded kmer in fixed-length byte array
+`.unik.cpt.ungz`,✔,,✔,encoded kmer in shorter fixed-length byte array
