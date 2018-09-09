@@ -49,10 +49,10 @@ func TestWriter(t *testing.T) {
 	var mers, mers2 [][]byte
 	var err error
 
-	for k := 21; k <= 21; k++ {
+	for k := 1; k <= 31; k++ {
 		for _, compact := range []bool{false, true} {
 			func(compact bool) {
-				mers = genKmers(k, 1000)
+				mers = genKmers(k, 10000)
 
 				file = fmt.Sprintf("t.k%d.unik", k)
 				err = write(mers, file, compact)

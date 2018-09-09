@@ -31,8 +31,8 @@ import (
 const MainVersion int64 = 0
 
 // MinorVersion is the minor version number.
-// 1 for regular format where KmerCode(uint64) is saved in fixed-length uint64,
-// 2 for compact format where KmerCode(uint64) is saved in variable-length byte array.
+// 1 for regular format where KmerCode(uint64) is saved in fixed-length 8-byte arrary
+// 2 for compact format where KmerCode(uint64) is saved in shorter fixed-length byte array.
 const MinorVersion int64 = 2
 
 // Magic number of binary file.
