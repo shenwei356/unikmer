@@ -21,6 +21,7 @@
 package unikmer
 
 import (
+	"bytes"
 	"errors"
 )
 
@@ -53,14 +54,14 @@ var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
 //     K       GT     G
 //     N       ACGT   A
 //
-func Encode(mer []byte) (code uint64, err error) {
-	size := len(mer)
+func Encode(kmer []byte) (code uint64, err error) {
+	size := len(kmer)
 	if size == 0 || size > 32 {
 		return 0, ErrKOverflow
 	}
 
-	for i := range mer {
-		switch mer[size-1-i] {
+	for i := range kmer {
+		switch kmer[size-1-i] {
 		case 'G', 'g', 'K', 'k':
 			code |= 2 << uint64(i*2)
 		case 'T', 't', 'U', 'u':
@@ -74,6 +75,42 @@ func Encode(mer []byte) (code uint64, err error) {
 		}
 	}
 	return code, nil
+}
+
+// ErrNotConsecutiveKmers means the two Kmers are not consecutive
+var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive Kmers")
+
+// MustEncodeFromPrevious encodes from previous kmer,
+// assuming the kmer and preKmer are both OK.
+func MustEncodeFromPreviousKmer(kmer []byte, preKmer []byte, preCode uint64) (uint64, error) {
+	preCode = preCode & ((1 << (uint(len(kmer)-1) * 2)) - 1) << 2
+	switch kmer[len(kmer)-1] {
+	case 'G', 'g', 'K', 'k':
+		preCode += 2
+	case 'T', 't', 'U', 'u':
+		preCode += 3
+	case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
+		preCode += 1
+	case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
+		preCode += 0
+	default:
+		return preCode, ErrIllegalBase
+	}
+	return preCode, nil
+}
+
+// EncodeFromPrevious encodes from previous kmer, inspired by ntHash
+func EncodeFromPreviousKmer(kmer []byte, preKmer []byte, preCode uint64) (uint64, error) {
+	if len(kmer) == 0 {
+		return 0, ErrKOverflow
+	}
+	if len(kmer) != len(preKmer) {
+		return 0, ErrKMismatch
+	}
+	if !bytes.Equal(kmer[0:len(kmer)-1], preKmer[1:len(preKmer)]) {
+		return 0, ErrNotConsecutiveKmers
+	}
+	return MustEncodeFromPreviousKmer(kmer, preKmer, preCode)
 }
 
 // Reverse returns code of the reversed sequence.
@@ -108,12 +145,12 @@ func Decode(code uint64, k int) []byte {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
 	}
-	mer := make([]byte, k)
+	kmer := make([]byte, k)
 	for i := 0; i < k; i++ {
-		mer[k-1-i] = bit2base[code&3]
+		kmer[k-1-i] = bit2base[code&3]
 		code >>= 2
 	}
-	return mer
+	return kmer
 }
 
 // KmerCode is a struct representing a kmer in 64-bits.
@@ -123,12 +160,31 @@ type KmerCode struct {
 }
 
 // NewKmerCode returns a new KmerCode struct from byte slice.
-func NewKmerCode(mer []byte) (KmerCode, error) {
-	code, err := Encode(mer)
+func NewKmerCode(kmer []byte) (KmerCode, error) {
+	code, err := Encode(kmer)
 	if err != nil {
 		return KmerCode{}, err
 	}
-	return KmerCode{code, len(mer)}, err
+	return KmerCode{code, len(kmer)}, err
+}
+
+// NewKmerCodeFromPreviousOne computes KmerCode from the previous consecutive kmer.
+func NewKmerCodeFromPreviousOne(kmer []byte, preKmer []byte, preKcode KmerCode) (KmerCode, error) {
+	code, err := EncodeFromPreviousKmer(kmer, preKmer, preKcode.Code)
+	if err != nil {
+		return KmerCode{}, err
+	}
+	return KmerCode{code, len(kmer)}, err
+}
+
+// NewKmerCodeMustFromPreviousOne computes KmerCode from the previous consecutive kmer,
+// assuming the kmer and preKmer are both OK.
+func NewKmerCodeMustFromPreviousOne(kmer []byte, preKmer []byte, preKcode KmerCode) (KmerCode, error) {
+	code, err := MustEncodeFromPreviousKmer(kmer, preKmer, preKcode.Code)
+	if err != nil {
+		return KmerCode{}, err
+	}
+	return KmerCode{code, len(kmer)}, err
 }
 
 // Equal checks wether two KmerCodes are the same.

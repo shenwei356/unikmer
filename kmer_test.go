@@ -31,6 +31,9 @@ var randomMers [][]byte
 var randomMersN = 100000
 
 var benchMer = []byte("ACTGactgGTCAgtcaactgGTCAACTGGTCA")
+var codeBenchMer uint64 = 2170370756141391540
+var benchMer2 = []byte("CTGactgGTCAgtcaactgGTCAACTGGTCAC")
+var codeBenchMer2 uint64 = 8681483024565566161
 var benchCode uint64
 var benchKmerCode KmerCode
 
@@ -72,6 +75,44 @@ func TestEncodeDecode(t *testing.T) {
 	}
 }
 
+// TestEncodeFromPreviousKmer tests TestEncodeFromPreviousKmer
+func TestEncodeFromPreviousKmer(t *testing.T) {
+	var err error
+	k := 5
+	first := true
+	var code, code0, pCode uint64
+	var kmer, pKmer []byte
+	for i := 0; i < len(benchMer)-k; i++ {
+		kmer = benchMer[i : i+k]
+		if first {
+			code, err = Encode(kmer)
+			if err != nil {
+				t.Errorf("Encode error: %s", kmer)
+			}
+
+			pCode = code
+			first = false
+			continue
+		}
+		pKmer = benchMer[i-1 : i+k-1]
+		code, err = EncodeFromPreviousKmer(kmer, pKmer, pCode)
+		if err != nil {
+			t.Errorf("Encode error: %s", kmer)
+		}
+
+		code0, err = Encode(kmer)
+		if err != nil {
+			t.Errorf("Encode error: %s", kmer)
+		}
+		if code0 != code {
+			t.Errorf("EncodeFromPreviousKmer error for %s: wrong %d != right %d", kmer, code, code0)
+		}
+
+		pCode = code
+	}
+}
+
+// TestRevComp tests revcomp
 func TestRevComp(t *testing.T) {
 	var kcode KmerCode
 	for _, mer := range randomMers {
@@ -93,10 +134,48 @@ func TestRevComp(t *testing.T) {
 	}
 }
 
-// BenchmarkEncode tests speed of encode()
+// BenchmarkEncode tests speed of Encode()
 func BenchmarkEncodeK32(b *testing.B) {
+	var code uint64
+	var err error
 	for i := 0; i < b.N; i++ {
-		Encode(benchMer)
+		code, err = Encode(benchMer)
+		if err != nil {
+			b.Errorf("Encode error: %s", benchMer)
+		}
+		if code != codeBenchMer {
+			b.Errorf("wrong result: %s", benchMer)
+		}
+	}
+}
+
+// BenchmarkEncode tests speed of EncodeFromPreviousKmer
+func BenchmarkEncodeFromPreviousKmerK32(b *testing.B) {
+	var code uint64
+	var err error
+	for i := 0; i < b.N; i++ {
+		code, err = EncodeFromPreviousKmer(benchMer2, benchMer, benchCode)
+		if err != nil {
+			b.Errorf("Encode error: %s", benchMer)
+		}
+		if code != codeBenchMer2 {
+			b.Errorf("wrong result: %s", benchMer)
+		}
+	}
+}
+
+// BenchmarkEncode tests speed of MustEncodeFromPreviousKmer
+func BenchmarkMustEncodeFromPreviousKmerK32(b *testing.B) {
+	var code uint64
+	var err error
+	for i := 0; i < b.N; i++ {
+		code, err = MustEncodeFromPreviousKmer(benchMer2, benchMer, benchCode)
+		if err != nil {
+			b.Errorf("Encode error: %s", benchMer)
+		}
+		if code != codeBenchMer2 {
+			b.Errorf("wrong result: %s", benchMer)
+		}
 	}
 }
 
@@ -107,18 +186,21 @@ func BenchmarkDecodeK32(b *testing.B) {
 	}
 }
 
+// BenchmarkRevK32 tests speed of rev
 func BenchmarkRevK32(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchKmerCode.Rev()
 	}
 }
 
+// BenchmarkRevK32 tests speed of comp
 func BenchmarkCompK32(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchKmerCode.Comp()
 	}
 }
 
+// BenchmarkRevCompK32 tests speed of revcomp
 func BenchmarkRevCompK32(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchKmerCode.RevComp()

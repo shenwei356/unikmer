@@ -45,11 +45,13 @@ Kmer frequencies) and provides serialization methods.
     goos: linux
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
-    BenchmarkEncodeK32-4    20000000   90.9 ns/op    0 B/op    0 allocs/op
-    BenchmarkDecodeK32-4    20000000    103 ns/op   32 B/op    1 allocs/op
-    BenchmarkRevK32-4       20000000   61.9 ns/op    0 B/op    0 allocs/op
-    BenchmarkCompK32-4      30000000   53.9 ns/op    0 B/op    0 allocs/op
-    BenchmarkRevCompK32-4   10000000    115 ns/op    0 B/op    0 allocs/op
+    BenchmarkEncodeK32-16                           20000000                52.7 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeFromPreviousKmerK32-16           200000000               9.37 ns/op             0 B/op          0 allocs/op
+    BenchmarkMustEncodeFromPreviousKmerK32-16       1000000000              1.98 ns/op             0 B/op          0 allocs/op
+    BenchmarkDecodeK32-16                           20000000                82.9 ns/op            32 B/op          1 allocs/op
+    BenchmarkRevK32-16                              30000000                34.5 ns/op             0 B/op          0 allocs/op
+    BenchmarkCompK32-16                             50000000                31.4 ns/op             0 B/op          0 allocs/op
+    BenchmarkRevCompK32-16                          20000000                69.4 ns/op             0 B/op          0 allocs/op
 
 ## The toolkit
 

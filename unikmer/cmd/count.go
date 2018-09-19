@@ -69,11 +69,12 @@ var countCmd = &cobra.Command{
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
-		var sequence, mer []byte
+		var sequence, kmer, preKmer []byte
 		var originalLen, l, end, e int
 		var record *fastx.Record
 		var fastxReader *fastx.Reader
-		var kcode unikmer.KmerCode
+		var kcode, preKcode unikmer.KmerCode
+		var first bool
 		var i, j int
 		var ok bool
 		var n int64
@@ -115,23 +116,30 @@ var countCmd = &cobra.Command{
 					if end < 0 {
 						end = 0
 					}
+					first = true
 					for i = 0; i <= end; i++ {
 						e = i + k
 						if e > originalLen {
 							if circular {
 								e = e - originalLen
-								mer = sequence[i:]
-								mer = append(mer, sequence[0:e]...)
+								kmer = sequence[i:]
+								kmer = append(kmer, sequence[0:e]...)
 							} else {
 								break
 							}
 						} else {
-							mer = sequence[i : i+k]
+							kmer = sequence[i : i+k]
 						}
 
-						kcode, err = unikmer.NewKmerCode(mer)
+						if first {
+							kcode, err = unikmer.NewKmerCode(kmer)
+							first = false
+						} else {
+							kcode, err = unikmer.NewKmerCodeMustFromPreviousOne(kmer, preKmer, preKcode)
+						}
+						preKmer, preKcode = kmer, kcode
 						if err != nil {
-							checkError(fmt.Errorf("encoding '%s': %s", mer, err))
+							checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
 						}
 
 						if _, ok = m[kcode.Code]; !ok {

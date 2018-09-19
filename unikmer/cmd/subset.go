@@ -98,7 +98,7 @@ Attention:
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		var kcode, kcode2 unikmer.KmerCode
-		var mer []byte
+		var kmer []byte
 		var ok bool
 		for {
 			kcode, err = reader.Read()
@@ -109,12 +109,12 @@ Attention:
 				checkError(err)
 			}
 
-			mer = kcode.Bytes()
-			mer = mer[0:k]
+			kmer = kcode.Bytes()
+			kmer = kmer[0:k]
 
-			kcode2, err = unikmer.NewKmerCode(mer)
+			kcode2, err = unikmer.NewKmerCode(kmer)
 			if err != nil {
-				checkError(fmt.Errorf("encoding '%s': %s", mer, err))
+				checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
 			}
 
 			if _, ok = m[kcode2.Code]; !ok {
