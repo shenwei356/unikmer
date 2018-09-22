@@ -80,37 +80,70 @@ func Encode(kmer []byte) (code uint64, err error) {
 // ErrNotConsecutiveKmers means the two Kmers are not consecutive
 var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive Kmers")
 
-// MustEncodeFromPrevious encodes from previous kmer,
-// assuming the kmer and preKmer are both OK.
-func MustEncodeFromPreviousKmer(kmer []byte, preKmer []byte, preCode uint64) (uint64, error) {
-	preCode = preCode & ((1 << (uint(len(kmer)-1) << 1)) - 1) << 2
+// MustEncodeFromFormerKmer encodes from former kmer,
+// assuming the kmer and leftKmer are both OK.
+func MustEncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64, error) {
+	leftCode = leftCode & ((1 << (uint(len(kmer)-1) << 1)) - 1) << 2
 	switch kmer[len(kmer)-1] {
 	case 'G', 'g', 'K', 'k':
-		preCode += 2
+		leftCode |= 2
 	case 'T', 't', 'U', 'u':
-		preCode += 3
+		leftCode |= 3
 	case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
-		preCode += 1
+		leftCode |= 1
 	case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
-		preCode += 0
+		// leftCode |= 0
 	default:
-		return preCode, ErrIllegalBase
+		return leftCode, ErrIllegalBase
 	}
-	return preCode, nil
+	return leftCode, nil
 }
 
-// EncodeFromPrevious encodes from previous kmer, inspired by ntHash
-func EncodeFromPreviousKmer(kmer []byte, preKmer []byte, preCode uint64) (uint64, error) {
+// EncodeFromFormerKmer encodes from former kmer, inspired by ntHash
+func EncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64, error) {
 	if len(kmer) == 0 {
 		return 0, ErrKOverflow
 	}
-	if len(kmer) != len(preKmer) {
+	if len(kmer) != len(leftKmer) {
 		return 0, ErrKMismatch
 	}
-	if !bytes.Equal(kmer[0:len(kmer)-1], preKmer[1:len(preKmer)]) {
+	if !bytes.Equal(kmer[0:len(kmer)-1], leftKmer[1:len(leftKmer)]) {
 		return 0, ErrNotConsecutiveKmers
 	}
-	return MustEncodeFromPreviousKmer(kmer, preKmer, preCode)
+	return MustEncodeFromFormerKmer(kmer, leftKmer, leftCode)
+}
+
+// MustEncodeFromLatterKmer encodes from latter kmer,
+// assuming the kmer and rightKmer are both OK.
+func MustEncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (uint64, error) {
+	rightCode >>= 2
+	switch kmer[0] {
+	case 'G', 'g', 'K', 'k':
+		rightCode |= 2 << (uint(len(kmer)-1) << 1)
+	case 'T', 't', 'U', 'u':
+		rightCode |= 3 << (uint(len(kmer)-1) << 1)
+	case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
+		rightCode |= 1 << (uint(len(kmer)-1) << 1)
+	case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
+		// rightCode |= 0 << (uint(len(kmer)-1) << 1)
+	default:
+		return rightCode, ErrIllegalBase
+	}
+	return rightCode, nil
+}
+
+// EncodeFromLatterKmer encodes from former kmer.
+func EncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (uint64, error) {
+	if len(kmer) == 0 {
+		return 0, ErrKOverflow
+	}
+	if len(kmer) != len(rightKmer) {
+		return 0, ErrKMismatch
+	}
+	if !bytes.Equal(rightKmer[0:len(kmer)-1], kmer[1:len(rightKmer)]) {
+		return 0, ErrNotConsecutiveKmers
+	}
+	return MustEncodeFromLatterKmer(kmer, rightKmer, rightCode)
 }
 
 // Reverse returns code of the reversed sequence.
@@ -182,19 +215,19 @@ func NewKmerCode(kmer []byte) (KmerCode, error) {
 	return KmerCode{code, len(kmer)}, err
 }
 
-// NewKmerCodeFromPreviousOne computes KmerCode from the previous consecutive kmer.
-func NewKmerCodeFromPreviousOne(kmer []byte, preKmer []byte, preKcode KmerCode) (KmerCode, error) {
-	code, err := EncodeFromPreviousKmer(kmer, preKmer, preKcode.Code)
+// NewKmerCodeFromFormerOne computes KmerCode from the Former consecutive kmer.
+func NewKmerCodeFromFormerOne(kmer []byte, leftKmer []byte, preKcode KmerCode) (KmerCode, error) {
+	code, err := EncodeFromFormerKmer(kmer, leftKmer, preKcode.Code)
 	if err != nil {
 		return KmerCode{}, err
 	}
 	return KmerCode{code, len(kmer)}, err
 }
 
-// NewKmerCodeMustFromPreviousOne computes KmerCode from the previous consecutive kmer,
-// assuming the kmer and preKmer are both OK.
-func NewKmerCodeMustFromPreviousOne(kmer []byte, preKmer []byte, preKcode KmerCode) (KmerCode, error) {
-	code, err := MustEncodeFromPreviousKmer(kmer, preKmer, preKcode.Code)
+// NewKmerCodeMustFromFormerOne computes KmerCode from the Former consecutive kmer,
+// assuming the kmer and leftKmer are both OK.
+func NewKmerCodeMustFromFormerOne(kmer []byte, leftKmer []byte, preKcode KmerCode) (KmerCode, error) {
+	code, err := MustEncodeFromFormerKmer(kmer, leftKmer, preKcode.Code)
 	if err != nil {
 		return KmerCode{}, err
 	}
@@ -219,6 +252,15 @@ func (kcode KmerCode) Comp() KmerCode {
 // RevComp returns KmerCode of the reverse complement sequence.
 func (kcode KmerCode) RevComp() KmerCode {
 	return KmerCode{RevComp(kcode.Code, kcode.K), kcode.K}
+}
+
+// Canonical returns its canonical kmer
+func (kcode KmerCode) Canonical() KmerCode {
+	rcKcode := kcode.RevComp()
+	if rcKcode.Code < kcode.Code {
+		return rcKcode
+	}
+	return kcode
 }
 
 // Bytes returns kmer in []byte.

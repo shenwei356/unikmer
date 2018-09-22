@@ -75,8 +75,8 @@ func TestEncodeDecode(t *testing.T) {
 	}
 }
 
-// TestEncodeFromPreviousKmer tests TestEncodeFromPreviousKmer
-func TestEncodeFromPreviousKmer(t *testing.T) {
+// TestEncodeFromFormerKmer tests TestEncodeFromFormerKmer
+func TestEncodeFromFormerKmer(t *testing.T) {
 	var err error
 	k := 5
 	first := true
@@ -95,7 +95,7 @@ func TestEncodeFromPreviousKmer(t *testing.T) {
 			continue
 		}
 		pKmer = benchMer[i-1 : i+k-1]
-		code, err = EncodeFromPreviousKmer(kmer, pKmer, pCode)
+		code, err = EncodeFromFormerKmer(kmer, pKmer, pCode)
 		if err != nil {
 			t.Errorf("Encode error: %s", kmer)
 		}
@@ -105,7 +105,43 @@ func TestEncodeFromPreviousKmer(t *testing.T) {
 			t.Errorf("Encode error: %s", kmer)
 		}
 		if code0 != code {
-			t.Errorf("EncodeFromPreviousKmer error for %s: wrong %d != right %d", kmer, code, code0)
+			t.Errorf("EncodeFromFormerKmer error for %s: wrong %d != right %d", kmer, code, code0)
+		}
+
+		pCode = code
+	}
+}
+
+func TestEncodeFromLatterKmer(t *testing.T) {
+	var err error
+	k := 5
+	first := true
+	var code, code0, pCode uint64
+	var kmer, pKmer []byte
+	for i := len(benchMer) - k - 1; i >= 0; i-- {
+		kmer = benchMer[i : i+k]
+		if first {
+			code, err = Encode(kmer)
+			if err != nil {
+				t.Errorf("Encode error: %s", kmer)
+			}
+
+			pCode = code
+			first = false
+			continue
+		}
+		pKmer = benchMer[i+1 : i+k+1]
+		code, err = EncodeFromLatterKmer(kmer, pKmer, pCode)
+		if err != nil {
+			t.Errorf("Encode error: %s", kmer)
+		}
+
+		code0, err = Encode(kmer)
+		if err != nil {
+			t.Errorf("Encode error: %s", kmer)
+		}
+		if code0 != code {
+			t.Errorf("EncodeFromLatterKmer error for %s: wrong %d != right %d", kmer, code, code0)
 		}
 
 		pCode = code
@@ -154,12 +190,12 @@ func BenchmarkEncodeK32(b *testing.B) {
 	}
 }
 
-// BenchmarkEncode tests speed of EncodeFromPreviousKmer
-func BenchmarkEncodeFromPreviousKmerK32(b *testing.B) {
+// BenchmarkEncode tests speed of EncodeFromFormerKmer
+func BenchmarkEncodeFromFormerKmerK32(b *testing.B) {
 	var code uint64
 	var err error
 	for i := 0; i < b.N; i++ {
-		code, err = EncodeFromPreviousKmer(benchMer2, benchMer, benchCode)
+		code, err = EncodeFromFormerKmer(benchMer2, benchMer, benchCode)
 		if err != nil {
 			b.Errorf("Encode error: %s", benchMer)
 		}
@@ -169,12 +205,12 @@ func BenchmarkEncodeFromPreviousKmerK32(b *testing.B) {
 	}
 }
 
-// BenchmarkEncode tests speed of MustEncodeFromPreviousKmer
-func BenchmarkMustEncodeFromPreviousKmerK32(b *testing.B) {
+// BenchmarkEncode tests speed of MustEncodeFromFormerKmer
+func BenchmarkMustEncodeFromFormerKmerK32(b *testing.B) {
 	var code uint64
 	var err error
 	for i := 0; i < b.N; i++ {
-		code, err = MustEncodeFromPreviousKmer(benchMer2, benchMer, benchCode)
+		code, err = MustEncodeFromFormerKmer(benchMer2, benchMer, benchCode)
 		if err != nil {
 			b.Errorf("Encode error: %s", benchMer)
 		}

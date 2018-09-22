@@ -51,6 +51,8 @@ var countCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
+		canonical := getFlagBool(cmd, "canonical")
+
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
@@ -75,7 +77,7 @@ var countCmd = &cobra.Command{
 		var fastxReader *fastx.Reader
 		var kcode, preKcode unikmer.KmerCode
 		var first bool
-		var i, j int
+		var i, j, iters int
 		var ok bool
 		var n int64
 		for _, file := range files {
@@ -94,7 +96,13 @@ var countCmd = &cobra.Command{
 					break
 				}
 
-				for j = 0; j < 2; j++ {
+				if canonical {
+					iters = 1
+				} else {
+					iters = 2
+				}
+
+				for j = 0; j < iters; j++ {
 					if j == 0 { // sequence
 						sequence = record.Seq.Seq
 
@@ -135,11 +143,15 @@ var countCmd = &cobra.Command{
 							kcode, err = unikmer.NewKmerCode(kmer)
 							first = false
 						} else {
-							kcode, err = unikmer.NewKmerCodeMustFromPreviousOne(kmer, preKmer, preKcode)
+							kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
 						}
-						preKmer, preKcode = kmer, kcode
 						if err != nil {
 							checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
+						}
+						preKmer, preKcode = kmer, kcode
+
+						if canonical {
+							kcode = kcode.Canonical()
 						}
 
 						if _, ok = m[kcode.Code]; !ok {
@@ -162,6 +174,7 @@ func init() {
 	RootCmd.AddCommand(countCmd)
 
 	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	countCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
+	countCmd.Flags().IntP("kmer-len", "k", 0, "Kmer length")
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
+	countCmd.Flags().BoolP("canonical", "", false, "only keep the canonical Kmers")
 }

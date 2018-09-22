@@ -45,13 +45,13 @@ Kmer frequencies) and provides serialization methods.
     goos: linux
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
-    BenchmarkEncodeK32-16                           20000000                51.5 ns/op             0 B/op          0 allocs/op
-    BenchmarkEncodeFromPreviousKmerK32-16           200000000               9.28 ns/op             0 B/op          0 allocs/op
-    BenchmarkMustEncodeFromPreviousKmerK32-16       1000000000              1.81 ns/op             0 B/op          0 allocs/op
-    BenchmarkDecodeK32-16                           20000000                82.5 ns/op            32 B/op          1 allocs/op
-    BenchmarkRevK32-16                              50000000                26.1 ns/op             0 B/op          0 allocs/op
-    BenchmarkCompK32-16                             50000000                28.4 ns/op             0 B/op          0 allocs/op
-    BenchmarkRevCompK32-16                          50000000                22.4 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeK32-16                           20000000                50.1 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeFromFormerKmerK32-16             200000000               9.30 ns/op             0 B/op          0 allocs/op
+    BenchmarkMustEncodeFromFormerKmerK32-16         2000000000              1.95 ns/op             0 B/op          0 allocs/op
+    BenchmarkDecodeK32-16                           20000000                79.5 ns/op            32 B/op          1 allocs/op
+    BenchmarkRevK32-16                              50000000                20.7 ns/op             0 B/op          0 allocs/op
+    BenchmarkCompK32-16                             50000000                32.7 ns/op             0 B/op          0 allocs/op
+    BenchmarkRevCompK32-16                          100000000               22.4 ns/op             0 B/op          0 allocs/op
 
 ## The toolkit
 
@@ -138,6 +138,17 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     $ ls -lh Ecoli-MG1655.fasta.gz*
     -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
     -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
+
+    # counting (only keep the canonical kmers)
+    $ memusg -t unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k31 --canonical
+
+    elapsed time: 3.428s
+    peak rss: 236.14 MB
+
+    $ ls -lh Ecoli-MG1655.fasta.gz*
+    -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
+    -rw-rw-r--. 1 shenwei shenwei  19M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
+
 
 
     # view

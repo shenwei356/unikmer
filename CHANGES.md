@@ -1,1 +1,10 @@
- 
+- v0.2.1
+    - `unikmer count`: performance improvement and new option `--canonical` for only keeping canonical Kmers.
+- v0.2
+    - new command `unikmer sample`: sample Kmers from binary files.
+    - new global options:
+        - `-c, --compact`:       write more compact binary file with little loss of speed.
+        - `-C, --no-compress`:   do not compress binary file (not recommended).
+    - some improvements.
+- v0.1.0
+    - first release
