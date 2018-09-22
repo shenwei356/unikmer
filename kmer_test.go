@@ -119,17 +119,22 @@ func TestRevComp(t *testing.T) {
 		kcode, _ = NewKmerCode(mer)
 
 		// fmt.Printf("%s, rev:%s\n", kcode, kcode.Rev())
-		if !kcode.Rev().Rev().Equal(kcode) {
-			t.Errorf("Rev() error: %s, Rev(): %s", kcode, kcode.Rev())
-		}
+
 	}
 
 	for _, mer := range randomMers {
 		kcode, _ = NewKmerCode(mer)
 
-		// fmt.Printf("%s, comp:%s\n", kcode, kcode.Comp())
+		if !kcode.Rev().Rev().Equal(kcode) {
+			t.Errorf("Rev() error: %s, Rev(): %s", kcode, kcode.Rev())
+		}
+
 		if !kcode.Comp().Comp().Equal(kcode) {
 			t.Errorf("Comp() error: %s, Comp(): %s", kcode, kcode.Comp())
+		}
+
+		if !kcode.Comp().Rev().Equal(kcode.RevComp()) {
+			t.Errorf("Rev().Comp() error: %s, Rev(): %s, Comp(): %s, RevComp: %s", kcode, kcode.Rev(), kcode.Comp(), kcode.RevComp())
 		}
 	}
 }

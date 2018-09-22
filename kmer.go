@@ -83,7 +83,7 @@ var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive Kmers")
 // MustEncodeFromPrevious encodes from previous kmer,
 // assuming the kmer and preKmer are both OK.
 func MustEncodeFromPreviousKmer(kmer []byte, preKmer []byte, preCode uint64) (uint64, error) {
-	preCode = preCode & ((1 << (uint(len(kmer)-1) * 2)) - 1) << 2
+	preCode = preCode & ((1 << (uint(len(kmer)-1) << 1)) - 1) << 2
 	switch kmer[len(kmer)-1] {
 	case 'G', 'g', 'K', 'k':
 		preCode += 2
@@ -119,7 +119,8 @@ func Reverse(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c |= (code & 3) << uint((k-i-1)*2)
+		c <<= 2
+		c |= code & 3
 		code >>= 2
 	}
 	return
@@ -131,7 +132,20 @@ func Complement(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c |= (3 - (code & 3)) << uint(i*2)
+		c |= (code&3 ^ 3) << uint(i<<1)
+		code >>= 2
+	}
+	return
+}
+
+// RevComp returns code of reverse complement sequence.
+func RevComp(code uint64, k int) (c uint64) {
+	if k <= 0 || k > 32 {
+		panic(ErrKOverflow)
+	}
+	for i := 0; i < k; i++ {
+		c <<= 2
+		c |= code&3 ^ 3
 		code >>= 2
 	}
 	return
@@ -204,7 +218,7 @@ func (kcode KmerCode) Comp() KmerCode {
 
 // RevComp returns KmerCode of the reverse complement sequence.
 func (kcode KmerCode) RevComp() KmerCode {
-	return kcode.Rev().Comp()
+	return KmerCode{RevComp(kcode.Code, kcode.K), kcode.K}
 }
 
 // Bytes returns kmer in []byte.
