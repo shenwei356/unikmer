@@ -91,7 +91,7 @@ var grepCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 		var mer []byte
 
-		infh, r, err = inStream(file)
+		infh, r, _, err = inStream(file)
 		checkError(err)
 		defer r.Close()
 

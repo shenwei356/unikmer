@@ -77,7 +77,7 @@ var concatCmd = &cobra.Command{
 			}
 
 			flag = func() int {
-				infh, r, err = inStream(file)
+				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
 
@@ -85,9 +85,12 @@ var concatCmd = &cobra.Command{
 				checkError(err)
 
 				if k == -1 {
-					k = reader.K
-					writer = unikmer.NewWriter(outfh, k)
-					writer.Compact = opt.Compact
+					var mode uint32
+					if opt.Compact {
+						mode |= unikmer.UNIK_Compact
+					}
+					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
+					checkError(err)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}

@@ -50,12 +50,13 @@ func TestWriter(t *testing.T) {
 	var err error
 
 	for k := 1; k <= 31; k++ {
-		for _, compact := range []bool{false, true} {
-			func(compact bool) {
+		for _, flag := range []uint32{0, UNIK_Compact} {
+			func(flag uint32) {
 				mers = genKmers(k, 10000)
 
 				file = fmt.Sprintf("t.k%d.unik", k)
-				err = write(mers, file, compact)
+
+				err = write(mers, file, flag)
 				if err != nil {
 					t.Error(err)
 				}
@@ -79,12 +80,12 @@ func TestWriter(t *testing.T) {
 						t.Errorf("write and read: data mismatch. %d: %d vs %d", i, mers[i], mers2[i])
 					}
 				}
-			}(compact)
+			}(flag)
 		}
 	}
 }
 
-func write(mers [][]byte, file string, compact bool) error {
+func write(mers [][]byte, file string, flag uint32) error {
 	w, err := os.Create(file)
 	if err != nil {
 		return err
@@ -94,8 +95,11 @@ func write(mers [][]byte, file string, compact bool) error {
 	outfh := bufio.NewWriter(w)
 	defer outfh.Flush()
 
-	writer := NewWriter(outfh, len(mers[0]))
-	writer.Compact = compact
+	writer, err := NewWriter(outfh, len(mers[0]), flag)
+	if err != nil {
+		return err
+	}
+
 	for _, mer := range mers {
 		err = writer.WriteKmer(mer)
 		if err != nil {

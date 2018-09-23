@@ -49,34 +49,34 @@ func outStream(file string, gzipped bool) (*bufio.Writer, io.WriteCloser, *os.Fi
 	return bufio.NewWriterSize(w, os.Getpagesize()), nil, w, nil
 }
 
-func inStream(file string) (*bufio.Reader, *os.File, error) {
+func inStream(file string) (*bufio.Reader, *os.File, bool, error) {
 	var err error
 	var r *os.File
+	var gzipped bool
 	if file == "-" {
 		if !detectStdin() {
-			return nil, nil, errors.New("stdin not detected")
+			return nil, nil, gzipped, errors.New("stdin not detected")
 		}
 		r = os.Stdin
 	} else {
 		r, err = os.Open(file)
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to read %s: %s", file, err)
+			return nil, nil, gzipped, fmt.Errorf("fail to read %s: %s", file, err)
 		}
 	}
 
 	br := bufio.NewReaderSize(r, os.Getpagesize())
 
-	if gzipped, err := isGzip(br); err != nil {
-		return nil, nil, fmt.Errorf("fail to check is file (%s) gzipped: %s", file, err)
+	if gzipped, err = isGzip(br); err != nil {
+		return nil, nil, gzipped, fmt.Errorf("fail to check is file (%s) gzipped: %s", file, err)
 	} else if gzipped {
 		gr, err := gzip.NewReader(br)
 		if err != nil {
-			return nil, r, fmt.Errorf("fail to create gzip reader for %s: %s", file, err)
+			return nil, r, gzipped, fmt.Errorf("fail to create gzip reader for %s: %s", file, err)
 		}
 		br = bufio.NewReaderSize(gr, os.Getpagesize())
 	}
-
-	return br, r, nil
+	return br, r, gzipped, nil
 }
 
 func isGzip(b *bufio.Reader) (bool, error) {

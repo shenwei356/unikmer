@@ -82,7 +82,7 @@ The sampling type is fixed sampling.
 			}
 
 			flag = func() int {
-				infh, r, err = inStream(file)
+				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
 
@@ -90,9 +90,8 @@ The sampling type is fixed sampling.
 				checkError(err)
 
 				if k == -1 {
-					k = reader.K
-					writer = unikmer.NewWriter(outfh, k)
-					writer.Compact = opt.Compact
+					writer, err = unikmer.NewWriter(outfh, reader.K, reader.Flag)
+					checkError(err)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				}

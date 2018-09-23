@@ -93,8 +93,12 @@ var dumpCmd = &cobra.Command{
 					}
 
 					if writer == nil {
-						writer = unikmer.NewWriter(outfh, l)
-						writer.Compact = opt.Compact
+						var mode uint32
+						if opt.Compact {
+							mode |= unikmer.UNIK_Compact
+						}
+						writer, err = unikmer.NewWriter(outfh, l, mode)
+						checkError(err)
 					}
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))

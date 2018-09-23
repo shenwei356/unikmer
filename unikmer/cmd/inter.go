@@ -72,7 +72,7 @@ var interCmd = &cobra.Command{
 			}
 
 			flag = func() int {
-				infh, r, err = inStream(file)
+				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
 
@@ -90,8 +90,12 @@ var interCmd = &cobra.Command{
 						w.Close()
 					}()
 
-					writer := unikmer.NewWriter(outfh, k)
-					writer.Compact = opt.Compact
+					var mode uint32
+					if opt.Compact {
+						mode |= unikmer.UNIK_Compact
+					}
+					writer, err := unikmer.NewWriter(outfh, k, mode)
+					checkError(err)
 
 					m := make(map[uint64]struct{}, mapInitSize)
 					for {
@@ -199,8 +203,12 @@ var interCmd = &cobra.Command{
 			w.Close()
 		}()
 
-		writer := unikmer.NewWriter(outfh, k)
-		writer.Compact = opt.Compact
+		var mode uint32
+		if opt.Compact {
+			mode |= unikmer.UNIK_Compact
+		}
+		writer, err := unikmer.NewWriter(outfh, k, mode)
+		checkError(err)
 
 		for code = range m {
 			// not need to check err

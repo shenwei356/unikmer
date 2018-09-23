@@ -55,13 +55,13 @@ var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
 //     N       ACGT   A
 //
 func Encode(kmer []byte) (code uint64, err error) {
-	size := len(kmer)
-	if size == 0 || size > 32 {
+	k := len(kmer)
+	if k == 0 || k > 32 {
 		return 0, ErrKOverflow
 	}
 
 	for i := range kmer {
-		switch kmer[size-1-i] {
+		switch kmer[k-1-i] {
 		case 'G', 'g', 'K', 'k':
 			code |= 2 << uint64(i*2)
 		case 'T', 't', 'U', 'u':

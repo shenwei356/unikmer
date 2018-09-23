@@ -76,7 +76,7 @@ Tips:
 		// only one file given
 		if len(files) == 1 {
 			func() {
-				infh, r, err = inStream(file)
+				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
 
@@ -93,8 +93,12 @@ Tips:
 					w.Close()
 				}()
 
-				writer := unikmer.NewWriter(outfh, k)
-				writer.Compact = opt.Compact
+				var mode uint32
+				if opt.Compact {
+					mode |= unikmer.UNIK_Compact
+				}
+				writer, err := unikmer.NewWriter(outfh, k, mode)
+				checkError(err)
 
 				m := make(map[uint64]struct{}, mapInitSize)
 				for {
@@ -122,7 +126,7 @@ Tips:
 
 		// read firstFile
 
-		infh, r, err = inStream(file)
+		infh, r, _, err = inStream(file)
 		checkError(err)
 
 		reader, err = unikmer.NewReader(infh)
@@ -237,7 +241,7 @@ Tips:
 						log.Infof("(worker %d) process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
 					}
 
-					infh, r, err = inStream(file)
+					infh, r, _, err = inStream(file)
 					checkError(err)
 
 					reader, err = unikmer.NewReader(infh)
@@ -358,8 +362,12 @@ Tips:
 			w.Close()
 		}()
 
-		writer := unikmer.NewWriter(outfh, k)
-		writer.Compact = opt.Compact
+		var mode uint32
+		if opt.Compact {
+			mode |= unikmer.UNIK_Compact
+		}
+		writer, err := unikmer.NewWriter(outfh, k, mode)
+		checkError(err)
 
 		for code := range m0 {
 			writer.Write(unikmer.KmerCode{Code: code, K: k})

@@ -57,7 +57,7 @@ var viewCmd = &cobra.Command{
 
 		for _, file := range files {
 			func() {
-				infh, r, err = inStream(file)
+				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
 
