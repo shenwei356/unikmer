@@ -50,7 +50,7 @@ func TestWriter(t *testing.T) {
 	var err error
 
 	for k := 1; k <= 31; k++ {
-		for _, flag := range []uint32{0, UNIK_Compact} {
+		for _, flag := range []uint32{0, UNIK_COMPACT} {
 			func(flag uint32) {
 				mers = genKmers(k, 10000)
 

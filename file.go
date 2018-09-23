@@ -56,7 +56,8 @@ type Header struct {
 }
 
 const (
-	UNIK_Compact = 1 << iota
+	UNIK_COMPACT   = 1 << iota
+	UNIK_CANONICAL = 1 << iota
 )
 
 func (h Header) String() string {
@@ -113,7 +114,7 @@ func (reader *Reader) readHeader() error {
 	}
 	// check compatibility？
 	if (meta[0] == 0 && meta[1] == 0) ||
-		reader.MainVersion != meta[0] {
+		MainVersion != meta[0] {
 		return fmt.Errorf(".unik format compatibility error, please recreate with newest version")
 	}
 	reader.MainVersion = meta[0]
@@ -128,7 +129,7 @@ func (reader *Reader) readHeader() error {
 	if reader.err != nil {
 		return reader.err
 	}
-	if reader.Flag&UNIK_Compact > 0 {
+	if reader.Flag&UNIK_COMPACT > 0 {
 		reader.compact = true
 	}
 
@@ -177,7 +178,7 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 		buf:     make([]byte, 8),
 		bufsize: int(k+3) / 4,
 	}
-	if writer.Flag&UNIK_Compact > 0 {
+	if writer.Flag&UNIK_COMPACT > 0 {
 		writer.compact = true
 	}
 	return writer, nil

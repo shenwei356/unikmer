@@ -94,7 +94,7 @@ Attention:
 
 		var mode uint32
 		if opt.Compact {
-			mode |= unikmer.UNIK_Compact
+			mode |= unikmer.UNIK_COMPACT
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)

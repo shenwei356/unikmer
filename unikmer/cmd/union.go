@@ -97,7 +97,7 @@ var unionCmd = &cobra.Command{
 				if k == -1 {
 					var mode uint32
 					if opt.Compact {
-						mode |= unikmer.UNIK_Compact
+						mode |= unikmer.UNIK_COMPACT
 					}
 					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 					checkError(err)

@@ -25,9 +25,9 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/shenwei356/unikmer"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -47,9 +47,16 @@ var viewCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-file")
 
-		outfh, err := xopen.Wopen(outFile)
+		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
 		checkError(err)
-		defer outfh.Flush()
+		defer func() {
+			outfh.Flush()
+			if gw != nil {
+				gw.Close()
+			}
+			w.Close()
+		}()
+
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader

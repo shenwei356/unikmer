@@ -31,7 +31,6 @@ import (
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
-	"github.com/shenwei356/xopen"
 	"github.com/spf13/cobra"
 )
 
@@ -126,9 +125,15 @@ var grepCmd = &cobra.Command{
 			log.Infof("finish reading Kmers from %s", file)
 		}
 
-		outfh, err := xopen.Wopen(outFile)
+		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
 		checkError(err)
-		defer outfh.Flush()
+		defer func() {
+			outfh.Flush()
+			if gw != nil {
+				gw.Close()
+			}
+			w.Close()
+		}()
 
 		var queries [][]byte
 		var q []byte

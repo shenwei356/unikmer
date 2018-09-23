@@ -68,7 +68,10 @@ var countCmd = &cobra.Command{
 
 		var mode uint32
 		if opt.Compact {
-			mode |= unikmer.UNIK_Compact
+			mode |= unikmer.UNIK_COMPACT
+		}
+		if canonical {
+			mode |= unikmer.UNIK_CANONICAL
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
