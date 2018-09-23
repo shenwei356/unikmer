@@ -38,6 +38,9 @@ var diffCmd = &cobra.Command{
 	Short: "set difference of multiple binary files",
 	Long: `set difference of multiple binary files
 
+Attentions:
+  1. the 'canonical' flags of all files should be consistent.
+
 Tips:
   1. Increasing threads number (-t/--threads) to accelerate computation,
      in cost of more memory occupation.
@@ -63,6 +66,7 @@ Tips:
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
+		var canonical bool
 		var ok bool
 		var nfiles = len(files)
 
@@ -79,6 +83,9 @@ Tips:
 				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
+
+				reader, err = unikmer.NewReader(infh)
+				checkError(err)
 
 				if !isStdout(outFile) {
 					outFile += extDataFile
@@ -97,7 +104,7 @@ Tips:
 				if opt.Compact {
 					mode |= unikmer.UNIK_COMPACT
 				}
-				writer, err := unikmer.NewWriter(outfh, k, mode)
+				writer, err := unikmer.NewWriter(outfh, reader.K, mode)
 				checkError(err)
 
 				m := make(map[uint64]struct{}, mapInitSize)
@@ -133,6 +140,7 @@ Tips:
 		checkError(err)
 
 		k = reader.K
+		canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 
 		for {
 			kcode, err = reader.Read()
@@ -249,6 +257,10 @@ Tips:
 
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+
+					if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 
 					for {

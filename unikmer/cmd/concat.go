@@ -37,6 +37,9 @@ var concatCmd = &cobra.Command{
 	Short: "concatenate multiple binary files without removing duplicates",
 	Long: `concatenate multiple binary files without removing duplicates
 
+Attentions:
+  1. the 'canonical' flags of all files should be consistent.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
@@ -69,6 +72,7 @@ var concatCmd = &cobra.Command{
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
+		var canonical bool
 		var flag int
 		var nfiles = len(files)
 		for i, file := range files {
@@ -85,14 +89,19 @@ var concatCmd = &cobra.Command{
 				checkError(err)
 
 				if k == -1 {
+					k = reader.K
+					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+
 					var mode uint32
 					if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
-					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
+					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 
 				for {

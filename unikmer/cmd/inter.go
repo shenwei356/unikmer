@@ -77,6 +77,9 @@ var interCmd = &cobra.Command{
 				defer r.Close()
 
 				if len(files) == 1 {
+					reader, err = unikmer.NewReader(infh)
+					checkError(err)
+
 					if !isStdout(outFile) {
 						outFile += extDataFile
 					}
@@ -94,7 +97,7 @@ var interCmd = &cobra.Command{
 					if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
-					writer, err := unikmer.NewWriter(outfh, k, mode)
+					writer, err := unikmer.NewWriter(outfh, reader.K, mode)
 					checkError(err)
 
 					m := make(map[uint64]struct{}, mapInitSize)

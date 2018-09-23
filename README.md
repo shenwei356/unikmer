@@ -1,11 +1,11 @@
 # unikmer
 
 unikmer (unique Kmer) is a golang package and a command-line toolkit for
-manipulating [Kmers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
+manipulating small [Kmers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
 while NOT recording Kmer frequencies.
 
 Every Kmer (k <= 32) is encoded into `uint64`,
-and Kmers are stored in builtin `map` in RAM,
+and Kmers are stored in builtin `map` of golang in RAM,
 no probabilistic data structures are used (I've tested and abandoned them).
 
 
@@ -16,6 +16,7 @@ no probabilistic data structures are used (I've tested and abandoned them).
 - [The package](#the-package)
     - [Installation](#installation)
     - [Benchmark](#benchmark)
+    - [Binary serialization format](#binary-serialization-format)
 - [The toolkit](#the-toolkit)
     - [Installation](#installation-1)
     - [Commands](#commands)
@@ -32,7 +33,7 @@ no probabilistic data structures are used (I've tested and abandoned them).
 [![GoDoc](https://godoc.org/github.com/shenwei356/unikmer?status.svg)](https://godoc.org/github.com/shenwei356/unikmer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
-The unikmer package provides basic manipulations of unique Kmers (NOT including
+The unikmer package provides basic manipulations of unique small Kmers (NOT including
 Kmer frequencies) and provides serialization methods.
 
 ### Installation
@@ -52,6 +53,26 @@ Kmer frequencies) and provides serialization methods.
     BenchmarkRevK32-16                              50000000                20.7 ns/op             0 B/op          0 allocs/op
     BenchmarkCompK32-16                             50000000                32.7 ns/op             0 B/op          0 allocs/op
     BenchmarkRevCompK32-16                          100000000               22.4 ns/op             0 B/op          0 allocs/op
+
+
+### Binary serialization format
+
+
+offset     |bytes|name                       |type
+:----------|:----|:--------------------------|:--------
+0          |8    |magic number(".unikmer")   |`[8]byte`
+64         |1    |MainVersion                |`uint8`
+72         |1    |MinorVersion               |`uint8`
+80         |1    |K                          |`uint8`
+88         |1    |reserved                   |`uint8`
+96         |4    |Flag                       |`uint32`
+128+i×64    |8    |(kmers)<sup>a</sup>        |`uint64`
+128+i×8×n  |8×n  |(compact kmers)<sup>b</sup>|`[n]byte`
+
+- `MainVersion=1`
+- <sup>a</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes by default.
+- <sup>b</sup> In compact mode, `x = int((k + 3) / 4)`.
+
 
 ## The toolkit
 
@@ -92,6 +113,7 @@ format convertion, set operations and searching on unique Kmers.
 
 1. Misc
 
+        stats           statistics of binary files
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update
@@ -124,87 +146,93 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
   15-mers (30 bits). This makes the file more compact with smaller file size,
   controled by global option `-c/--compact `.
 
+
 ### Quick Start
 
 
     # memusg is for compute time and RAM usage: https://github.com/shenwei356/memusg
 
+
     # counting
-    $ memusg -t unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k31
+    $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23
+    elapsed time: 2.633s
+    peak rss: 425.98 MB
 
-    elapsed time: 6.228s
-    peak rss: 430.18 MB
+    $ ls -lh Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 30M 9月  23 14:13 Ecoli-MG1655.fasta.gz.k23.unik
 
-    $ ls -lh Ecoli-MG1655.fasta.gz*
-    -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
+
 
     # counting (only keep the canonical kmers)
-    $ memusg -t unikmer count -k 31 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k31 --canonical
+    $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23 --canonical
+    elapsed time: 1.536s
+    peak rss: 236.05 MB
 
-    elapsed time: 3.428s
-    peak rss: 236.14 MB
+    $ ls -lh Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 22M 9月  23 14:14 Ecoli-MG1655.fasta.gz.k23.unik
 
-    $ ls -lh Ecoli-MG1655.fasta.gz*
-    -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  19M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
+
+
+    # counting (only keep the canonical kmers and compact output)
+    $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23 --canonical --compact
+    elapsed time: 1.540s
+    peak rss: 238.54 MB
+
+    $ ls -lh Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 19M 9月  23 14:15 Ecoli-MG1655.fasta.gz.k23.unik
 
 
 
     # view
-    $ unikmer view Ecoli-MG1655.fasta.gz.k31.unik | head -n 3
-    AGCTTTTCATTCTGACTGCAACGGGCAATAT
-    GCTTTTCATTCTGACTGCAACGGGCAATATG
-    CTTTTCATTCTGACTGCAACGGGCAATATGT
+    $ unikmer view Ecoli-MG1655.fasta.gz.k23.unik | head -n 3
+    AGCTTTTCATTCTGACTGCAACG
+    CCGTTGCAGTCAGAATGAAAAGC
+    CCCGTTGCAGTCAGAATGAAAAG
 
-    $ memusg -t unikmer view Ecoli-MG1655.fasta.gz.k31.unik | wc -l
 
-    elapsed time: 2.908s
-    peak rss: 19.34 MB
 
-    9108538
+    # stats
+    $ unikmer stats Ecoli-MG1655.fasta.gz.k23.unik -a
+    file                             k  gzipped  compact  canonical     number
+    Ecoli-MG1655.fasta.gz.k23.unik  23  true     true     true       4,546,63
+
 
 
     # union
-    $ memusg -t unikmer union Ecoli-MG1655.fasta.gz.k31.unik Ecoli-IAI39.fasta.gz.k31.unik -o union
+    $ memusg -t unikmer union Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o union
+    elapsed time: 3.183s
+    peak rss: 393.23 MB
 
-    elapsed time: 10.103s
-    peak rss: 773.04 MB
+
 
     # intersection
-    $ memusg -t unikmer inter Ecoli-MG1655.fasta.gz.k31.unik Ecoli-IAI39.fasta.gz.k31.unik -o inter
+    $ memusg -t unikmer inter Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o inter
+    elapsed time: 2.862s
+    peak rss: 268.95 MB
 
-    elapsed time: 7.955s
-    peak rss: 400.71 MB
 
 
     # difference
-    $ memusg -t unikmer diff -t 1 Ecoli-MG1655.fasta.gz.k31.unik Ecoli-IAI39.fasta.gz.k31.unik -o diff
+    $ memusg -t unikmer diff -j 1 Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o diff
+    elapsed time: 3.490s
+    peak rss: 258.84 MB
 
-    elapsed time: 8.137s
-    peak rss: 400.45 MB
 
-    # -------------------------------------------------------------------------
 
-    $ ls -lh
-    -rw-rw-r--. 1 shenwei shenwei 1.6M Aug  9 23:19 Ecoli-IAI39.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  25M Aug  9 23:29 Ecoli-IAI39.fasta.gz.k31.unik
-    -rw-rw-r--. 1 shenwei shenwei 1.4M Aug  9 23:19 Ecoli-MG1655.fasta.gz
-    -rw-rw-r--. 1 shenwei shenwei  23M Aug  9 23:29 Ecoli-MG1655.fasta.gz.k31.unik
-    -rw-rw-r--. 1 shenwei shenwei  38M Aug  9 23:32 union.k31.unik
-    -rw-rw-r--. 1 shenwei shenwei  35M Aug  9 23:33 inter.k31.unik
-    -rw-rw-r--. 1 shenwei shenwei  35M Aug  9 23:34 diff.k31.unik
+    $ ls -lh *.unik
+    -rw-r--r-- 1 shenwei shenwei 13M 9月  23 14:20 diff.unik
+    -rw-r--r-- 1 shenwei shenwei 21M 9月  23 14:19 Ecoli-IAI39.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 19M 9月  23 14:15 Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 17M 9月  23 14:19 inter.unik
+    -rw-r--r-- 1 shenwei shenwei 33M 9月  23 14:19 union.unik
 
-    $ unikmer view Ecoli-MG1655.fasta.gz.k31.unik | wc -l
-    9108538
-    $ unikmer view Ecoli-IAI39.fasta.gz.k31.unik | wc -l
-    9821960
-    $ unikmer view union.k31.unik | wc -l
-    14402956
-    $ unikmer view inter.k31.unik | wc -l
-    4527542
-    $ unikmer view diff.k31.unik | wc -l
-    4580996
+    $ unikmer stats *.unik -a -j 10
+    file                             k  gzipped  compact  canonical     number
+    diff.unik                       23  true     false    false      1,970,462
+    Ecoli-IAI39.fasta.gz.k23.unik   23  true     true     true       4,902,266
+    Ecoli-MG1655.fasta.gz.k23.unik  23  true     true     true       4,546,632
+    inter.unik                      23  true     false    false      2,576,170
+    union.unik                      23  true     false    false      6,872,728
 
 
 ## Contributing

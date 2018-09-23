@@ -39,6 +39,9 @@ var sampleCmd = &cobra.Command{
 
 The sampling type is fixed sampling.
 
+Attentions:
+  1. the 'canonical' flags of all files should be consistent.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
@@ -73,6 +76,7 @@ The sampling type is fixed sampling.
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
+		var canonical bool
 		var flag int
 		var nfiles = len(files)
 		var j int
@@ -90,10 +94,13 @@ The sampling type is fixed sampling.
 				checkError(err)
 
 				if k == -1 {
-					writer, err = unikmer.NewWriter(outfh, reader.K, reader.Flag)
+					k = reader.K
+					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
 					checkError(err)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 
 				j = 0

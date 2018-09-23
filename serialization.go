@@ -123,7 +123,7 @@ func (reader *Reader) readHeader() error {
 	reader.K = int(meta[2])
 
 	reader.buf = make([]byte, 8)
-	reader.bufsize = int(reader.K+3) / 4
+	reader.bufsize = int((reader.K + 3) / 4)
 
 	reader.err = binary.Read(reader.r, be, &reader.Flag)
 	if reader.err != nil {
@@ -153,6 +153,22 @@ func (reader *Reader) Read() (KmerCode, error) {
 }
 
 // Writer writes KmerCode.
+//
+//     # MainVersion: 1
+//     offset      bytes   name                          type
+//     0           8       magic number(".unikmer")      `[8]byte`
+//     64          1       MainVersion                   `uint8`
+//     72          1       MinorVersion                  `uint8`
+//     80          1       K                             `uint8`
+//     88          1       reserved                      `uint8`
+//     96          4       Flag                          `uint32`
+//     128+i×64    8       (kmers)<sup>a</sup>           `uint64`
+//     128+i×8×n   8×n     (compact kmers)<sup>b</sup>   `[n]byte`
+//
+// - <sup>a</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes by default.
+//
+// - <sup>b</sup> In compact mode, `x = int((k + 3) / 4)`.
+//
 type Writer struct {
 	Header
 	w           io.Writer
