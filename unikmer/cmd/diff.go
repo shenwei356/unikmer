@@ -104,6 +104,9 @@ Tips:
 				if opt.Compact {
 					mode |= unikmer.UNIK_COMPACT
 				}
+				if canonical {
+					mode |= unikmer.UNIK_CANONICAL
+				}
 				writer, err := unikmer.NewWriter(outfh, reader.K, mode)
 				checkError(err)
 
@@ -377,6 +380,9 @@ Tips:
 		var mode uint32
 		if opt.Compact {
 			mode |= unikmer.UNIK_COMPACT
+		}
+		if canonical {
+			mode |= unikmer.UNIK_CANONICAL
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)

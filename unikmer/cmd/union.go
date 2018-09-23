@@ -106,6 +106,9 @@ Attentions:
 					if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
+					if canonical {
+						mode |= unikmer.UNIK_CANONICAL
+					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
 

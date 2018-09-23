@@ -56,6 +56,7 @@ var interCmd = &cobra.Command{
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var k int = -1
+		var canonical bool
 		var firstFile = true
 		var hasInter = true
 		var code uint64
@@ -97,6 +98,9 @@ var interCmd = &cobra.Command{
 					if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
+					if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+						mode |= unikmer.UNIK_CANONICAL
+					}
 					writer, err := unikmer.NewWriter(outfh, reader.K, mode)
 					checkError(err)
 
@@ -124,8 +128,11 @@ var interCmd = &cobra.Command{
 
 				if k == -1 {
 					k = reader.K
+					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 
 				for {
@@ -209,6 +216,9 @@ var interCmd = &cobra.Command{
 		var mode uint32
 		if opt.Compact {
 			mode |= unikmer.UNIK_COMPACT
+		}
+		if canonical {
+			mode |= unikmer.UNIK_CANONICAL
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
