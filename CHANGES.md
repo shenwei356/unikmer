@@ -1,3 +1,8 @@
+- v0.3.1
+    - **Binary serialization format changed.**
+    - new command `unikmer stats`: statistics of binary files.
+    - `unikmer`: adding global option `-i/--infile-list` for reading files listed in file.
+    - `unikmer diff`: fixed a concurrency bug when no diff found.
 - v0.2.1
     - `unikmer count`: performance improvement and new option `--canonical` for only keeping canonical Kmers.
 - v0.2
