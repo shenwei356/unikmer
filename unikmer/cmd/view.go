@@ -41,7 +41,17 @@ var viewCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
-		files := getFileList(args)
+
+		var err error
+
+		var files []string
+		infileList := getFlagString(cmd, "infile-list")
+		if infileList != "" {
+			files, err = getListFromFile(infileList)
+			checkError(err)
+		} else {
+			files = getFileList(args)
+		}
 
 		checkFiles(files)
 

@@ -44,7 +44,17 @@ var grepCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
-		files := getFileList(args)
+
+		var err error
+
+		var files []string
+		infileList := getFlagString(cmd, "infile-list")
+		if infileList != "" {
+			files, err = getListFromFile(infileList)
+			checkError(err)
+		} else {
+			files = getFileList(args)
+		}
 
 		if len(files) > 1 {
 			checkError(fmt.Errorf("no more than one file should be given"))
@@ -62,8 +72,6 @@ var grepCmd = &cobra.Command{
 		if len(pattern) == 0 && patternFile == "" {
 			checkError(fmt.Errorf("one of flags -q (--query) and -f (--query-file) needed"))
 		}
-
-		var err error
 
 		if patternFile != "" {
 			var ok bool

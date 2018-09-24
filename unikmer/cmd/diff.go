@@ -48,7 +48,17 @@ Tips:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		files := getFileList(args)
+
+		var err error
+
+		var files []string
+		infileList := getFlagString(cmd, "infile-list")
+		if infileList != "" {
+			files, err = getListFromFile(infileList)
+			checkError(err)
+		} else {
+			files = getFileList(args)
+		}
 
 		checkFiles(files)
 
@@ -56,8 +66,6 @@ Tips:
 		threads := opt.NumCPUs
 
 		runtime.GOMAXPROCS(threads)
-
-		var err error
 
 		m := make(map[uint64]bool, mapInitSize)
 
@@ -166,7 +174,7 @@ Tips:
 
 		done := make(chan int)
 
-		toStop := make(chan int, 1)
+		toStop := make(chan int, threads+2)
 		doneDone := make(chan int)
 		go func() {
 			<-toStop
@@ -236,17 +244,17 @@ Tips:
 				var ok, mark bool
 				m1 := maps[i]
 				for {
-					select {
-					case <-done:
-						return
-					default:
-					}
-
 					ifile, ok = <-chFile
 					if !ok {
 						return
 					}
 					file = ifile.file
+
+					select {
+					case <-done:
+						return
+					default:
+					}
 
 					if opt.Verbose {
 						log.Infof("(worker %d) process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
@@ -304,14 +312,21 @@ Tips:
 
 		// send file
 		go func() {
+		SENDFILE:
 			for i, file := range files[1:] {
 				if file == files[0] {
 					continue
+				}
+				select {
+				case <-done:
+					break SENDFILE
+				default:
 				}
 
 				chFile <- iFile{i + 1, file}
 			}
 			close(chFile)
+
 			doneSendFile <- 1
 		}()
 
@@ -351,7 +366,7 @@ Tips:
 
 		if len(m0) == 0 {
 			if opt.Verbose {
-				log.Infof("no set difference found")
+				log.Warningf("no set difference found")
 			}
 			return
 		}

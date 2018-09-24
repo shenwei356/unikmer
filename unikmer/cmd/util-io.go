@@ -26,16 +26,25 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	gzip "github.com/klauspost/pgzip"
 )
 
 func outStream(file string, gzipped bool) (*bufio.Writer, io.WriteCloser, *os.File, error) {
-	var err error
 	var w *os.File
 	if file == "-" {
 		w = os.Stdout
 	} else {
+		dir := filepath.Dir(file)
+		fi, err := os.Stat(dir)
+		if err == nil && !fi.IsDir() {
+			return nil, nil, nil, fmt.Errorf("can not write file into a non-directory path: %s", dir)
+		}
+		if os.IsNotExist(err) {
+			os.MkdirAll(dir, 0755)
+		}
+
 		w, err = os.Create(file)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("fail to write %s: %s", file, err)

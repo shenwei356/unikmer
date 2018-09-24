@@ -21,6 +21,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -174,4 +175,22 @@ func getFlagStringSlice(cmd *cobra.Command, flag string) []string {
 	value, err := cmd.Flags().GetStringSlice(flag)
 	checkError(err)
 	return value
+}
+
+func getListFromFile(file string) ([]string, error) {
+	fh, err := os.Open(file)
+	if err != nil {
+		return nil, fmt.Errorf("fail to read %s: %s", file, err)
+	}
+
+	lists := make([]string, 0, 1000)
+	scanner := bufio.NewScanner(fh)
+	for scanner.Scan() {
+		lists = append(lists, scanner.Text())
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, fmt.Errorf("fail to read %s: %s", file, err)
+	}
+
+	return lists, nil
 }
