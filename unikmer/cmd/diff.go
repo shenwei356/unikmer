@@ -63,12 +63,14 @@ Tips:
 		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		sampling := getFlagBool(cmd, "sampling")
+
+		sampling := true
 		start := getFlagPositiveInt(cmd, "start")
 		window := getFlagPositiveInt(cmd, "window")
-		if sampling && start == 1 && window == 1 {
+		if start == 1 && window == 1 {
 			sampling = false
 		}
+
 		threads := opt.NumCPUs
 
 		runtime.GOMAXPROCS(threads)
@@ -425,7 +427,6 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	diffCmd.Flags().BoolP("sampling", "S", false, `sampling Kmers in .unik files`)
 	diffCmd.Flags().IntP("start", "s", 1, `start location`)
 	diffCmd.Flags().IntP("window", "w", 1, `window size`)
 }
