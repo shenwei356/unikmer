@@ -142,7 +142,7 @@ Attentions:
 func init() {
 	RootCmd.AddCommand(sampleCmd)
 
-	sampleCmd.Flags().IntP("start", "s", 1, `start index`)
+	sampleCmd.Flags().IntP("start", "s", 1, `start location`)
 	sampleCmd.Flags().IntP("window", "w", 10, `window size`)
 
 	sampleCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
