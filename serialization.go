@@ -71,7 +71,6 @@ type Reader struct {
 	r    io.Reader
 	err  error
 	code uint64
-	size uint64
 
 	compact bool // saving KmerCode in variable-length byte array.
 	buf     []byte
@@ -139,16 +138,15 @@ func (reader *Reader) readHeader() error {
 // Read reads one KmerCode.
 func (reader *Reader) Read() (KmerCode, error) {
 	if reader.compact {
-		reader.err = binary.Read(reader.r, be, reader.buf[8-reader.bufsize:])
-		reader.code = be.Uint64(reader.buf)
+		_, reader.err = io.ReadFull(reader.r, reader.buf[8-reader.bufsize:])
 	} else {
-		reader.err = binary.Read(reader.r, be, &reader.code)
+		_, reader.err = io.ReadFull(reader.r, reader.buf)
 	}
+	reader.code = be.Uint64(reader.buf)
 	if reader.err != nil {
 		return KmerCode{}, reader.err
 	}
 
-	reader.size++
 	return KmerCode{Code: reader.code, K: reader.Header.K}, nil
 }
 
@@ -175,7 +173,6 @@ type Writer struct {
 	kcode       KmerCode
 	wroteHeader bool
 	err         error
-	size        int64
 
 	compact bool // saving KmerCode in variable-length byte array.
 	buf     []byte
@@ -253,7 +250,6 @@ func (writer *Writer) Write(kcode KmerCode) error {
 	if writer.err != nil {
 		return writer.err
 	}
-	writer.size++
 	return nil
 }
 
