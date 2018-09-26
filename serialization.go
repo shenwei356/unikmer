@@ -75,6 +75,15 @@ type Reader struct {
 	compact bool // saving KmerCode in variable-length byte array.
 	buf     []byte
 	bufsize int
+
+	sampling       bool
+	samplingStart  int
+	samplingWindow int
+	bufFirst       []byte
+	bufInter       []byte
+
+	firstCode bool
+	readed    int
 }
 
 // NewReader returns a Reader.
@@ -84,6 +93,40 @@ func NewReader(r io.Reader) (*Reader, error) {
 	if reader.err != nil {
 		return nil, reader.err
 	}
+	return reader, nil
+}
+
+// NewSamplingReader returns a Reader which sampling KmerCode.
+func NewSamplingReader(r io.Reader, start int, window int) (*Reader, error) {
+	if start < 1 {
+		return nil, fmt.Errorf("start should be > 0")
+	}
+	if window < 1 {
+		return nil, fmt.Errorf("window should be > 0")
+	}
+	reader := &Reader{r: r}
+	reader.err = reader.readHeader()
+	if reader.err != nil {
+		return nil, reader.err
+	}
+
+	reader.sampling = true
+	reader.samplingStart = start
+	reader.samplingWindow = window
+
+	n := 8
+	if reader.compact {
+		n = reader.bufsize
+	}
+	if start > 1 {
+		reader.bufFirst = make([]byte, (start-1)*n)
+	}
+	if window > 1 {
+		reader.bufInter = make([]byte, (window-1)*n)
+	}
+
+	reader.firstCode = true
+
 	return reader, nil
 }
 
@@ -137,15 +180,38 @@ func (reader *Reader) readHeader() error {
 
 // Read reads one KmerCode.
 func (reader *Reader) Read() (KmerCode, error) {
+	if reader.sampling {
+		if reader.firstCode {
+			if reader.samplingStart > 1 {
+				reader.readed, reader.err = io.ReadFull(reader.r, reader.bufFirst)
+				if reader.readed < len(reader.bufFirst) {
+					return KmerCode{}, io.EOF
+				}
+				if reader.err != nil {
+					return KmerCode{}, reader.err
+				}
+			}
+			reader.firstCode = false
+		} else if reader.samplingWindow > 1 {
+			reader.readed, reader.err = io.ReadFull(reader.r, reader.bufInter)
+			if reader.readed < len(reader.bufInter) {
+				return KmerCode{}, io.EOF
+			}
+			if reader.err != nil {
+				return KmerCode{}, reader.err
+			}
+		}
+	}
+
 	if reader.compact {
 		_, reader.err = io.ReadFull(reader.r, reader.buf[8-reader.bufsize:])
 	} else {
 		_, reader.err = io.ReadFull(reader.r, reader.buf)
 	}
-	reader.code = be.Uint64(reader.buf)
 	if reader.err != nil {
 		return KmerCode{}, reader.err
 	}
+	reader.code = be.Uint64(reader.buf)
 
 	return KmerCode{Code: reader.code, K: reader.Header.K}, nil
 }
@@ -197,7 +263,8 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 	return writer, nil
 }
 
-func (writer *Writer) writeHeader() error {
+// WriteHeader writes file header
+func (writer *Writer) WriteHeader() error {
 	// write magic number
 	writer.err = binary.Write(writer.w, be, Magic)
 	if writer.err != nil {
@@ -234,7 +301,7 @@ func (writer *Writer) Write(kcode KmerCode) error {
 
 	// lazily write header
 	if !writer.wroteHeader {
-		writer.err = writer.writeHeader()
+		writer.err = writer.WriteHeader()
 		if writer.err != nil {
 			return writer.err
 		}

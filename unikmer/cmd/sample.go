@@ -60,9 +60,14 @@ Attentions:
 
 		checkFiles(files)
 
+		outFile := getFlagString(cmd, "out-prefix")
+
+		sampling := true
 		start := getFlagPositiveInt(cmd, "start")
 		window := getFlagPositiveInt(cmd, "window")
-		outFile := getFlagString(cmd, "out-prefix")
+		if start == 1 && window == 1 {
+			sampling = false
+		}
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -87,7 +92,7 @@ Attentions:
 		var canonical bool
 		var flag int
 		var nfiles = len(files)
-		var j int
+		var n uint64
 		for i, file := range files {
 			if opt.Verbose {
 				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
@@ -98,7 +103,11 @@ Attentions:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				if sampling {
+					reader, err = unikmer.NewSamplingReader(infh, start, window)
+				} else {
+					reader, err = unikmer.NewReader(infh)
+				}
 				checkError(err)
 
 				if k == -1 {
@@ -111,7 +120,6 @@ Attentions:
 					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 
-				j = 0
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -120,10 +128,13 @@ Attentions:
 						}
 						checkError(err)
 					}
-					j++
-					if (j-start)%window == 0 || j == start {
-						writer.Write(kcode) // not need to check err
-					}
+
+					n++
+					writer.Write(kcode) // not need to check err
+				}
+
+				if n == 0 { // no KmerCode
+					checkError(writer.WriteHeader())
 				}
 
 				return flagContinue
@@ -143,7 +154,7 @@ func init() {
 	RootCmd.AddCommand(sampleCmd)
 
 	sampleCmd.Flags().IntP("start", "s", 1, `start location`)
-	sampleCmd.Flags().IntP("window", "w", 10, `window size`)
+	sampleCmd.Flags().IntP("window", "w", 1, `window size`)
 
 	sampleCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 }

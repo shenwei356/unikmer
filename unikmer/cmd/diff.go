@@ -66,6 +66,9 @@ Tips:
 		sampling := getFlagBool(cmd, "sampling")
 		start := getFlagPositiveInt(cmd, "start")
 		window := getFlagPositiveInt(cmd, "window")
+		if sampling && start == 1 && window == 1 {
+			sampling = false
+		}
 		threads := opt.NumCPUs
 
 		runtime.GOMAXPROCS(threads)
@@ -245,7 +248,6 @@ Tips:
 				var reader *unikmer.Reader
 				var kcode unikmer.KmerCode
 				var ok, mark bool
-				var j int
 				m1 := maps[i]
 				for {
 					ifile, ok = <-chFile
@@ -267,7 +269,11 @@ Tips:
 					infh, r, _, err = inStream(file)
 					checkError(err)
 
-					reader, err = unikmer.NewReader(infh)
+					if sampling {
+						reader, err = unikmer.NewSamplingReader(infh, start, window)
+					} else {
+						reader, err = unikmer.NewReader(infh)
+					}
 					checkError(err)
 
 					if k != reader.K {
@@ -278,7 +284,6 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 
-					j = 0
 					for {
 						kcode, err = reader.Read()
 						if err != nil {
@@ -286,13 +291,6 @@ Tips:
 								break
 							}
 							checkError(err)
-						}
-
-						if sampling {
-							j++
-							if !((j-start)%window == 0 || j == start) {
-								continue
-							}
 						}
 
 						// mark seen kmer
@@ -429,5 +427,5 @@ func init() {
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	diffCmd.Flags().BoolP("sampling", "S", false, `sampling Kmers in .unik files`)
 	diffCmd.Flags().IntP("start", "s", 1, `start location`)
-	diffCmd.Flags().IntP("window", "w", 10, `window size`)
+	diffCmd.Flags().IntP("window", "w", 1, `window size`)
 }
