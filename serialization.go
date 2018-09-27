@@ -76,14 +76,14 @@ type Reader struct {
 	buf     []byte
 	bufsize int
 
+	// for sampling
 	sampling       bool
 	samplingStart  int
 	samplingWindow int
 	bufFirst       []byte
 	bufInter       []byte
-
-	firstCode bool
-	readed    int
+	firstCode      bool
+	readed         int
 }
 
 // NewReader returns a Reader.
@@ -184,21 +184,21 @@ func (reader *Reader) Read() (KmerCode, error) {
 		if reader.firstCode {
 			if reader.samplingStart > 1 {
 				reader.readed, reader.err = io.ReadFull(reader.r, reader.bufFirst)
-				if reader.readed < len(reader.bufFirst) {
-					return KmerCode{}, io.EOF
-				}
 				if reader.err != nil {
 					return KmerCode{}, reader.err
+				}
+				if reader.readed < len(reader.bufFirst) {
+					return KmerCode{}, io.EOF
 				}
 			}
 			reader.firstCode = false
 		} else if reader.samplingWindow > 1 {
 			reader.readed, reader.err = io.ReadFull(reader.r, reader.bufInter)
-			if reader.readed < len(reader.bufInter) {
-				return KmerCode{}, io.EOF
-			}
 			if reader.err != nil {
 				return KmerCode{}, reader.err
+			}
+			if reader.readed < len(reader.bufInter) {
+				return KmerCode{}, io.EOF
 			}
 		}
 	}
@@ -322,10 +322,10 @@ func (writer *Writer) Write(kcode KmerCode) error {
 }
 
 // Flush is not used actually.
-func (writer *Writer) Flush() error {
-	// writer.err = binary.Write(writer.w, be, writer.size)
-	// if writer.err != nil {
-	// 	return writer.err
-	// }
-	return nil
-}
+// func (writer *Writer) Flush() error {
+// 	// writer.err = binary.Write(writer.w, be, writer.size)
+// 	// if writer.err != nil {
+// 	// 	return writer.err
+// 	// }
+// 	return nil
+// }

@@ -106,10 +106,10 @@ func write(mers [][]byte, file string, flag uint32) error {
 			return err
 		}
 	}
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
+	// err = writer.Flush()
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
