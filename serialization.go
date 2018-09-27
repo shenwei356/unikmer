@@ -184,21 +184,21 @@ func (reader *Reader) Read() (KmerCode, error) {
 		if reader.firstCode {
 			if reader.samplingStart > 1 {
 				reader.readed, reader.err = io.ReadFull(reader.r, reader.bufFirst)
-				if reader.err != nil {
-					return KmerCode{}, reader.err
-				}
 				if reader.readed < len(reader.bufFirst) {
 					return KmerCode{}, io.EOF
+				}
+				if reader.err != nil {
+					return KmerCode{}, reader.err
 				}
 			}
 			reader.firstCode = false
 		} else if reader.samplingWindow > 1 {
 			reader.readed, reader.err = io.ReadFull(reader.r, reader.bufInter)
-			if reader.err != nil {
-				return KmerCode{}, reader.err
-			}
 			if reader.readed < len(reader.bufInter) {
 				return KmerCode{}, io.EOF
+			}
+			if reader.err != nil {
+				return KmerCode{}, reader.err
 			}
 		}
 	}
