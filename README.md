@@ -46,14 +46,13 @@ Kmer frequencies) and provides serialization methods.
     goos: linux
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
-    BenchmarkEncodeK32-16                           20000000                50.1 ns/op             0 B/op          0 allocs/op
-    BenchmarkEncodeFromFormerKmerK32-16             200000000               9.30 ns/op             0 B/op          0 allocs/op
-    BenchmarkMustEncodeFromFormerKmerK32-16         2000000000              1.95 ns/op             0 B/op          0 allocs/op
-    BenchmarkDecodeK32-16                           20000000                79.5 ns/op            32 B/op          1 allocs/op
-    BenchmarkRevK32-16                              50000000                20.7 ns/op             0 B/op          0 allocs/op
-    BenchmarkCompK32-16                             50000000                32.7 ns/op             0 B/op          0 allocs/op
-    BenchmarkRevCompK32-16                          100000000               22.4 ns/op             0 B/op          0 allocs/op
-
+    BenchmarkEncodeK32-16                           50000000                25.8 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeFromFormerKmerK32-16             200000000               9.42 ns/op             0 B/op          0 allocs/op
+    BenchmarkMustEncodeFromFormerKmerK32-16         1000000000              1.95 ns/op             0 B/op          0 allocs/op
+    BenchmarkDecodeK32-16                           20000000                82.2 ns/op            32 B/op          1 allocs/op
+    BenchmarkRevK32-16                              50000000                20.2 ns/op             0 B/op          0 allocs/op
+    BenchmarkCompK32-16                             50000000                27.8 ns/op             0 B/op          0 allocs/op
+    BenchmarkRevCompK32-16                          100000000               21.9 ns/op             0 B/op          0 allocs/op
 
 ### Binary serialization format
 
@@ -66,7 +65,7 @@ offset     |bytes|name                       |type
 80         |1    |K                          |`uint8`
 88         |1    |reserved                   |`uint8`
 96         |4    |Flag                       |`uint32`
-128+i×64    |8    |(kmers)<sup>a</sup>        |`uint64`
+128+i×64   |8    |(kmers)<sup>a</sup>        |`uint64`
 128+i×8×n  |8×n  |(compact kmers)<sup>b</sup>|`[n]byte`
 
 - `MainVersion=1`

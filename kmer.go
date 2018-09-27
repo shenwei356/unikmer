@@ -31,6 +31,51 @@ var ErrIllegalBase = errors.New("unikmer: illegal base")
 // ErrKOverflow means K > 32.
 var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
 
+// slice is much faster than switch and map
+var base2bit []uint64
+
+func init() {
+	base2bit = make([]uint64, 255)
+	for i := range base2bit {
+		base2bit[i] = 4
+	}
+	base2bit['A'] = 0
+	base2bit['a'] = 0
+	base2bit['N'] = 0
+	base2bit['n'] = 0
+	base2bit['M'] = 0
+	base2bit['m'] = 0
+	base2bit['V'] = 0
+	base2bit['v'] = 0
+	base2bit['H'] = 0
+	base2bit['h'] = 0
+	base2bit['R'] = 0
+	base2bit['r'] = 0
+	base2bit['D'] = 0
+	base2bit['d'] = 0
+	base2bit['W'] = 0
+	base2bit['w'] = 0
+
+	base2bit['C'] = 1
+	base2bit['c'] = 1
+	base2bit['S'] = 1
+	base2bit['s'] = 1
+	base2bit['B'] = 1
+	base2bit['b'] = 1
+	base2bit['Y'] = 1
+	base2bit['y'] = 1
+
+	base2bit['G'] = 2
+	base2bit['g'] = 2
+	base2bit['K'] = 2
+	base2bit['k'] = 2
+
+	base2bit['T'] = 3
+	base2bit['t'] = 3
+	base2bit['U'] = 3
+	base2bit['u'] = 3
+}
+
 // Encode converts byte slice to bits.
 //
 // Codes:
@@ -55,24 +100,18 @@ var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
 //     N       ACGT   A
 //
 func Encode(kmer []byte) (code uint64, err error) {
-	k := len(kmer)
-	if k == 0 || k > 32 {
+	if len(kmer) == 0 || len(kmer) > 32 {
 		return 0, ErrKOverflow
 	}
 
-	for i := range kmer {
-		switch kmer[k-1-i] {
-		case 'G', 'g', 'K', 'k':
-			code |= 2 << uint64(i*2)
-		case 'T', 't', 'U', 'u':
-			code |= 3 << uint64(i*2)
-		case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
-			code |= 1 << uint64(i*2)
-		case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
-			code |= 0 << uint64(i*2)
-		default:
+	var v uint64
+	for _, b := range kmer {
+		code <<= 2
+		v = base2bit[b]
+		if v > 3 {
 			return code, ErrIllegalBase
 		}
+		code |= v
 	}
 	return code, nil
 }
@@ -84,18 +123,11 @@ var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive Kmers")
 // assuming the kmer and leftKmer are both OK.
 func MustEncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64, error) {
 	leftCode = leftCode & ((1 << (uint(len(kmer)-1) << 1)) - 1) << 2
-	switch kmer[len(kmer)-1] {
-	case 'G', 'g', 'K', 'k':
-		leftCode |= 2
-	case 'T', 't', 'U', 'u':
-		leftCode |= 3
-	case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
-		leftCode |= 1
-	case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
-		// leftCode |= 0
-	default:
+	v := base2bit[kmer[len(kmer)-1]]
+	if v > 3 {
 		return leftCode, ErrIllegalBase
 	}
+	leftCode |= v
 	return leftCode, nil
 }
 
@@ -117,18 +149,11 @@ func EncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64
 // assuming the kmer and rightKmer are both OK.
 func MustEncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (uint64, error) {
 	rightCode >>= 2
-	switch kmer[0] {
-	case 'G', 'g', 'K', 'k':
-		rightCode |= 2 << (uint(len(kmer)-1) << 1)
-	case 'T', 't', 'U', 'u':
-		rightCode |= 3 << (uint(len(kmer)-1) << 1)
-	case 'C', 'c', 'S', 's', 'B', 'b', 'Y', 'y':
-		rightCode |= 1 << (uint(len(kmer)-1) << 1)
-	case 'A', 'a', 'N', 'n', 'M', 'm', 'V', 'v', 'H', 'h', 'R', 'r', 'D', 'd', 'W', 'w':
-		// rightCode |= 0 << (uint(len(kmer)-1) << 1)
-	default:
+	v := base2bit[kmer[0]]
+	if v > 3 {
 		return rightCode, ErrIllegalBase
 	}
+	rightCode |= v << (uint(len(kmer)-1) << 1)
 	return rightCode, nil
 }
 
