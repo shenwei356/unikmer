@@ -18,50 +18,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package cmd
+package unikmer
 
-import (
-	"fmt"
-	"net/http"
-	"strings"
+// KmerCodeSlice is a slice of KmerCode, for sorting
+type KmerCodeSlice []KmerCode
 
-	"github.com/spf13/cobra"
-)
-
-// VERSION is the version
-var VERSION = "v0.4"
-
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "print version information and check for update",
-	Long: `print version information and check for update
-
-`,
-	Run: func(cmd *cobra.Command, args []string) {
-		app := "unikmer"
-		fmt.Printf("%s v%s\n", app, VERSION)
-		fmt.Println("\nChecking new version...")
-
-		resp, err := http.Get(fmt.Sprintf("https://github.com/shenwei356/%s/releases/latest", app))
-		if err != nil {
-			checkError(fmt.Errorf("Network error"))
-		}
-		items := strings.Split(resp.Request.URL.String(), "/")
-		version := ""
-		if items[len(items)-1] == "" {
-			version = items[len(items)-2]
-		} else {
-			version = items[len(items)-1]
-		}
-		if version == "v"+VERSION {
-			fmt.Printf("You are using the latest version of %s\n", app)
-		} else {
-			fmt.Printf("New version available: %s %s at %s\n", app, version, resp.Request.URL.String())
-		}
-	},
+// Len return length of the slice
+func (codes KmerCodeSlice) Len() int {
+	return len(codes)
 }
 
-func init() {
-	RootCmd.AddCommand(versionCmd)
+// Swap swaps two elements
+func (codes KmerCodeSlice) Swap(i, j int) {
+	codes[i], codes[j] = codes[j], codes[i]
 }
+
+// Less simply compare two KmerCode
+func (codes KmerCodeSlice) Less(i, j int) bool {
+	return codes[i].Code < codes[j].Code
+}
+
+// func splitKmer(code uint64, k int) (uint64, uint64, uint64, uint64) {
+// 	// -====, k = 4:  ---, -, =, ===
+// 	return code >> 2, code & 3, code >> (uint(k-1) << 1) & 3, code & ((1 << (uint(k-1) << 1)) - 1)
+// }

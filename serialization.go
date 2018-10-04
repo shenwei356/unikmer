@@ -56,8 +56,9 @@ type Header struct {
 }
 
 const (
-	UNIK_COMPACT   = 1 << iota
-	UNIK_CANONICAL = 1 << iota
+	UNIK_COMPACT = 1 << iota
+	UNIK_CANONICAL
+	UNIK_SORTED
 )
 
 func (h Header) String() string {

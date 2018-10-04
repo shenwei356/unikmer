@@ -88,6 +88,7 @@ Tips:
 				"gzipped",
 				"compact",
 				"canonical",
+				"sorted",
 			}
 			if all {
 				colnames = append(colnames, []string{"number"}...)
@@ -123,19 +124,21 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\n",
-								info.file,
-								info.k,
-								info.gzipped,
-								info.compact,
-								info.canonical))
-						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
 								info.file,
 								info.k,
 								info.gzipped,
 								info.compact,
 								info.canonical,
+								info.sorted))
+						} else {
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
+								info.file,
+								info.k,
+								info.gzipped,
+								info.compact,
+								info.canonical,
+								info.sorted,
 								info.number))
 						}
 					}
@@ -147,19 +150,21 @@ Tips:
 								statInfos = append(statInfos, info1)
 							} else {
 								if !all {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\n",
-										info1.file,
-										info1.k,
-										info1.gzipped,
-										info1.compact,
-										info1.canonical))
-								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%d\n",
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
 										info1.file,
 										info1.k,
 										info1.gzipped,
 										info1.compact,
 										info1.canonical,
+										info.sorted))
+								} else {
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
+										info1.file,
+										info1.k,
+										info1.gzipped,
+										info1.compact,
+										info1.canonical,
+										info.sorted,
 										info1.number))
 								}
 							}
@@ -188,19 +193,21 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\n",
-								info.file,
-								info.k,
-								info.gzipped,
-								info.compact,
-								info.canonical))
-						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
 								info.file,
 								info.k,
 								info.gzipped,
 								info.compact,
 								info.canonical,
+								info.sorted))
+						} else {
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
+								info.file,
+								info.k,
+								info.gzipped,
+								info.compact,
+								info.canonical,
+								info.sorted,
 								info.number))
 						}
 					}
@@ -295,6 +302,7 @@ Tips:
 					gzipped:   gzipped,
 					compact:   reader.Flag&unikmer.UNIK_COMPACT > 0,
 					canonical: reader.Flag&unikmer.UNIK_CANONICAL > 0,
+					sorted:    reader.Flag&unikmer.UNIK_SORTED > 0,
 					number:    n,
 
 					err: nil,
@@ -326,6 +334,7 @@ Tips:
 			{Header: "gzipped"},
 			{Header: "compact"},
 			{Header: "canonical"},
+			{Header: "sorted"},
 		}
 		if all {
 			columns = append(columns, []prettytable.Column{
@@ -345,6 +354,7 @@ Tips:
 					info.gzipped,
 					info.compact,
 					info.canonical,
+					info.sorted,
 				)
 			} else {
 				tbl.AddRow(
@@ -353,6 +363,7 @@ Tips:
 					info.gzipped,
 					info.compact,
 					info.canonical,
+					info.sorted,
 					humanize.Comma(info.number),
 				)
 			}
@@ -367,6 +378,7 @@ type statInfo struct {
 	gzipped   bool
 	compact   bool
 	canonical bool
+	sorted    bool
 	number    int64
 
 	err error
