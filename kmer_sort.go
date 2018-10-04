@@ -42,3 +42,21 @@ func (codes KmerCodeSlice) Less(i, j int) bool {
 // 	// -====, k = 4:  ---, -, =, ===
 // 	return code >> 2, code & 3, code >> (uint(k-1) << 1) & 3, code & ((1 << (uint(k-1) << 1)) - 1)
 // }
+
+// CodeSlice is a slice of Kmer code (uint64), for sorting
+type CodeSlice []uint64
+
+// Len return length of the slice
+func (codes CodeSlice) Len() int {
+	return len(codes)
+}
+
+// Swap swaps two elements
+func (codes CodeSlice) Swap(i, j int) {
+	codes[i], codes[j] = codes[j], codes[i]
+}
+
+// Less simply compare two KmerCode
+func (codes CodeSlice) Less(i, j int) bool {
+	return codes[i] < codes[j]
+}

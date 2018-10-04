@@ -59,7 +59,7 @@ var sortCmd = &cobra.Command{
 		outFile := getFlagString(cmd, "out-prefix")
 		dedup := getFlagBool(cmd, "dedup")
 
-		m := make([]unikmer.KmerCode, 0, mapInitSize)
+		m := make([]uint64, 0, mapInitSize)
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -132,7 +132,7 @@ var sortCmd = &cobra.Command{
 						checkError(err)
 					}
 
-					m = append(m, kcode)
+					m = append(m, kcode.Code)
 
 				}
 
@@ -146,22 +146,22 @@ var sortCmd = &cobra.Command{
 			}
 		}
 
-		sort.Sort(unikmer.KmerCodeSlice(m))
+		sort.Sort(unikmer.CodeSlice(m))
 
 		var n int
 		if dedup {
 			var last uint64 = ^uint64(0)
-			for _, kcode = range m {
-				if kcode.Code == last {
+			for _, code := range m {
+				if code == last {
 					continue
 				}
-				last = kcode.Code
+				last = code
 				n++
-				writer.Write(kcode)
+				writer.Write(unikmer.KmerCode{code, k})
 			}
 		} else {
-			for _, kcode = range m {
-				writer.Write(kcode)
+			for _, code := range m {
+				writer.Write(unikmer.KmerCode{code, k})
 			}
 			n = len(m)
 		}
