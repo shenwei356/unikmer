@@ -52,7 +52,7 @@ var dumpCmd = &cobra.Command{
 		}
 
 		outFile := getFlagString(cmd, "out-prefix")
-		noDedup := getFlagBool(cmd, "no-dedup")
+		unique := getFlagBool(cmd, "unique")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -70,7 +70,7 @@ var dumpCmd = &cobra.Command{
 		var writer *unikmer.Writer
 
 		var m map[uint64]struct{}
-		if !noDedup {
+		if unique {
 			m = make(map[uint64]struct{}, mapInitSize)
 		}
 
@@ -116,15 +116,15 @@ var dumpCmd = &cobra.Command{
 						checkError(fmt.Errorf("encoding '%s': %s", line, err))
 					}
 
-					if noDedup {
-						checkError(writer.Write(kcode))
-						n++
-					} else {
+					if unique {
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
 							checkError(writer.Write(kcode))
 							n++
 						}
+					} else {
+						checkError(writer.Write(kcode))
+						n++
 					}
 				}
 			}
@@ -140,5 +140,5 @@ func init() {
 	RootCmd.AddCommand(dumpCmd)
 
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	dumpCmd.Flags().BoolP("no-dedup", "U", false, `do not deduplicate Kmers, this can save some time and memory`)
+	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated Kmers`)
 }

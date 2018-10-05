@@ -193,5 +193,5 @@ func init() {
 	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	countCmd.Flags().IntP("kmer-len", "k", 0, "Kmer length")
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
-	countCmd.Flags().BoolP("canonical", "", false, "only keep the canonical Kmers")
+	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical Kmers")
 }

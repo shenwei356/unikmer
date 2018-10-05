@@ -42,7 +42,7 @@ Attentions:
   1. the 'canonical' flags of all files should be consistent.
 
 Tips:
-  1. Increasing threads number (-t/--threads) to accelerate computation,
+  1. Increasing threads number (-j/--threads) to accelerate computation,
      in cost of more memory occupation.
 
 `,
@@ -64,12 +64,12 @@ Tips:
 
 		outFile := getFlagString(cmd, "out-prefix")
 
-		sampling := true
-		start := getFlagPositiveInt(cmd, "start")
-		window := getFlagPositiveInt(cmd, "window")
-		if start == 1 && window == 1 {
-			sampling = false
-		}
+		// sampling := true
+		// start := getFlagPositiveInt(cmd, "start")
+		// window := getFlagPositiveInt(cmd, "window")
+		// if start == 1 && window == 1 {
+		// 	sampling = false
+		// }
 
 		threads := opt.NumCPUs
 
@@ -271,11 +271,12 @@ Tips:
 					infh, r, _, err = inStream(file)
 					checkError(err)
 
-					if sampling {
-						reader, err = unikmer.NewSamplingReader(infh, start, window)
-					} else {
-						reader, err = unikmer.NewReader(infh)
-					}
+					// if sampling {
+					// 	reader, err = unikmer.NewSamplingReader(infh, start, window)
+					// } else {
+					// 	reader, err = unikmer.NewReader(infh)
+					// }
+					reader, err = unikmer.NewReader(infh)
 					checkError(err)
 
 					if k != reader.K {
@@ -427,6 +428,6 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	diffCmd.Flags().IntP("start", "s", 1, `start location`)
-	diffCmd.Flags().IntP("window", "w", 1, `window size`)
+	// diffCmd.Flags().IntP("start", "s", 1, `start location`)
+	// diffCmd.Flags().IntP("window", "w", 1, `window size`)
 }

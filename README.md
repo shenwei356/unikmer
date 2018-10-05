@@ -70,13 +70,14 @@ offset     |bytes|name                       |type
 
 - `MainVersion=1`
 - <sup>a</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes by default.
-- <sup>b</sup> In compact mode, `x = int((k + 3) / 4)`.
+- <sup>b</sup> In compact mode, `n = int((k + 3) / 4)`.
 
 Flag
 
     const (
-    	UNIK_COMPACT   = 1 << iota
-    	UNIK_CANONICAL = 1 << iota
+        UNIK_COMPACT = 1 << iota
+    	UNIK_CANONICAL
+    	UNIK_SORTED
     )
 
 
@@ -100,7 +101,7 @@ format convertion, set operations and searching on unique Kmers.
         count           count Kmer from FASTA/Q sequences
         subset          extract smaller Kmers from binary file
 
-1. Format convertion
+1. Format conversion
 
         view            read and output binary format to plain text
         dump            convert plain Kmer text to binary format
@@ -112,6 +113,7 @@ format convertion, set operations and searching on unique Kmers.
         concat          concatenate multiple binary files without removing duplicates
         diff            set difference of multiple binary files
         sample          sample Kmers from binary files
+        sort            sort binary files
 
 1. Searching
 

@@ -57,7 +57,7 @@ var sortCmd = &cobra.Command{
 		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		dedup := getFlagBool(cmd, "dedup")
+		unique := getFlagBool(cmd, "unique")
 
 		m := make([]uint64, 0, mapInitSize)
 
@@ -116,7 +116,6 @@ var sortCmd = &cobra.Command{
 					mode |= unikmer.UNIK_SORTED
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
-
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
@@ -149,7 +148,7 @@ var sortCmd = &cobra.Command{
 		sort.Sort(unikmer.CodeSlice(m))
 
 		var n int
-		if dedup {
+		if unique {
 			var last uint64 = ^uint64(0)
 			for _, code := range m {
 				if code == last {
@@ -176,5 +175,5 @@ func init() {
 	RootCmd.AddCommand(sortCmd)
 
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	sortCmd.Flags().BoolP("dedup", "u", false, `remove duplicated Kmers`)
+	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated Kmers`)
 }
