@@ -22,6 +22,8 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"sort"
 	"strings"
 
 	"github.com/shenwei356/unikmer"
@@ -145,4 +147,92 @@ func checkFiles(files []string) {
 			checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
 		}
 	}
+}
+
+func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikmer.Header, int, error) {
+	// in
+	infh, r, _, err := inStream(file)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer r.Close()
+
+	var reader *unikmer.Reader
+	reader, err = unikmer.NewReader(infh)
+	if err != nil {
+		return nil, 0, err
+	}
+	k := reader.K
+
+	// out
+	if !isStdout(outFile) {
+		outFile += extDataFile
+	}
+	outfh, gw, w, err := outStream(outFile, opt.Compress)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() {
+		outfh.Flush()
+		if gw != nil {
+			gw.Close()
+		}
+		w.Close()
+	}()
+
+	// mode
+	var mode uint32
+	if opt.Compact {
+		mode |= unikmer.UNIK_COMPACT
+	}
+	if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+		mode |= unikmer.UNIK_CANONICAL
+	}
+	mode |= unikmer.UNIK_SORTED
+
+	var writer *unikmer.Writer
+	writer, err = unikmer.NewWriter(outfh, k, mode)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// read
+	m := make([]uint64, 0, mapInitSize)
+	var kcode unikmer.KmerCode
+	for {
+		kcode, err = reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, 0, err
+			}
+		}
+
+		m = append(m, kcode.Code)
+	}
+
+	// sort
+	sort.Sort(unikmer.CodeSlice(m))
+
+	var n int
+	if unique {
+		var last uint64 = ^uint64(0)
+		for _, code := range m {
+			if code == last {
+				continue
+			}
+			last = code
+			n++
+			writer.Write(unikmer.KmerCode{code, k})
+		}
+	} else {
+		for _, code := range m {
+			writer.Write(unikmer.KmerCode{code, k})
+		}
+		n = len(m)
+	}
+
+	return &reader.Header, n, nil
 }

@@ -76,8 +76,8 @@ Flag
 
     const (
         UNIK_COMPACT = 1 << iota
-    	UNIK_CANONICAL
-    	UNIK_SORTED
+        UNIK_CANONICAL
+        UNIK_SORTED
     )
 
 

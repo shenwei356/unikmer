@@ -37,7 +37,6 @@ var sortCmd = &cobra.Command{
 	Use:   "sort",
 	Short: "sort binary files",
 	Long: `sort binary files
-
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)

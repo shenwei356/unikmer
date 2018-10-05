@@ -206,7 +206,6 @@ func (reader *Reader) Read() (KmerCode, error) {
 
 	if reader.compact {
 		_, reader.err = io.ReadFull(reader.r, reader.buf[8-reader.bufsize:])
-
 	} else {
 		_, reader.err = io.ReadFull(reader.r, reader.buf)
 	}

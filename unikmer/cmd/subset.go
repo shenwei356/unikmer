@@ -70,6 +70,8 @@ Attention:
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
+		canonical := getFlagBool(cmd, "canonical")
+
 		file := files[0]
 
 		var infh *bufio.Reader
@@ -105,6 +107,9 @@ Attention:
 		if opt.Compact {
 			mode |= unikmer.UNIK_COMPACT
 		}
+		if canonical {
+			mode |= unikmer.UNIK_CANONICAL
+		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
 
@@ -130,6 +135,10 @@ Attention:
 				checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
 			}
 
+			if canonical {
+				kcode2 = kcode2.Canonical()
+			}
+
 			if _, ok = m[kcode2.Code]; !ok {
 				m[kcode2.Code] = struct{}{}
 				checkError(writer.Write(kcode2))
@@ -143,4 +152,5 @@ func init() {
 
 	subsetCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	subsetCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
+	subsetCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical Kmers")
 }

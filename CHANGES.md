@@ -3,6 +3,7 @@
     - `unikmer count`: better performance
     - `unikmer sample`: better performance
     - `unikmer dump`: changed option
+    - `unikmer count`: changed option
 - v0.3.1
     - **Binary serialization format changed.**
     - new command `unikmer stats`: statistics of binary files.
