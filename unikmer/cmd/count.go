@@ -224,5 +224,5 @@ func init() {
 	countCmd.Flags().IntP("kmer-len", "k", 0, "Kmer length")
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical Kmers")
-	countCmd.Flags().BoolP("sort", "s", false, "sort Kmers")
+	countCmd.Flags().BoolP("sort", "s", false, "sort Kmers, this reduces file size, you can even disable gzip compression by flag -C/--no-compress")
 }

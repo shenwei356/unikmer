@@ -152,7 +152,6 @@ var sortCmd = &cobra.Command{
 			log.Infof("done sorting")
 		}
 
-		writer.Number = int64(len(m))
 		var n int
 		if unique {
 			var last uint64 = ^uint64(0)
@@ -165,6 +164,7 @@ var sortCmd = &cobra.Command{
 				writer.Write(unikmer.KmerCode{code, k})
 			}
 		} else {
+			writer.Number = int64(len(m))
 			for _, code := range m {
 				writer.Write(unikmer.KmerCode{code, k})
 			}

@@ -284,7 +284,7 @@ Tips:
 
 				n = 0
 				if all {
-					if reader.Flag&unikmer.UNIK_SORTED > 0 {
+					if reader.Flag&unikmer.UNIK_SORTED > 0 && reader.Number >= 0 {
 						n = reader.Number
 					} else {
 						for {

@@ -1,7 +1,7 @@
 - v0.4.0
+    - **Binary serialization format changed.**
     - new command `unikmer sort`: sort binary files
-    - `unikmer count`: better performance
-    - `unikmer sample`: better performance
+    - `unikmer count`: better performance, add option to sort Kmers which reduces file size
     - `unikmer dump`: changed option
     - `unikmer count`: changed option
 - v0.3.1

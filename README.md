@@ -102,8 +102,9 @@ format convertion, set operations and searching on unique Kmers.
 ### Binary file (.unik)
 
 Kmers (represented in `uint64` in RAM ) are serialized in 8-Byte
-(or less Bytes for shorter Kmers in compact format) arrays and
-compressed in gzip format with extension of `.unik`.
+(or less Bytes for shorter Kmers in compact format,
+or much less Bytes for sorted Kmers) arrays and
+optionally compressed in gzip format with extension of `.unik`.
 
 #### Compression rate comparison
 
@@ -164,6 +165,14 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     -rw-r--r-- 1 shenwei shenwei 19M 9月  23 14:15 Ecoli-MG1655.fasta.gz.k23.unik
 
 
+    # counting (only keep the canonical kmers and sort Kmers)
+    $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted --canonical --compact --sort
+    elapsed time: 2.847s
+    peak rss: 337.11 MB
+
+    $ ls -lh Ecoli-MG1655.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei 16M 10月  6 23:23 Ecoli-MG1655.fasta.gz.k23.sorted.unik
+
 
     # view
     $ unikmer view Ecoli-MG1655.fasta.gz.k23.unik | head -n 3
@@ -174,54 +183,58 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     # stats
-    $ unikmer stats Ecoli-MG1655.fasta.gz.k23.unik -a
-    file                             k  gzipped  compact  canonical     number
-    Ecoli-MG1655.fasta.gz.k23.unik  23  true     true     true       4,546,63
-
+    $ unikmer stats Ecoli-MG1655.fasta.gz.k23.*unik -a
+    file                                    k  gzipped  compact  canonical  sorted     number
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  true     true     true       true    4,546,632
+    Ecoli-MG1655.fasta.gz.k23.unik         23  true     true     true       false   4,546,632
 
 
     # union
-    $ memusg -t unikmer union Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o union.k23 -c
-    elapsed time: 3.183s
-    peak rss: 393.23 MB
-
+    $ time unikmer union Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o union.k23 -c
+    real    0m5.776s
+    user    0m9.640s
+    sys     0m0.227s
 
     # concat
-    $ memusg -t unikmer concat Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o concat.k23 -c
-    elapsed time: 2.082s
-    peak rss: 33.27 MB
-
+    $ time unikmer concat Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o concat.k23  -c
+    real    0m6.844s
+    user    0m10.984s
+    sys     0m0.362s
 
     # intersection
-    $ memusg -t unikmer inter Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o inter.k23 -c
-    elapsed time: 2.953s
-    peak rss: 271.57 MB
-
-
+    $ time unikmer inter Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o inter.k23 -c
+    real    0m3.316s
+    user    0m4.945s
+    sys     0m0.164s
 
     # difference
-    $ memusg -t unikmer diff -j 1 Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik -o diff.k23 -c
+    $ time unikmer diff -j 1 Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o diff.k23 -c
     elapsed time: 3.424s
     peak rss: 257.18 MB
 
 
 
     $ ls -lh *.unik
-    -rw-r--r-- 1 shenwei shenwei 40M 9月  23 15:29 concat.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 12M 9月  23 15:30 diff.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 21M 9月  23 15:23 Ecoli-IAI39.fasta.gz.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 19M 9月  23 15:23 Ecoli-MG1655.fasta.gz.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 15M 9月  23 15:29 inter.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 30M 9月  23 15:29 union.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  24M 10月  6 23:36 concat.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 7.1M 10月  6 23:37 diff.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  17M 10月  6 23:25 Ecoli-IAI39.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  21M 10月  6 23:25 Ecoli-IAI39.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  16M 10月  6 23:23 Ecoli-MG1655.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  19M 10月  6 23:23 Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 9.1M 10月  6 23:37 inter.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  22M 10月  6 23:36 union.k23.unik
+
 
     $ unikmer stats *.unik -a -j 10
-    file                             k  gzipped  compact  canonical     number
-    concat.k23.unik                 23  true     true     true       9,448,898
-    diff.k23.unik                   23  true     true     true       1,970,462
-    Ecoli-IAI39.fasta.gz.k23.unik   23  true     true     true       4,902,266
-    Ecoli-MG1655.fasta.gz.k23.unik  23  true     true     true       4,546,632
-    inter.k23.unik                  23  true     true     true       2,576,170
-    union.k23.unik                  23  true     true     true       6,872,728
+    file                                    k  gzipped  compact  canonical  sorted     number
+    concat.k23.unik                        23  true     true     true       true    9,448,898
+    diff.k23.unik                          23  true     true     true       true    1,970,462
+    Ecoli-IAI39.fasta.gz.k23.sorted.unik   23  true     true     true       true    4,902,266
+    Ecoli-IAI39.fasta.gz.k23.unik          23  true     true     true       false   4,902,266
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  true     true     true       true    4,546,632
+    Ecoli-MG1655.fasta.gz.k23.unik         23  true     true     true       false   4,546,632
+    inter.k23.unik                         23  true     true     true       true    2,576,170
+    union.k23.unik                         23  true     true     true       true    6,872,728
 
 ## Contributing
 
