@@ -284,16 +284,20 @@ Tips:
 
 				n = 0
 				if all {
-					for {
-						_, err = reader.Read()
-						if err != nil {
-							if err == io.EOF {
-								break
+					if reader.Flag&unikmer.UNIK_SORTED > 0 {
+						n = reader.Number
+					} else {
+						for {
+							_, err = reader.Read()
+							if err != nil {
+								if err == io.EOF {
+									break
+								}
+								checkError(err)
 							}
-							checkError(err)
-						}
 
-						n++
+							n++
+						}
 					}
 				}
 				ch <- statInfo{

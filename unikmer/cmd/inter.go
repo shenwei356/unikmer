@@ -128,6 +128,7 @@ var interCmd = &cobra.Command{
 						}
 					}
 
+					checkError(writer.Flush())
 					return flagReturn
 				}
 
@@ -235,6 +236,7 @@ var interCmd = &cobra.Command{
 			// not need to check err
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
+		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d Kmers saved", len(m))
 		}

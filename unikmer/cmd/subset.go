@@ -144,6 +144,8 @@ Attention:
 				checkError(writer.Write(kcode2))
 			}
 		}
+
+		checkError(writer.Flush())
 	},
 }
 

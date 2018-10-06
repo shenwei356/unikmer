@@ -137,6 +137,7 @@ Attentions:
 			}
 		}
 
+		checkError(writer.Flush())
 	},
 }
 

@@ -144,8 +144,15 @@ var sortCmd = &cobra.Command{
 			}
 		}
 
+		if opt.Verbose {
+			log.Infof("sort %d Kmers", len(m))
+		}
 		sort.Sort(unikmer.CodeSlice(m))
+		if opt.Verbose {
+			log.Infof("done sorting")
+		}
 
+		writer.Number = int64(len(m))
 		var n int
 		if unique {
 			var last uint64 = ^uint64(0)
@@ -164,6 +171,7 @@ var sortCmd = &cobra.Command{
 			n = len(m)
 		}
 
+		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d Kmers saved", n)
 		}

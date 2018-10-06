@@ -27,10 +27,13 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"sort"
 	"testing"
+
+	"github.com/shenwei356/util/byteutil"
 )
 
-func genKmers(k int, num int) [][]byte {
+func genKmers(k int, num int, sorted bool) [][]byte {
 	mers := make([][]byte, num)
 	var j int
 	for i := 0; i < num; i++ {
@@ -39,6 +42,7 @@ func genKmers(k int, num int) [][]byte {
 			mers[i][j] = bit2base[rand.Intn(4)]
 		}
 	}
+	sort.Sort(byteutil.SliceOfByteSlice(mers))
 	return mers
 }
 
@@ -49,10 +53,11 @@ func TestWriter(t *testing.T) {
 	var mers, mers2 [][]byte
 	var err error
 
+	ns := []int{10001, 10001, 10001, 10000}
 	for k := 1; k <= 31; k++ {
-		for _, flag := range []uint32{0, UNIK_COMPACT} {
+		for i, flag := range []uint32{0, UNIK_COMPACT, UNIK_SORTED, UNIK_SORTED} { //
 			func(flag uint32) {
-				mers = genKmers(k, 10000)
+				mers = genKmers(k, ns[i], flag&UNIK_SORTED > 0)
 
 				file = fmt.Sprintf("t.k%d.unik", k)
 
@@ -106,10 +111,10 @@ func write(mers [][]byte, file string, flag uint32) error {
 			return err
 		}
 	}
-	// err = writer.Flush()
-	// if err != nil {
-	// 	return err
-	// }
+	err = writer.Flush()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

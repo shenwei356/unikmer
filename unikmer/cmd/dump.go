@@ -109,6 +109,7 @@ var dumpCmd = &cobra.Command{
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)
+						defer checkError(writer.Flush())
 					}
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
@@ -130,6 +131,7 @@ var dumpCmd = &cobra.Command{
 			}
 		}
 
+		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d unique Kmers found", n)
 		}

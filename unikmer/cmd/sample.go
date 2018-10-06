@@ -93,6 +93,7 @@ Attentions:
 		var flag int
 		var nfiles = len(files)
 		var n uint64
+		var j int
 		for i, file := range files {
 			if opt.Verbose {
 				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
@@ -103,11 +104,7 @@ Attentions:
 				checkError(err)
 				defer r.Close()
 
-				if sampling {
-					reader, err = unikmer.NewSamplingReader(infh, start, window)
-				} else {
-					reader, err = unikmer.NewReader(infh)
-				}
+				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
 				if k == -1 {
@@ -120,23 +117,43 @@ Attentions:
 					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 
-				for {
-					kcode, err = reader.Read()
-					if err != nil {
-						if err == io.EOF {
-							break
+				if sampling {
+					j = 0
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
 						}
-						checkError(err)
+
+						j++
+						if (j-start)%window == 0 || j == start {
+							n++
+							writer.Write(kcode) // not need to check err
+						}
 					}
 
-					n++
-					writer.Write(kcode) // not need to check err
+				} else {
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						n++
+						writer.Write(kcode) // not need to check err
+					}
+
 				}
 
 				if n == 0 { // no KmerCode
 					checkError(writer.WriteHeader())
 				}
-
 				return flagContinue
 			}()
 
@@ -147,6 +164,10 @@ Attentions:
 			}
 		}
 
+		checkError(writer.Flush())
+		if opt.Verbose {
+			log.Infof("%d Kmers saved", n)
+		}
 	},
 }
 

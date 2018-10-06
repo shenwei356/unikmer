@@ -64,13 +64,6 @@ Tips:
 
 		outFile := getFlagString(cmd, "out-prefix")
 
-		// sampling := true
-		// start := getFlagPositiveInt(cmd, "start")
-		// window := getFlagPositiveInt(cmd, "window")
-		// if start == 1 && window == 1 {
-		// 	sampling = false
-		// }
-
 		threads := opt.NumCPUs
 
 		runtime.GOMAXPROCS(threads)
@@ -141,6 +134,8 @@ Tips:
 						writer.Write(kcode) // not need to check er
 					}
 				}
+
+				checkError(writer.Flush())
 			}()
 
 			return
@@ -418,6 +413,7 @@ Tips:
 		for code := range m0 {
 			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
+		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d Kmers saved", len(m0))
 		}
@@ -428,6 +424,4 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	// diffCmd.Flags().IntP("start", "s", 1, `start location`)
-	// diffCmd.Flags().IntP("window", "w", 1, `window size`)
 }

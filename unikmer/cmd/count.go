@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"sort"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
@@ -62,6 +63,7 @@ var countCmd = &cobra.Command{
 		}
 
 		canonical := getFlagBool(cmd, "canonical")
+		sortKmers := getFlagBool(cmd, "sort")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -83,10 +85,17 @@ var countCmd = &cobra.Command{
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
 		}
+		if sortKmers {
+			mode |= unikmer.UNIK_SORTED
+		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
-
 		m := make(map[uint64]struct{}, mapInitSize)
+
+		var m2 []uint64
+		if sortKmers {
+			m2 = make([]uint64, 0, mapInitSize)
+		}
 
 		var sequence, kmer, preKmer []byte
 		var originalLen, l, end, e int
@@ -173,16 +182,37 @@ var countCmd = &cobra.Command{
 
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
-							checkError(writer.Write(kcode))
-							n++
+							if sortKmers {
+								m2 = append(m2, kcode.Code)
+							} else {
+								checkError(writer.Write(kcode))
+								n++
+							}
 						}
 					}
 				}
 			}
 		}
+		if sortKmers {
+			n = int64(len(m2))
 
+			if opt.Verbose {
+				log.Infof("sort %d Kmers", n)
+			}
+			sort.Sort(unikmer.CodeSlice(m2))
+			if opt.Verbose {
+				log.Infof("done sorting")
+			}
+			writer.Number = n
+
+			for _, code := range m2 {
+				writer.Write(unikmer.KmerCode{code, k})
+			}
+		}
+
+		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d unique Kmers found", n)
+			log.Infof("%d unique Kmers saved", n)
 		}
 	},
 }
@@ -194,4 +224,5 @@ func init() {
 	countCmd.Flags().IntP("kmer-len", "k", 0, "Kmer length")
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical Kmers")
+	countCmd.Flags().BoolP("sort", "s", false, "sort Kmers")
 }
