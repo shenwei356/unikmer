@@ -283,6 +283,8 @@ func (writer *Writer) WriteHeader() error {
 	if writer.err != nil {
 		return writer.err
 	}
+
+	writer.wroteHeader = true
 	return nil
 }
 
@@ -308,7 +310,6 @@ func (writer *Writer) Write(kcode KmerCode) error {
 		if writer.err != nil {
 			return writer.err
 		}
-		writer.wroteHeader = true
 	}
 
 	if writer.sorted {

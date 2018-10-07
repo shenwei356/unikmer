@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
@@ -56,6 +57,7 @@ var interCmd = &cobra.Command{
 		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		sortKmers := getFlagBool(cmd, "sort")
 
 		m := make(map[uint64]bool, mapInitSize)
 
@@ -200,7 +202,7 @@ var interCmd = &cobra.Command{
 			if opt.Verbose {
 				log.Infof("no intersection found")
 			}
-			return
+			// return
 		}
 
 		// output
@@ -229,12 +231,44 @@ var interCmd = &cobra.Command{
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
 		}
+		if sortKmers {
+			mode |= unikmer.UNIK_SORTED
+		}
+
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
 
-		for code = range m {
-			// not need to check err
-			writer.Write(unikmer.KmerCode{Code: code, K: k})
+		if sortKmers {
+			writer.Number = int64(len(m))
+		}
+
+		if len(m) == 0 {
+			writer.Number = 0
+			checkError(writer.WriteHeader())
+		} else {
+			if sortKmers {
+				codes := make([]uint64, len(m))
+				i := 0
+				for code := range m {
+					codes[i] = code
+					i++
+				}
+				if opt.Verbose {
+					log.Infof("sort %d Kmers", len(codes))
+				}
+				sort.Sort(unikmer.CodeSlice(codes))
+				if opt.Verbose {
+					log.Infof("done sorting")
+				}
+				for _, code := range codes {
+					writer.Write(unikmer.KmerCode{Code: code, K: k})
+				}
+			} else {
+				for code = range m {
+					// not need to check err
+					writer.Write(unikmer.KmerCode{Code: code, K: k})
+				}
+			}
 		}
 		checkError(writer.Flush())
 		if opt.Verbose {
@@ -247,4 +281,5 @@ func init() {
 	RootCmd.AddCommand(interCmd)
 
 	interCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	interCmd.Flags().BoolP("sort", "s", false, "sort Kmers, this reduces file size, you can even disable gzip compression by flag -C/--no-compress")
 }

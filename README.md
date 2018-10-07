@@ -95,6 +95,7 @@ format convertion, set operations and searching on unique Kmers.
 1. Misc
 
         stats           statistics of binary files
+        num             print number of Kmers in binary file
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update
@@ -209,9 +210,9 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
     # difference
     $ time unikmer diff -j 1 Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o diff.k23 -c
-    elapsed time: 3.424s
-    peak rss: 257.18 MB
-
+    real    0m3.763s
+    user    0m3.971s
+    sys     0m0.114s
 
 
     $ ls -lh *.unik

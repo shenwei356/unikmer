@@ -23,7 +23,6 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -32,11 +31,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// viewCmd represents
-var viewCmd = &cobra.Command{
-	Use:   "view",
-	Short: "read and output binary format to plain text",
-	Long: `read and output binary format to plain text
+// numCmd represents
+var numCmd = &cobra.Command{
+	Use:   "num",
+	Short: "print number of Kmers in binary file",
+	Long: `print number of Kmers in binary file
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -57,7 +56,7 @@ var viewCmd = &cobra.Command{
 		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-file")
-		showCode := getFlagBool(cmd, "show-code")
+		showFile := getFlagBool(cmd, "file-name")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
 		checkError(err)
@@ -72,7 +71,6 @@ var viewCmd = &cobra.Command{
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
 
 		for _, file := range files {
 			func() {
@@ -83,21 +81,10 @@ var viewCmd = &cobra.Command{
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
-				for {
-					kcode, err = reader.Read()
-					if err != nil {
-						if err == io.EOF {
-							break
-						}
-						checkError(err)
-					}
-
-					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
-					if showCode {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
-					} else {
-						outfh.WriteString(kcode.String() + "\n")
-					}
+				if showFile {
+					outfh.WriteString(fmt.Sprintf("%d\t%s\n", reader.Number, file))
+				} else {
+					outfh.WriteString(fmt.Sprintf("%d\n", reader.Number))
 				}
 
 			}()
@@ -106,8 +93,8 @@ var viewCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(viewCmd)
+	RootCmd.AddCommand(numCmd)
 
-	viewCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
-	viewCmd.Flags().BoolP("show-code", "n", false, `show code`)
+	numCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
+	numCmd.Flags().BoolP("file-name", "n", false, `show file name`)
 }

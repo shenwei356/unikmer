@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
@@ -60,6 +61,7 @@ Attentions:
 		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		sortKmers := getFlagBool(cmd, "sort")
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
@@ -110,15 +112,17 @@ Attentions:
 					k = reader.K
 					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 
-					var mode uint32
-					if opt.Compact {
-						mode |= unikmer.UNIK_COMPACT
+					if !sortKmers {
+						var mode uint32
+						if opt.Compact {
+							mode |= unikmer.UNIK_COMPACT
+						}
+						if canonical {
+							mode |= unikmer.UNIK_CANONICAL
+						}
+						writer, err = unikmer.NewWriter(outfh, k, mode)
+						checkError(err)
 					}
-					if canonical {
-						mode |= unikmer.UNIK_CANONICAL
-					}
-					writer, err = unikmer.NewWriter(outfh, k, mode)
-					checkError(err)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
@@ -137,8 +141,10 @@ Attentions:
 					// new kmers
 					if _, ok = m[kcode.Code]; !ok {
 						m[kcode.Code] = struct{}{}
-						writer.Write(kcode) // not need to check err
 						n++
+						if !sortKmers {
+							writer.Write(kcode) // not need to check err
+						}
 					}
 				}
 
@@ -149,6 +155,38 @@ Attentions:
 				return
 			} else if flag == flagBreak {
 				break
+			}
+		}
+
+		if sortKmers {
+			var mode uint32
+			if opt.Compact {
+				mode |= unikmer.UNIK_COMPACT
+			}
+			if canonical {
+				mode |= unikmer.UNIK_CANONICAL
+			}
+			mode |= unikmer.UNIK_SORTED
+			writer, err = unikmer.NewWriter(outfh, k, mode)
+			checkError(err)
+
+			writer.Number = int64(len(m))
+
+			codes := make([]uint64, len(m))
+			i := 0
+			for code := range m {
+				codes[i] = code
+				i++
+			}
+			if opt.Verbose {
+				log.Infof("sort %d Kmers", len(codes))
+			}
+			sort.Sort(unikmer.CodeSlice(codes))
+			if opt.Verbose {
+				log.Infof("done sorting")
+			}
+			for _, code := range codes {
+				writer.Write(unikmer.KmerCode{Code: code, K: k})
 			}
 		}
 
@@ -163,4 +201,5 @@ func init() {
 	RootCmd.AddCommand(unionCmd)
 
 	unionCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	unionCmd.Flags().BoolP("sort", "s", false, "sort Kmers, this reduces file size, you can even disable gzip compression by flag -C/--no-compress")
 }

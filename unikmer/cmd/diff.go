@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 	"sync"
 
 	"github.com/shenwei356/unikmer"
@@ -63,6 +64,7 @@ Tips:
 		checkFiles(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		sortKmers := getFlagBool(cmd, "sort")
 
 		threads := opt.NumCPUs
 
@@ -343,40 +345,40 @@ Tips:
 		toStop <- 1
 		<-doneDone
 
+		var m0 map[uint64]bool
 		if !hasDiff {
 			if opt.Verbose {
 				log.Infof("no set difference found")
 			}
-			return
-		}
+			// return
+		} else {
+			var code uint64
+			for _, m := range maps {
+				if len(m) == 0 {
+					continue
+				}
 
-		var m0 map[uint64]bool
-		var code uint64
-		for _, m := range maps {
-			if len(m) == 0 {
-				continue
-			}
+				if m0 == nil {
+					m0 = m
+					continue
+				}
+				for code = range m0 {
+					if _, ok = m[code]; !ok { // it's already been deleted in other m
+						delete(m0, code) // so it should be deleted
+					}
+				}
 
-			if m0 == nil {
-				m0 = m
-				continue
-			}
-			for code = range m0 {
-				if _, ok = m[code]; !ok { // it's already been deleted in other m
-					delete(m0, code) // so it should be deleted
+				if len(m0) == 0 {
+					break
 				}
 			}
 
 			if len(m0) == 0 {
-				break
+				if opt.Verbose {
+					log.Warningf("no set difference found")
+				}
+				// return
 			}
-		}
-
-		if len(m0) == 0 {
-			if opt.Verbose {
-				log.Warningf("no set difference found")
-			}
-			return
 		}
 
 		// -----------------------------------------------------------------------
@@ -407,11 +409,43 @@ Tips:
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
 		}
+		if sortKmers {
+			mode |= unikmer.UNIK_SORTED
+		}
+
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
 
-		for code := range m0 {
-			writer.Write(unikmer.KmerCode{Code: code, K: k})
+		if sortKmers {
+			writer.Number = int64(len(m0))
+		}
+
+		if len(m0) == 0 {
+			writer.Number = 0
+			checkError(writer.WriteHeader())
+		} else {
+			if sortKmers {
+				codes := make([]uint64, len(m0))
+				i := 0
+				for code := range m0 {
+					codes[i] = code
+					i++
+				}
+				if opt.Verbose {
+					log.Infof("sort %d Kmers", len(codes))
+				}
+				sort.Sort(unikmer.CodeSlice(codes))
+				if opt.Verbose {
+					log.Infof("done sorting")
+				}
+				for _, code := range codes {
+					writer.Write(unikmer.KmerCode{Code: code, K: k})
+				}
+			} else {
+				for code := range m0 {
+					writer.Write(unikmer.KmerCode{Code: code, K: k})
+				}
+			}
 		}
 		checkError(writer.Flush())
 		if opt.Verbose {
@@ -424,4 +458,5 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	diffCmd.Flags().BoolP("sort", "s", false, "sort Kmers, this reduces file size, you can even disable gzip compression by flag -C/--no-compress")
 }
