@@ -112,14 +112,16 @@ optionally compressed in gzip format with extension of `.unik`.
 ![Ecoli-MG1655.fasta.gz.cr.tsv.png](testdata/Ecoli-MG1655.fasta.gz.cr.tsv.png)
 ![A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png](testdata/A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png)
 
-label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-format<sup>c</sup>|comment
-:---------------|:----------------------:|:-------------------------:|:------------------------:|:------------------------------------------------------
-`plain`         |                        |                           |                          |plain text
-`plain.gz`      |                        |✔                          |                          |gzipped plain text
-`.unik`         |✔                       |✔                          |                          |gzipped encoded kmer in fixed-length byte array
-`.unik.cpt`     |✔                       |✔                          |✔                         |gzipped encoded kmer in shorter fixed-length byte array
-`.unik.ungz`    |✔                       |                           |                          |encoded kmer in fixed-length byte array
-`.unik.cpt.ungz`|✔                       |                           |✔                         |encoded kmer in shorter fixed-length byte array
+label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-format<sup>c</sup>|sorted<sup>d</sup>|comment
+:---------------|:-----------------------|:--------------------------|:-------------------------|:-----------------|:------------------------------------------------------
+`plain`         |                        |                           |                          |                  |plain text
+`plain.gz`      |                        |✔                          |                          |                  |gzipped plain text
+`.unik`         |✔                       |✔                          |                          |                  |gzipped encoded kmer in fixed-length byte array
+`.unik.cpt`     |✔                       |✔                          |✔                         |                  |gzipped encoded kmer in shorter fixed-length byte array
+`.unik.sort`    |✔                       |✔                          |                          |✔                 |gzipped sorted encoded kmers
+`.unik.ungz`    |✔                       |                           |                          |                  |encoded kmer in fixed-length byte array
+`.unik.cpt.ungz`|✔                       |                           |✔                         |                  |encoded kmer in shorter fixed-length byte array
+
 
 - <sup>a</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes.
 - <sup>b</sup> Kmers file is compressed in gzip format by default,
@@ -128,7 +130,9 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
  However few Bytes are needed for short Kmers, e.g., 4 Bytes are enough for
   15-mers (30 bits). This makes the file more compact with smaller file size,
   controled by global option `-c/--compact `.
-- Flag `--canonical` is off when running `unikmer count`.
+- <sup>d</sup> One Kmer is encoded as `uint64`, all kmers are sorted and compressed
+  using varint-GB algorithm.
+- In all test, flag `--canonical` is ON when running `unikmer count`.
 
 
 ### Quick Start
