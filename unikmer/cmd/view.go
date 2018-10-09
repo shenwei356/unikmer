@@ -58,6 +58,8 @@ var viewCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-file")
 		showCode := getFlagBool(cmd, "show-code")
+		outFasta := getFlagBool(cmd, "fasta")
+		outFastq := getFlagBool(cmd, "fastq")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
 		checkError(err)
@@ -74,6 +76,7 @@ var viewCmd = &cobra.Command{
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
 
+		var quality string
 		for _, file := range files {
 			func() {
 				infh, r, _, err = inStream(file)
@@ -82,6 +85,10 @@ var viewCmd = &cobra.Command{
 
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
+
+				if outFastq {
+					quality = strings.Repeat("g", reader.K)
+				}
 
 				for {
 					kcode, err = reader.Read()
@@ -93,7 +100,11 @@ var viewCmd = &cobra.Command{
 					}
 
 					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
-					if showCode {
+					if outFasta {
+						outfh.WriteString(fmt.Sprintf(">%d\n%s\n", kcode.Code, kcode.String()))
+					} else if outFastq {
+						outfh.WriteString(fmt.Sprintf(">%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
+					} else if showCode {
 						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
 					} else {
 						outfh.WriteString(kcode.String() + "\n")
@@ -109,5 +120,7 @@ func init() {
 	RootCmd.AddCommand(viewCmd)
 
 	viewCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
-	viewCmd.Flags().BoolP("show-code", "n", false, `show code`)
+	viewCmd.Flags().BoolP("show-code", "n", false, `show encoded integer along with Kmer`)
+	viewCmd.Flags().BoolP("fasta", "a", false, `output in FASTA format, with encoded integer as FASTA header`)
+	viewCmd.Flags().BoolP("fastq", "q", false, `output in FASTQ format, with encoded integer as FASTA header`)
 }
