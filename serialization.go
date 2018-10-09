@@ -263,6 +263,9 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 
 // WriteHeader writes file header
 func (writer *Writer) WriteHeader() error {
+	if writer.wroteHeader {
+		return nil
+	}
 	// write magic number
 	writer.err = binary.Write(writer.w, be, Magic)
 	if writer.err != nil {
@@ -310,6 +313,7 @@ func (writer *Writer) Write(kcode KmerCode) error {
 		if writer.err != nil {
 			return writer.err
 		}
+		writer.wroteHeader = true
 	}
 
 	if writer.sorted {

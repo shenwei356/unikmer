@@ -98,6 +98,8 @@ Tips:
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
+				k = reader.K
+
 				if !isStdout(outFile) {
 					outFile += extDataFile
 				}
@@ -111,15 +113,25 @@ Tips:
 					w.Close()
 				}()
 
-				var mode uint32
-				if opt.Compact {
-					mode |= unikmer.UNIK_COMPACT
+				var writer *unikmer.Writer
+				var m2 []uint64
+
+				if sortKmers {
+					m2 = make([]uint64, 0, mapInitSize)
+				} else {
+					var mode uint32
+					if opt.Compact {
+						mode |= unikmer.UNIK_COMPACT
+					}
+					if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+						mode |= unikmer.UNIK_CANONICAL
+					}
+					if sortKmers {
+						mode |= unikmer.UNIK_SORTED
+					}
+					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
+					checkError(err)
 				}
-				if canonical {
-					mode |= unikmer.UNIK_CANONICAL
-				}
-				writer, err := unikmer.NewWriter(outfh, reader.K, mode)
-				checkError(err)
 
 				m := make(map[uint64]struct{}, mapInitSize)
 				for {
@@ -133,11 +145,45 @@ Tips:
 
 					if _, ok = m[kcode.Code]; !ok {
 						m[kcode.Code] = struct{}{}
-						writer.Write(kcode) // not need to check er
+						if sortKmers {
+							m2 = append(m2, kcode.Code)
+						} else {
+							writer.Write(kcode) // not need to check er
+						}
+					}
+				}
+
+				if sortKmers {
+					var mode uint32
+					if opt.Compact {
+						mode |= unikmer.UNIK_COMPACT
+					}
+					if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+						mode |= unikmer.UNIK_CANONICAL
+					}
+					mode |= unikmer.UNIK_SORTED
+					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
+					checkError(err)
+
+					writer.Number = int64(len(m2))
+
+					if opt.Verbose {
+						log.Infof("sort %d Kmers", len(m2))
+					}
+					sort.Sort(unikmer.CodeSlice(m2))
+					if opt.Verbose {
+						log.Infof("done sorting")
+					}
+
+					for _, code := range m2 {
+						writer.Write(unikmer.KmerCode{code, k})
 					}
 				}
 
 				checkError(writer.Flush())
+				if opt.Verbose {
+					log.Infof("%d Kmers saved", len(m))
+				}
 			}()
 
 			return
