@@ -162,6 +162,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     # counting (only keep the canonical kmers and compact output)
+    # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23 --canonical --compact
     $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23 --canonical --compact
     elapsed time: 1.540s
     peak rss: 238.54 MB
@@ -171,6 +172,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     # counting (only keep the canonical kmers and sort Kmers)
+    # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted --canonical --compact --sort
     $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted --canonical --compact --sort
     elapsed time: 2.847s
     peak rss: 337.11 MB
@@ -195,44 +197,44 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     # union
-    $ time unikmer union Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o union.k23 -c
-    real    0m5.776s
-    user    0m9.640s
-    sys     0m0.227s
+    $ time unikmer union Ecoli-MG1655.fasta.gz.k23.sorted.unik Ecoli-IAI39.fasta.gz.k23.sorted.unik -o union.k23 -c -s
+    real    0m4.880s
+    user    0m5.741s
+    sys     0m0.140s
 
     # concat
-    $ time unikmer concat Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o concat.k23  -c
-    real    0m6.844s
-    user    0m10.984s
-    sys     0m0.362s
+    $ time unikmer concat Ecoli-MG1655.fasta.gz.k23.sorted.unik Ecoli-IAI39.fasta.gz.k23.sorted.unik -o concat.k23 -c
+    real    0m1.620s
+    user    0m2.820s
+    sys     0m0.030s
 
     # intersection
-    $ time unikmer inter Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o inter.k23 -c
-    real    0m3.316s
-    user    0m4.945s
-    sys     0m0.164s
+    $ time unikmer inter Ecoli-MG1655.fasta.gz.k23.sorted.unik Ecoli-IAI39.fasta.gz.k23.sorted.unik -o inter.k23 -c -s
+    real    0m2.881s
+    user    0m3.517s
+    sys     0m0.106s
 
     # difference
-    $ time unikmer diff -j 1 Ecoli-MG1655.fasta.gz.k23.unik Ecoli-IAI39.fasta.gz.k23.unik | unikmer sort -o diff.k23 -c
-    real    0m3.763s
-    user    0m3.971s
-    sys     0m0.114s
+    $ time unikmer diff -j 1 Ecoli-MG1655.fasta.gz.k23.sorted.unik Ecoli-IAI39.fasta.gz.k23.sorted.unik -o diff.k23 -c -s
+    real    0m2.872s
+    user    0m2.790s
+    sys     0m0.080s
 
 
     $ ls -lh *.unik
-    -rw-r--r-- 1 shenwei shenwei  24M 10月  6 23:36 concat.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 7.1M 10月  6 23:37 diff.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  17M 10月  6 23:25 Ecoli-IAI39.fasta.gz.k23.sorted.unik
-    -rw-r--r-- 1 shenwei shenwei  21M 10月  6 23:25 Ecoli-IAI39.fasta.gz.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  16M 10月  6 23:23 Ecoli-MG1655.fasta.gz.k23.sorted.unik
-    -rw-r--r-- 1 shenwei shenwei  19M 10月  6 23:23 Ecoli-MG1655.fasta.gz.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 9.1M 10月  6 23:37 inter.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  22M 10月  6 23:36 union.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  47M 10月  9 22:57 concat.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 7.1M 10月  9 22:54 diff.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  17M 10月  9 22:51 Ecoli-IAI39.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  21M 10月  9 22:55 Ecoli-IAI39.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  16M 10月  9 22:55 Ecoli-MG1655.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  19M 10月  9 22:56 Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 9.1M 10月  9 22:53 inter.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  22M 10月  9 22:53 union.k23.unik
 
 
     $ unikmer stats *.unik -a -j 10
     file                                    k  gzipped  compact  canonical  sorted     number
-    concat.k23.unik                        23  true     true     true       true    9,448,898
+    concat.k23.unik                        23  true     true     true       false   9,448,898
     diff.k23.unik                          23  true     true     true       true    1,970,462
     Ecoli-IAI39.fasta.gz.k23.sorted.unik   23  true     true     true       true    4,902,266
     Ecoli-IAI39.fasta.gz.k23.unik          23  true     true     true       false   4,902,266
