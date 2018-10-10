@@ -40,7 +40,7 @@ var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
 var ErrInvalidFileFormat = errors.New("unikmer: invalid binary format")
 
 // ErrBrokenFile means the file is not complete.
-// var ErrBrokenFile = errors.New("unikmer: broken file")
+var ErrBrokenFile = errors.New("unikmer: broken file")
 
 // ErrKMismatch means K size mismatch.
 var ErrKMismatch = errors.New("unikmer: K mismatch")
@@ -70,43 +70,35 @@ func (h Header) String() string {
 // Reader is for reading KmerCode.
 type Reader struct {
 	Header
-	r    io.Reader
-	err  error
-	code uint64
-
+	r   io.Reader
 	buf []byte
 
 	compact bool // saving KmerCode in variable-length byte array.
 	bufsize int
 
-	sorted        bool
-	prev          *KmerCode
-	buf2          []byte
-	offset        uint64
-	ctrlByte      byte
-	nReaded       int
-	nEncodedBytes int
-	encodedBytes  [2]uint8
-	decodedVals   [2]uint64
-	nDecoded      int
+	sorted bool
+	prev   *KmerCode
+	buf2   []byte
+	offset uint64
 }
 
 // NewReader returns a Reader.
-func NewReader(r io.Reader) (*Reader, error) {
-	reader := &Reader{r: r}
-	reader.err = reader.readHeader()
-	if reader.err != nil {
-		return nil, reader.err
+func NewReader(r io.Reader) (reader *Reader, err error) {
+	reader = &Reader{r: r}
+	err = reader.readHeader()
+	if err != nil {
+		return nil, err
 	}
 	return reader, nil
 }
 
-func (reader *Reader) readHeader() error {
+func (reader *Reader) readHeader() (err error) {
 	// check Magic number
 	var m [8]byte
-	reader.err = binary.Read(reader.r, be, &m)
-	if reader.err != nil {
-		return reader.err
+	r := reader.r
+	err = binary.Read(r, be, &m)
+	if err != nil {
+		return err
 	}
 	same := true
 	for i := 0; i < 8; i++ {
@@ -121,9 +113,9 @@ func (reader *Reader) readHeader() error {
 
 	// read metadata
 	var meta [4]uint8
-	reader.err = binary.Read(reader.r, be, &meta)
-	if reader.err != nil {
-		return reader.err
+	err = binary.Read(r, be, &meta)
+	if err != nil {
+		return err
 	}
 	// check compatibility？
 	if (meta[0] == 0 && meta[1] == 0) ||
@@ -135,9 +127,9 @@ func (reader *Reader) readHeader() error {
 
 	reader.K = int(meta[2])
 
-	reader.err = binary.Read(reader.r, be, &reader.Flag)
-	if reader.err != nil {
-		return reader.err
+	err = binary.Read(r, be, &reader.Flag)
+	if err != nil {
+		return err
 	}
 
 	reader.buf = make([]byte, 8)
@@ -151,91 +143,91 @@ func (reader *Reader) readHeader() error {
 		reader.buf2 = make([]byte, 17)
 	}
 
-	reader.err = binary.Read(reader.r, be, &reader.Number)
-	if reader.err != nil {
-		return reader.err
+	err = binary.Read(r, be, &reader.Number)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 // Read reads one KmerCode.
 func (reader *Reader) Read() (KmerCode, error) {
+	var err error
 	if reader.sorted {
 		if reader.prev != nil {
 			c := *reader.prev
 			reader.prev = nil
 			return c, nil
 		}
+
+		buf2 := reader.buf2
+		r := reader.r
+
 		// read control byte
-		reader.nReaded, reader.err = io.ReadFull(reader.r, reader.buf2[0:1])
-		if reader.err != nil {
-			return KmerCode{}, reader.err
+		var nReaded int
+		nReaded, err = io.ReadFull(r, buf2[0:1])
+		if err != nil {
+			return KmerCode{}, err
 		}
 
-		reader.ctrlByte = reader.buf2[0]
-		if reader.ctrlByte&128 > 0 { // last one
-			reader.nReaded, reader.err = io.ReadFull(reader.r, reader.buf2[0:8])
-			if reader.err != nil {
-				return KmerCode{}, reader.err
+		ctrlByte := buf2[0]
+		if ctrlByte&128 > 0 { // last one
+			nReaded, err = io.ReadFull(r, buf2[0:8])
+			if err != nil {
+				return KmerCode{}, err
 			}
-			reader.code = be.Uint64(reader.buf2[0:8])
-			return KmerCode{Code: reader.code, K: reader.Header.K}, nil
+			return KmerCode{Code: be.Uint64(buf2[0:8]), K: reader.K}, nil
 		}
 
 		// parse control byte
-		reader.encodedBytes = ctrlByte2ByteLengths[reader.ctrlByte]
-		reader.nEncodedBytes = int(reader.encodedBytes[0] + reader.encodedBytes[1])
+		encodedBytes := ctrlByte2ByteLengths[ctrlByte]
+		nEncodedBytes := int(encodedBytes[0] + encodedBytes[1])
 
 		// read encoded bytes
-		reader.nReaded, reader.err = io.ReadFull(reader.r, reader.buf2[0:reader.nEncodedBytes])
-		if reader.err != nil {
-			return KmerCode{}, reader.err
+		nReaded, err = io.ReadFull(r, buf2[0:nEncodedBytes])
+		if err != nil {
+			return KmerCode{}, err
 		}
-		if reader.nReaded < reader.nEncodedBytes {
-			return KmerCode{}, fmt.Errorf("unikmer: unexpected EOF")
-		}
-
-		reader.decodedVals, reader.nDecoded = Uint64s(reader.ctrlByte, reader.buf2[0:reader.nEncodedBytes])
-		if reader.nDecoded == 0 {
-			return KmerCode{Code: reader.code, K: reader.Header.K}, fmt.Errorf("unikmer: broken binary file")
+		if nReaded < nEncodedBytes {
+			return KmerCode{}, ErrBrokenFile
 		}
 
-		reader.code = reader.decodedVals[0] + reader.offset
-		reader.prev = &KmerCode{Code: reader.code + reader.decodedVals[1], K: reader.Header.K}
-		reader.offset = reader.code + reader.decodedVals[1]
+		decodedVals, nDecoded := Uint64s(ctrlByte, buf2[0:nEncodedBytes])
+		if nDecoded == 0 {
+			return KmerCode{}, ErrBrokenFile
+		}
 
-		return KmerCode{Code: reader.code, K: reader.Header.K}, nil
+		code := decodedVals[0] + reader.offset
+		reader.prev = &KmerCode{Code: code + decodedVals[1], K: reader.K}
+		reader.offset = code + decodedVals[1]
+
+		return KmerCode{Code: code, K: reader.K}, nil
 	} else if reader.compact {
-		_, reader.err = io.ReadFull(reader.r, reader.buf[8-reader.bufsize:])
+		_, err = io.ReadFull(reader.r, reader.buf[8-reader.bufsize:])
 	} else {
-		_, reader.err = io.ReadFull(reader.r, reader.buf)
+		_, err = io.ReadFull(reader.r, reader.buf)
 	}
-	if reader.err != nil {
-		return KmerCode{}, reader.err
+	if err != nil {
+		return KmerCode{}, err
 	}
-	reader.code = be.Uint64(reader.buf)
 
-	return KmerCode{Code: reader.code, K: reader.Header.K}, nil
+	return KmerCode{Code: be.Uint64(reader.buf), K: reader.K}, nil
 }
 
 // Writer writes KmerCode.
 type Writer struct {
 	Header
 	w           io.Writer
-	kcode       KmerCode
 	wroteHeader bool
-	err         error
 
 	compact bool // saving KmerCode in compact fixlength byte array.
 	buf     []byte
 	bufsize int
 
-	sorted       bool //
-	prev         *KmerCode
-	buf2         []byte
-	offset       uint64
-	ctrlByte     byte
-	nEncodedByte int
+	sorted bool //
+	prev   *KmerCode
+	buf2   []byte
+	offset uint64
 }
 
 // NewWriter creates a Writer.
@@ -262,29 +254,30 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 }
 
 // WriteHeader writes file header
-func (writer *Writer) WriteHeader() error {
+func (writer *Writer) WriteHeader() (err error) {
 	if writer.wroteHeader {
 		return nil
 	}
+	w := writer.w
 	// write magic number
-	writer.err = binary.Write(writer.w, be, Magic)
-	if writer.err != nil {
-		return writer.err
+	err = binary.Write(w, be, Magic)
+	if err != nil {
+		return err
 	}
 
-	writer.err = binary.Write(writer.w, be, [4]uint8{writer.MainVersion, MinorVersion, uint8(writer.K), 0})
-	if writer.err != nil {
-		return writer.err
+	err = binary.Write(w, be, [4]uint8{writer.MainVersion, MinorVersion, uint8(writer.K), 0})
+	if err != nil {
+		return err
 	}
 
-	writer.err = binary.Write(writer.w, be, writer.Flag)
-	if writer.err != nil {
-		return writer.err
+	err = binary.Write(w, be, writer.Flag)
+	if err != nil {
+		return err
 	}
 
-	writer.err = binary.Write(writer.w, be, writer.Number)
-	if writer.err != nil {
-		return writer.err
+	err = binary.Write(w, be, writer.Number)
+	if err != nil {
+		return err
 	}
 
 	writer.wroteHeader = true
@@ -293,25 +286,24 @@ func (writer *Writer) WriteHeader() error {
 
 // WriteKmer writes one Kmer.
 func (writer *Writer) WriteKmer(mer []byte) error {
-	writer.kcode, writer.err = NewKmerCode(mer)
-	if writer.err != nil {
-		return writer.err
+	kcode, err := NewKmerCode(mer)
+	if err != nil {
+		return err
 	}
-	return writer.Write(writer.kcode)
+	return writer.Write(kcode)
 }
 
 // Write writes one KmerCode.
-func (writer *Writer) Write(kcode KmerCode) error {
-	if writer.Header.K != kcode.K {
-		writer.err = ErrKMismatch
-		return writer.err
+func (writer *Writer) Write(kcode KmerCode) (err error) {
+	if writer.K != kcode.K {
+		return ErrKMismatch
 	}
 
 	// lazily write header
 	if !writer.wroteHeader {
-		writer.err = writer.WriteHeader()
-		if writer.err != nil {
-			return writer.err
+		err = writer.WriteHeader()
+		if err != nil {
+			return err
 		}
 		writer.wroteHeader = true
 	}
@@ -322,36 +314,36 @@ func (writer *Writer) Write(kcode KmerCode) error {
 			return nil
 		}
 
-		writer.ctrlByte, writer.nEncodedByte = PutUint64s(writer.buf2, writer.prev.Code-writer.offset, kcode.Code-writer.prev.Code)
+		ctrlByte, nEncodedByte := PutUint64s(writer.buf2, writer.prev.Code-writer.offset, kcode.Code-writer.prev.Code)
 
 		writer.offset = kcode.Code
 		writer.prev = nil
 
-		writer.err = binary.Write(writer.w, be, writer.ctrlByte)
-		writer.err = binary.Write(writer.w, be, writer.buf2[0:writer.nEncodedByte])
+		err = binary.Write(writer.w, be, ctrlByte)
+		err = binary.Write(writer.w, be, writer.buf2[0:nEncodedByte])
 	} else if writer.compact {
 		be.PutUint64(writer.buf, kcode.Code)
-		writer.err = binary.Write(writer.w, be, writer.buf[8-writer.bufsize:])
+		err = binary.Write(writer.w, be, writer.buf[8-writer.bufsize:])
 	} else {
-		writer.err = binary.Write(writer.w, be, kcode.Code)
+		err = binary.Write(writer.w, be, kcode.Code)
 	}
 
-	if writer.err != nil {
-		return writer.err
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 // Flush write the last Kmer
-func (writer *Writer) Flush() error {
+func (writer *Writer) Flush() (err error) {
 	if !writer.sorted || writer.prev == nil {
 		return nil
 	}
 	// write last kmer
-	writer.err = binary.Write(writer.w, be, uint8(128))
-	writer.err = binary.Write(writer.w, be, writer.prev.Code)
-	if writer.err != nil {
-		return writer.err
+	err = binary.Write(writer.w, be, uint8(128))
+	err = binary.Write(writer.w, be, writer.prev.Code)
+	if err != nil {
+		return err
 	}
 	writer.prev = nil
 	return nil
