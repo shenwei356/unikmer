@@ -314,11 +314,6 @@ Tips:
 					infh, r, _, err = inStream(file)
 					checkError(err)
 
-					// if sampling {
-					// 	reader, err = unikmer.NewSamplingReader(infh, start, window)
-					// } else {
-					// 	reader, err = unikmer.NewReader(infh)
-					// }
 					reader, err = unikmer.NewReader(infh)
 					checkError(err)
 
