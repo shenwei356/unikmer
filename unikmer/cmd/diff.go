@@ -499,5 +499,5 @@ func init() {
 	RootCmd.AddCommand(diffCmd)
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	diffCmd.Flags().BoolP("sort", "s", false, "sort Kmers, this reduces file size, you can even disable gzip compression by flag -C/--no-compress")
+	diffCmd.Flags().BoolP("sort", "s", false, helpSort)
 }

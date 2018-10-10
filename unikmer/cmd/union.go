@@ -201,5 +201,5 @@ func init() {
 	RootCmd.AddCommand(unionCmd)
 
 	unionCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	unionCmd.Flags().BoolP("sort", "s", false, "sort Kmers, this reduces file size, you can even disable gzip compression by flag -C/--no-compress")
+	unionCmd.Flags().BoolP("sort", "s", false, helpSort)
 }

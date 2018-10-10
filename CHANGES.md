@@ -1,3 +1,5 @@
+- v0.4.1
+    - Better writing and reading performance
 - v0.4.0
     - **Binary serialization format changed.**
     - new command `unikmer sort`: sort binary files

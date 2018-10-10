@@ -113,7 +113,7 @@ optionally compressed in gzip format with extension of `.unik`.
 ![A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png](testdata/A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png)
 
 label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-format<sup>c</sup>|sorted<sup>d</sup>|comment
-:---------------|:-----------------------|:--------------------------|:-------------------------|:-----------------|:------------------------------------------------------
+:---------------|:----------------------:|:-------------------------:|:------------------------:|:----------------:|:------------------------------------------------------
 `plain`         |                        |                           |                          |                  |plain text
 `plain.gz`      |                        |✔                          |                          |                  |gzipped plain text
 `.unik`         |✔                       |✔                          |                          |                  |gzipped encoded kmer in fixed-length byte array

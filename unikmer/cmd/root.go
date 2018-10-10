@@ -73,3 +73,5 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write more compact binary file with little loss of speed")
 	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, files from cli arguments are ignored")
 }
+
+const helpSort = "sort Kmers, this significantly reduce file size. You can even disable gzip compression by flag -C/--no-compress. This flag overwrites global option -c/--compact"
