@@ -218,18 +218,18 @@ func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikm
 
 	var n int
 	if unique {
-		var last uint64 = ^uint64(0)
+		var last = ^uint64(0)
 		for _, code := range m {
 			if code == last {
 				continue
 			}
 			last = code
 			n++
-			writer.Write(unikmer.KmerCode{code, k})
+			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 	} else {
 		for _, code := range m {
-			writer.Write(unikmer.KmerCode{code, k})
+			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
 		n = len(m)
 	}

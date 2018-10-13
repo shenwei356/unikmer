@@ -161,12 +161,12 @@ var sortCmd = &cobra.Command{
 				}
 				last = code
 				n++
-				writer.Write(unikmer.KmerCode{code, k})
+				writer.Write(unikmer.KmerCode{Code: code, K: k})
 			}
 		} else {
 			writer.Number = int64(len(m))
 			for _, code := range m {
-				writer.Write(unikmer.KmerCode{code, k})
+				writer.Write(unikmer.KmerCode{Code: code, K: k})
 			}
 			n = len(m)
 		}

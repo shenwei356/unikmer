@@ -176,7 +176,7 @@ Tips:
 					}
 
 					for _, code := range m2 {
-						writer.Write(unikmer.KmerCode{code, k})
+						writer.Write(unikmer.KmerCode{Code: code, K: k})
 					}
 				}
 

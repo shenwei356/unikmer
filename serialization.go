@@ -57,8 +57,11 @@ type Header struct {
 }
 
 const (
+	// UNIK_COMPACT means Kmers are serialized in fix-length (n = int((K + 3) / 4) ) of byte array.
 	UNIK_COMPACT = 1 << iota
+	// UNIK_CANONICAL means only canonical Kmers kept.
 	UNIK_CANONICAL
+	// UNIK_SORTED means Kmers are sorted
 	UNIK_SORTED // when sorted, the serialization structure is very different
 )
 
