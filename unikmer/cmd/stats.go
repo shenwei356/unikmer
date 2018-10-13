@@ -69,6 +69,11 @@ Tips:
 		all := getFlagBool(cmd, "all")
 		tabular := getFlagBool(cmd, "tabular")
 		skipErr := getFlagBool(cmd, "skip-err")
+		sTrue := getFlagString(cmd, "symbol-true")
+		sFalse := getFlagString(cmd, "symbol-false")
+		if sTrue == sFalse {
+			checkError(fmt.Errorf("values of -/--symbol-true and -F/--symbol--false should no be the same"))
+		}
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
 		checkError(err)
@@ -127,18 +132,18 @@ Tips:
 							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
 								info.file,
 								info.k,
-								info.gzipped,
-								info.compact,
-								info.canonical,
-								info.sorted))
+								boolStr(sTrue, sFalse, info.gzipped),
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.canonical),
+								boolStr(sTrue, sFalse, info.sorted)))
 						} else {
 							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
 								info.file,
 								info.k,
-								info.gzipped,
-								info.compact,
-								info.canonical,
-								info.sorted,
+								boolStr(sTrue, sFalse, info.gzipped),
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.canonical),
+								boolStr(sTrue, sFalse, info.sorted),
 								info.number))
 						}
 					}
@@ -153,18 +158,18 @@ Tips:
 									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
 										info1.file,
 										info1.k,
-										info1.gzipped,
-										info1.compact,
-										info1.canonical,
-										info.sorted))
+										boolStr(sTrue, sFalse, info1.gzipped),
+										boolStr(sTrue, sFalse, info1.compact),
+										boolStr(sTrue, sFalse, info1.canonical),
+										boolStr(sTrue, sFalse, info.sorted)))
 								} else {
 									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
 										info1.file,
 										info1.k,
-										info1.gzipped,
-										info1.compact,
-										info1.canonical,
-										info.sorted,
+										boolStr(sTrue, sFalse, info1.gzipped),
+										boolStr(sTrue, sFalse, info1.compact),
+										boolStr(sTrue, sFalse, info1.canonical),
+										boolStr(sTrue, sFalse, info.sorted),
 										info1.number))
 								}
 							}
@@ -196,18 +201,18 @@ Tips:
 							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
 								info.file,
 								info.k,
-								info.gzipped,
-								info.compact,
-								info.canonical,
-								info.sorted))
+								boolStr(sTrue, sFalse, info.gzipped),
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.canonical),
+								boolStr(sTrue, sFalse, info.sorted)))
 						} else {
 							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
 								info.file,
 								info.k,
-								info.gzipped,
-								info.compact,
-								info.canonical,
-								info.sorted,
+								boolStr(sTrue, sFalse, info.gzipped),
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.canonical),
+								boolStr(sTrue, sFalse, info.sorted),
 								info.number))
 						}
 					}
@@ -355,19 +360,19 @@ Tips:
 				tbl.AddRow(
 					info.file,
 					info.k,
-					info.gzipped,
-					info.compact,
-					info.canonical,
-					info.sorted,
+					boolStr(sTrue, sFalse, info.gzipped),
+					boolStr(sTrue, sFalse, info.compact),
+					boolStr(sTrue, sFalse, info.canonical),
+					boolStr(sTrue, sFalse, info.sorted),
 				)
 			} else {
 				tbl.AddRow(
 					info.file,
 					info.k,
-					info.gzipped,
-					info.compact,
-					info.canonical,
-					info.sorted,
+					boolStr(sTrue, sFalse, info.gzipped),
+					boolStr(sTrue, sFalse, info.compact),
+					boolStr(sTrue, sFalse, info.canonical),
+					boolStr(sTrue, sFalse, info.sorted),
 					humanize.Comma(info.number),
 				)
 			}
@@ -396,5 +401,13 @@ func init() {
 	statCmd.Flags().BoolP("all", "a", false, "all information, including number of Kmers")
 	statCmd.Flags().BoolP("tabular", "t", false, "output in machine-friendly tabular format")
 	statCmd.Flags().BoolP("skip-err", "e", false, "skip error, only show warning message")
+	statCmd.Flags().StringP("symbol-true", "T", "✓", "smybol for true")
+	statCmd.Flags().StringP("symbol-false", "F", "✕", "smybol for false")
+}
 
+func boolStr(sTrue, sFalse string, v bool) string {
+	if v {
+		return sTrue
+	}
+	return sFalse
 }

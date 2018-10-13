@@ -34,8 +34,8 @@ import (
 // numCmd represents
 var numCmd = &cobra.Command{
 	Use:   "num",
-	Short: "print number of Kmers in binary file",
-	Long: `print number of Kmers in binary file
+	Short: "print number of Kmers in binary files",
+	Long: `print number of Kmers in binary files
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

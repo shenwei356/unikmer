@@ -38,8 +38,8 @@ A command-line toolkit providing functions including counting, format
 convertion, set operations and searching on unique Kmers (k <= 32) while
 NOT recording Kmer frequencies.
 
-Every Kmer (k <= 32) is encoded into 'uint64', and Kmers are stored in builtin
-'map' in RAM, no probabilistic data structures are used.
+Kmers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang
+in RAM, and serialized in binary format.
 
 Version: %s
 

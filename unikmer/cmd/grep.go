@@ -37,8 +37,8 @@ import (
 // grepCmd represents
 var grepCmd = &cobra.Command{
 	Use:   "grep",
-	Short: "search Kmer from binary file",
-	Long: `search Kmer from binary file
+	Short: "search Kmer from binary files",
+	Long: `search Kmer from binary files
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

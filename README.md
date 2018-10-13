@@ -4,10 +4,8 @@ unikmer (unique Kmer) is a golang package and a command-line toolkit for
 manipulating small [Kmers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
 while NOT recording Kmer frequencies.
 
-Every Kmer (k <= 32) is encoded into `uint64`,
-and Kmers are stored in builtin `map` of golang in RAM,
-no probabilistic data structures are used (I've tested and abandoned them).
-
+Kmers (k <= 32) are encoded into `uint64`, stored in builtin `map` of golang in RAM,
+and serialized in binary format.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -90,12 +88,12 @@ format convertion, set operations and searching on unique Kmers.
 
 1. Searching
 
-        grep            search Kmer from binary file
+        grep            search Kmer from binary files
 
 1. Misc
 
         stats           statistics of binary files
-        num             print number of Kmers in binary file
+        num             print number of Kmers in binary files
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update
@@ -193,7 +191,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     $ unikmer stats Ecoli-MG1655.fasta.gz.k23.*unik -a
     file                                    k  gzipped  compact  canonical  sorted     number
     Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  true     true     true       true    4,546,632
-    Ecoli-MG1655.fasta.gz.k23.unik         23  true     true     true       false   4,546,632
+    Ecoli-MG1655.fasta.gz.k23.unik         23  true     true     true       🞩       4,546,632
 
 
     # union
@@ -234,14 +232,14 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
     $ unikmer stats *.unik -a -j 10
     file                                    k  gzipped  compact  canonical  sorted     number
-    concat.k23.unik                        23  true     true     true       false   9,448,898
-    diff.k23.unik                          23  true     true     true       true    1,970,462
-    Ecoli-IAI39.fasta.gz.k23.sorted.unik   23  true     true     true       true    4,902,266
-    Ecoli-IAI39.fasta.gz.k23.unik          23  true     true     true       false   4,902,266
-    Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  true     true     true       true    4,546,632
-    Ecoli-MG1655.fasta.gz.k23.unik         23  true     true     true       false   4,546,632
-    inter.k23.unik                         23  true     true     true       true    2,576,170
-    union.k23.unik                         23  true     true     true       true    6,872,728
+    concat.k23.unik                        23  ✓        ✓        ✓          ✕       9,448,898
+    diff.k23.unik                          23  ✓        ✓        ✓          ✓       1,970,462
+    Ecoli-IAI39.fasta.gz.k23.sorted.unik   23  ✓        ✓        ✓          ✓       4,902,266
+    Ecoli-IAI39.fasta.gz.k23.unik          23  ✓        ✓        ✓          ✕       4,902,266
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  ✓        ✓        ✓          ✓       4,546,632
+    Ecoli-MG1655.fasta.gz.k23.unik         23  ✓        ✓        ✓          ✕       4,546,632
+    inter.k23.unik                         23  ✓        ✓        ✓          ✓       2,576,170
+    union.k23.unik                         23  ✓        ✓        ✓          ✓       6,872,728
 
 ## Contributing
 
