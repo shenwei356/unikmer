@@ -221,6 +221,52 @@ Tips:
 		if opt.Verbose {
 			log.Infof("%d Kmers loaded", len(m))
 		}
+
+		if len(m) == 0 {
+			if opt.Verbose {
+				log.Infof("export Kmers")
+			}
+
+			if !isStdout(outFile) {
+				outFile += extDataFile
+			}
+			outfh, gw, w, err := outStream(outFile, opt.Compress)
+			checkError(err)
+			defer func() {
+				outfh.Flush()
+				if gw != nil {
+					gw.Close()
+				}
+				w.Close()
+			}()
+
+			var mode uint32
+			if opt.Compact {
+				mode |= unikmer.UNIK_COMPACT
+			}
+			if canonical {
+				mode |= unikmer.UNIK_CANONICAL
+			}
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			}
+
+			writer, err := unikmer.NewWriter(outfh, k, mode)
+			checkError(err)
+
+			if sortKmers {
+				writer.Number = 0
+			}
+
+			writer.Number = 0
+			checkError(writer.WriteHeader())
+			checkError(writer.Flush())
+
+			if opt.Verbose {
+				log.Infof("%d Kmers saved", 0)
+			}
+			return
+		}
 		// -----------------------------------------------------------------------
 
 		done := make(chan int)

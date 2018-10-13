@@ -1,3 +1,7 @@
+- v0.4.3
+    - `unikmer diff`: fix bug of hanging when the first file having no Kmers.
+- v0.4.2
+    - `unikmer stats/diff`: more intuitional output
 - v0.4.1
     - Better performance of writing and reading binary files 
 - v0.4.0
