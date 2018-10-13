@@ -276,13 +276,13 @@ Tips:
 			go func(i int) {
 				defer func() {
 					if opt.Verbose {
-						log.Infof("worker %d finished with %d Kmers", i, len(maps[i]))
+						log.Infof("worker %02d: finished with %d Kmers", i, len(maps[i]))
 					}
 					wgWorkers.Done()
 				}()
 
 				if opt.Verbose {
-					log.Infof("worker %d started", i)
+					log.Infof("worker %02d: started", i)
 				}
 
 				var code uint64
@@ -308,7 +308,7 @@ Tips:
 					}
 
 					if opt.Verbose {
-						log.Infof("(worker %d) process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
+						log.Infof("worker %02d: process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
 					}
 
 					infh, r, _, err = inStream(file)
@@ -350,7 +350,7 @@ Tips:
 					}
 
 					if opt.Verbose {
-						log.Infof("(worker %d) %d Kmers remain", i, len(m1))
+						log.Infof("worker %02d: %d Kmers remain", i, len(m1))
 					}
 					if len(m1) == 0 {
 						hasDiff = false
