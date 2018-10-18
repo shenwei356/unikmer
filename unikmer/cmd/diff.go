@@ -354,7 +354,7 @@ Tips:
 					}
 
 					if opt.Verbose {
-						log.Infof("worker %02d: process file (%d/%d): %s", i, ifile.i+1, nfiles, file)
+						log.Infof("worker %02d:  start processing file (%d/%d): %s", i, ifile.i+1, nfiles, file)
 					}
 
 					infh, r, _, err = inStream(file)
@@ -381,7 +381,7 @@ Tips:
 						}
 
 						// mark seen kmer
-						if _, ok = m1[kcode.Code]; ok {
+						if _, ok = m1[kcode.Code]; ok { // slowest part
 							m1[kcode.Code] = true
 						}
 					}
@@ -396,7 +396,7 @@ Tips:
 					}
 
 					if opt.Verbose {
-						log.Infof("worker %02d: %d Kmers remain", i, len(m1))
+						log.Infof("worker %02d: finish processing file (%d/%d): %s, %d Kmers remain", i, ifile.i+1, nfiles, file, len(m1))
 					}
 					if len(m1) == 0 {
 						hasDiff = false
@@ -442,7 +442,8 @@ Tips:
 			var code uint64
 			for _, m := range maps {
 				if len(m) == 0 {
-					continue
+					m0 = m
+					break
 				}
 
 				if m0 == nil {
