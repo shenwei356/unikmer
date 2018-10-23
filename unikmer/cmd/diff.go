@@ -70,7 +70,7 @@ Tips:
 
 		runtime.GOMAXPROCS(threads)
 
-		m := make(map[uint64]bool, mapInitSize)
+		m := make(map[uint64]struct{}, mapInitSize)
 
 		var infh *bufio.Reader
 		var r *os.File
@@ -213,7 +213,7 @@ Tips:
 				checkError(err)
 			}
 
-			m[kcode.Code] = false
+			m[kcode.Code] = struct{}{}
 		}
 
 		r.Close()
@@ -289,7 +289,7 @@ Tips:
 		chFile := make(chan iFile, threads)
 		doneSendFile := make(chan int)
 
-		maps := make(map[int]map[uint64]bool, threads)
+		maps := make(map[int]map[uint64]struct{}, threads)
 		maps[0] = m
 
 		// clone maps
@@ -300,9 +300,9 @@ Tips:
 		for i := 1; i < opt.NumCPUs; i++ {
 			wg.Add(1)
 			go func(i int) {
-				m1 := make(map[uint64]bool, len(m))
+				m1 := make(map[uint64]struct{}, len(m))
 				for k := range m {
-					m1[k] = false
+					m1[k] = struct{}{}
 				}
 				wg.Done()
 				maps[i] = m1
@@ -338,7 +338,7 @@ Tips:
 				var r *os.File
 				var reader *unikmer.Reader
 				var kcode unikmer.KmerCode
-				var ok, mark bool
+				var ok bool
 				m1 := maps[i]
 				for {
 					ifile, ok = <-chFile
@@ -380,20 +380,14 @@ Tips:
 							checkError(err)
 						}
 
-						// mark seen kmer
-						if _, ok = m1[kcode.Code]; ok { // slowest part
-							m1[kcode.Code] = true
+						code = kcode.Code
+						// delete seen kmer
+						if _, ok = m1[code]; ok { // slowest part
+							delete(m1, code)
 						}
 					}
 
 					r.Close()
-
-					// remove seen kmers
-					for code, mark = range m1 {
-						if mark {
-							delete(m1, code)
-						}
-					}
 
 					if opt.Verbose {
 						log.Infof("worker %02d: finish processing file (%d/%d): %s, %d Kmers remain", i, ifile.i+1, nfiles, file, len(m1))
@@ -432,13 +426,16 @@ Tips:
 		toStop <- 1
 		<-doneDone
 
-		var m0 map[uint64]bool
+		var m0 map[uint64]struct{}
 		if !hasDiff {
 			if opt.Verbose {
 				log.Infof("no set difference found")
 			}
 			// return
 		} else {
+			if opt.Verbose {
+				log.Infof("merge result from workers")
+			}
 			var code uint64
 			for _, m := range maps {
 				if len(m) == 0 {
