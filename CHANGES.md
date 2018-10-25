@@ -1,3 +1,5 @@
+- v0.4.4
+    - `unikmer diff`: reduce memory occupation, speed not affected.
 - v0.4.3
     - `unikmer diff`: fix bug of hanging when the first file having no Kmers.
 - v0.4.2
