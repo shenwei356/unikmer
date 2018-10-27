@@ -31,7 +31,7 @@ import (
 	gzip "github.com/klauspost/pgzip"
 )
 
-func outStream(file string, gzipped bool) (*bufio.Writer, io.WriteCloser, *os.File, error) {
+func outStream(file string, gzipped bool, level int) (*bufio.Writer, io.WriteCloser, *os.File, error) {
 	var w *os.File
 	if file == "-" {
 		w = os.Stdout
@@ -52,7 +52,11 @@ func outStream(file string, gzipped bool) (*bufio.Writer, io.WriteCloser, *os.Fi
 	}
 
 	if gzipped {
-		gw := gzip.NewWriter(w)
+		// gw := gzip.NewWriter(w)
+		gw, err := gzip.NewWriterLevel(w, level)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("fail to write %s: %s", file, err)
+		}
 		return bufio.NewWriterSize(gw, os.Getpagesize()), gw, w, nil
 	}
 	return bufio.NewWriterSize(w, os.Getpagesize()), nil, w, nil

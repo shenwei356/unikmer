@@ -75,7 +75,7 @@ Tips:
 			checkError(fmt.Errorf("values of -/--symbol-true and -F/--symbol--false should no be the same"))
 		}
 
-		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
+		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
 		defer func() {
 			outfh.Flush()

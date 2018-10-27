@@ -25,6 +25,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/klauspost/compress/flate"
 	"github.com/spf13/cobra"
 )
 
@@ -70,6 +71,7 @@ func init() {
 	RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs to use. (default value: 1 for single-CPU PC, 2 for others)")
 	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
 	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file (not recommended)")
+	RootCmd.PersistentFlags().IntP("compression-level", "L", flate.DefaultCompression, "compression level")
 	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write more compact binary file with little loss of speed")
 	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, files from cli arguments are ignored")
 }

@@ -21,6 +21,7 @@
 package cmd
 
 import (
+	"compress/flate"
 	"fmt"
 	"io"
 	"sort"
@@ -41,19 +42,25 @@ const (
 
 // Options contains the global flags
 type Options struct {
-	NumCPUs  int
-	Verbose  bool
-	Compress bool
-	Compact  bool
+	NumCPUs          int
+	Verbose          bool
+	Compress         bool
+	Compact          bool
+	CompressionLevel int
 }
 
 func getOptions(cmd *cobra.Command) *Options {
+	level := getFlagInt(cmd, "compression-level")
+	if level < flate.HuffmanOnly || level > flate.BestCompression {
+		checkError(fmt.Errorf("gzip: invalid compression level: %d", level))
+	}
 	return &Options{
 		NumCPUs: getFlagPositiveInt(cmd, "threads"),
 		// NumCPUs: 1,
-		Verbose:  getFlagBool(cmd, "verbose"),
-		Compress: !getFlagBool(cmd, "no-compress"),
-		Compact:  getFlagBool(cmd, "compact"),
+		Verbose:          getFlagBool(cmd, "verbose"),
+		Compress:         !getFlagBool(cmd, "no-compress"),
+		Compact:          getFlagBool(cmd, "compact"),
+		CompressionLevel: level,
 	}
 }
 
@@ -168,7 +175,7 @@ func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikm
 	if !isStdout(outFile) {
 		outFile += extDataFile
 	}
-	outfh, gw, w, err := outStream(outFile, opt.Compress)
+	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 	if err != nil {
 		return nil, 0, err
 	}

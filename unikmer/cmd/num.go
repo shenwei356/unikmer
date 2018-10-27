@@ -58,7 +58,7 @@ var numCmd = &cobra.Command{
 		outFile := getFlagString(cmd, "out-file")
 		showFile := getFlagBool(cmd, "file-name")
 
-		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
+		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
 		defer func() {
 			outfh.Flush()

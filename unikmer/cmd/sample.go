@@ -72,7 +72,7 @@ Attentions:
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
-		outfh, gw, w, err := outStream(outFile, opt.Compress)
+		outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 		checkError(err)
 		defer func() {
 			outfh.Flush()

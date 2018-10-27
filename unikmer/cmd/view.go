@@ -61,7 +61,7 @@ var viewCmd = &cobra.Command{
 		outFasta := getFlagBool(cmd, "fasta")
 		outFastq := getFlagBool(cmd, "fastq")
 
-		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
+		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
 		defer func() {
 			outfh.Flush()

@@ -133,7 +133,7 @@ var grepCmd = &cobra.Command{
 			log.Infof("finish reading Kmers from %s", file)
 		}
 
-		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"))
+		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
 		defer func() {
 			outfh.Flush()
