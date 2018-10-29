@@ -297,18 +297,32 @@ Tips:
 			log.Infof("clone data for parallization")
 		}
 		var wg sync.WaitGroup
-		for i := 1; i < opt.NumCPUs; i++ {
+		type iMap struct {
+			i int
+			m map[uint64]struct{}
+		}
+		ch := make(chan iMap, threads)
+		doneClone := make(chan int)
+		go func() {
+			for ptr := range ch {
+				maps[ptr.i] = ptr.m
+			}
+			doneClone <- 1
+		}()
+		for i := 1; i < threads; i++ {
 			wg.Add(1)
 			go func(i int) {
 				m1 := make(map[uint64]struct{}, len(m))
 				for k := range m {
 					m1[k] = struct{}{}
 				}
+				ch <- iMap{i: i, m: m1}
 				wg.Done()
-				maps[i] = m1
 			}(i)
 		}
 		wg.Wait()
+		close(ch)
+		<-doneClone
 		if opt.Verbose {
 			log.Infof("done cloning data")
 		}
