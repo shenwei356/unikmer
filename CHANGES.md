@@ -1,5 +1,7 @@
-- v0.4.4
+- v0.5.0
     - `unikmer diff`: fix concurrency bug when cloning kmers from first file.
+    - new command `unikmer locate`: locate Kmers in genome.
+    - new command `unikmer uniqs`: mapping Kmers back to genome and find unique subsequences.
 - v0.4.4
     - `unikmer`: add global option `-L/--compression-level`.
     - `unikmer diff`: reduce memory occupation, speed not affected.

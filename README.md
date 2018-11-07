@@ -90,7 +90,7 @@ format convertion, set operations and searching on unique Kmers.
 
         grep            search Kmer from binary files
         locate          locate Kmers in genome
-        uniqs           mapping Kmers back to genome and find unique subsequences          
+        uniqs           mapping Kmers back to genome and find unique subsequences
 
 1. Misc
 
