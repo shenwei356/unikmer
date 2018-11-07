@@ -153,6 +153,7 @@ Attention:
 		var first bool
 		var i int
 		var ok bool
+		var multipleMapped bool
 
 		if !mMapped {
 			m2 = make(map[uint64]bool, mapInitSize)
@@ -212,9 +213,9 @@ Attention:
 
 					kcode = kcode.Canonical()
 
-					if _, ok = m2[kcode.Code]; !ok {
+					if multipleMapped, ok = m2[kcode.Code]; !ok {
 						m2[kcode.Code] = false
-					} else {
+					} else if !multipleMapped {
 						m2[kcode.Code] = true
 					}
 				}
@@ -249,7 +250,6 @@ Attention:
 		}()
 
 		var c, start int
-		var multipleMapped bool
 		if opt.Verbose {
 			log.Infof("read genome file: %s", genomeFile)
 		}
