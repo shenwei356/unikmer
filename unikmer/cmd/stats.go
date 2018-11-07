@@ -63,7 +63,7 @@ Tips:
 			files = getFileList(args)
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-file")
 		all := getFlagBool(cmd, "all")

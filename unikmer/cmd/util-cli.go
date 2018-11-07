@@ -120,6 +120,15 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 	return value
 }
 
+func getFlagNonEmptyString(cmd *cobra.Command, flag string) string {
+	value, err := cmd.Flags().GetString(flag)
+	checkError(err)
+	if value == "" {
+		checkError(fmt.Errorf("flag --%s needed", flag))
+	}
+	return value
+}
+
 func getFlagCommaSeparatedStrings(cmd *cobra.Command, flag string) []string {
 	value, err := cmd.Flags().GetString(flag)
 	checkError(err)

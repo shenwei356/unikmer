@@ -53,7 +53,7 @@ var sortCmd = &cobra.Command{
 			files = getFileList(args)
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")

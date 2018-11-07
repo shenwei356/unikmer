@@ -60,12 +60,14 @@ Attention:
 			files = getFileList(args)
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular")
 
-		genomeFile := getFlagString(cmd, "genome")
+		genomeFile := getFlagNonEmptyString(cmd, "genome")
+		checkFiles("", genomeFile)
+
 		minLen := getFlagPositiveInt(cmd, "min-len")
 		mMapped := getFlagBool(cmd, "allow-muliple-mapped-kmer")
 		outputFASTA := getFlagBool(cmd, "output-fasta")

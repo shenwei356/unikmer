@@ -58,7 +58,7 @@ Attentions:
 			files = getFileList(args)
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		sortKmers := getFlagBool(cmd, "sort")

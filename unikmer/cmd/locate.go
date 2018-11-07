@@ -60,7 +60,7 @@ Attention:
 			files = getFileList(args)
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 		if len(files) == 1 && isStdin(files[0]) {
 			checkError(fmt.Errorf("stdin not supported, please give me .unik files"))
 		}
@@ -68,7 +68,8 @@ Attention:
 		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular")
 
-		genomeFile := getFlagString(cmd, "genome")
+		genomeFile := getFlagNonEmptyString(cmd, "genome")
+		checkFiles("", genomeFile)
 
 		// -----------------------------------------------------------------------
 

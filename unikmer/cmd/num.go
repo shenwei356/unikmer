@@ -53,7 +53,7 @@ var numCmd = &cobra.Command{
 			files = getFileList(args)
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-file")
 		showFile := getFlagBool(cmd, "file-name")

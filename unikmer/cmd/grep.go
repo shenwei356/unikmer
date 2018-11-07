@@ -60,7 +60,7 @@ var grepCmd = &cobra.Command{
 			checkError(fmt.Errorf("no more than one file should be given"))
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-file")
 		pattern := getFlagStringSlice(cmd, "query")

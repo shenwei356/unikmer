@@ -62,7 +62,7 @@ Attention:
 			checkError(fmt.Errorf("no more than one file should be given"))
 		}
 
-		checkFiles(files)
+		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		k := getFlagPositiveInt(cmd, "kmer-len")

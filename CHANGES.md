@@ -1,3 +1,5 @@
+- v0.5.1
+    - `unikmer locate/uniqs`: fix options checking
 - v0.5.0
     - `unikmer diff`: fix concurrency bug when cloning kmers from first file.
     - new command `unikmer locate`: locate Kmers in genome.
