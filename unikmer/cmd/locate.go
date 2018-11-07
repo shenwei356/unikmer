@@ -34,11 +34,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// mappingCmd represents
-var mappingCmd = &cobra.Command{
-	Use:   "mapping",
-	Short: "mapping kmers back to genome",
-	Long: `mapping kmers back toto genome
+// locateCmd represents
+var locateCmd = &cobra.Command{
+	Use:   "locate",
+	Short: "locate Kmers in genome",
+	Long: `locate Kmers in genome
+
+Attention:
+	1. output location is 1-based
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -67,7 +70,7 @@ var mappingCmd = &cobra.Command{
 
 		genomeFile := getFlagString(cmd, "genome")
 
-		// --------------
+		// -----------------------------------------------------------------------
 
 		var k int = -1
 		var canonical bool
@@ -94,10 +97,12 @@ var mappingCmd = &cobra.Command{
 				if k == -1 {
 					k = reader.K
 					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
-					if canonical {
-						log.Infof("flag of canonical is on")
-					} else {
-						log.Infof("flag of canonical is off")
+					if opt.Verbose {
+						if canonical {
+							log.Infof("flag of canonical is on")
+						} else {
+							log.Infof("flag of canonical is off")
+						}
 					}
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
@@ -107,7 +112,7 @@ var mappingCmd = &cobra.Command{
 			}()
 		}
 
-		// --------------
+		// -----------------------------------------------------------------------
 
 		m := make(map[uint64][]int, mapInitSize)
 
@@ -195,7 +200,11 @@ var mappingCmd = &cobra.Command{
 					if _, ok = m[kcode.Code]; !ok {
 						m[kcode.Code] = make([]int, 0, 1)
 					}
-					m[kcode.Code] = append(m[kcode.Code], i)
+					if iters == 0 {
+						m[kcode.Code] = append(m[kcode.Code], i)
+					} else {
+						m[kcode.Code] = append(m[kcode.Code], l-i-k)
+					}
 				}
 			}
 		}
@@ -203,7 +212,7 @@ var mappingCmd = &cobra.Command{
 			log.Infof("finished reading genome file: %s", genomeFile)
 		}
 
-		// -------------------------
+		// -----------------------------------------------------------------------
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -216,6 +225,7 @@ var mappingCmd = &cobra.Command{
 		}()
 
 		var locs []int
+		var loc int
 		for i, file := range files {
 			if isStdin(file) {
 				log.Warningf("ignore stdin")
@@ -241,19 +251,23 @@ var mappingCmd = &cobra.Command{
 					}
 
 					if locs, ok = m[kcode.Code]; ok {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), locs))
+						outfh.WriteString(kcode.String() + "\t")
+						outfh.WriteString(fmt.Sprintf("%d", locs[0]+1))
+						for _, loc = range locs[1:] {
+							outfh.WriteString(fmt.Sprintf(",%d", loc+1))
+						}
+						outfh.WriteString("\n")
 					}
 				}
 			}()
 		}
-
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(mappingCmd)
+	RootCmd.AddCommand(locateCmd)
 
-	mappingCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	mappingCmd.Flags().BoolP("circular", "", false, "circular genome")
-	mappingCmd.Flags().StringP("genome", "g", "", "genome in (gzipped) fasta file")
+	locateCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	locateCmd.Flags().BoolP("circular", "", false, "circular genome")
+	locateCmd.Flags().StringP("genome", "g", "", "genome in (gzipped) fasta file")
 }
