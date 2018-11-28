@@ -85,7 +85,7 @@ Attentions:
 		var nfiles = len(files)
 		for i, file := range files {
 			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}
 
 			flag = func() int {

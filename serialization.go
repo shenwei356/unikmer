@@ -66,7 +66,7 @@ const (
 )
 
 func (h Header) String() string {
-	return fmt.Sprintf("unikmer binary kmer data file v%d.%d with K=%d and Flag=%d",
+	return fmt.Sprintf("unikmer binary k-mer data file v%d.%d with K=%d and Flag=%d",
 		h.MainVersion, h.MinorVersion, h.K, h.Flag)
 }
 
@@ -287,7 +287,7 @@ func (writer *Writer) WriteHeader() (err error) {
 	return nil
 }
 
-// WriteKmer writes one Kmer.
+// WriteKmer writes one k-mer.
 func (writer *Writer) WriteKmer(mer []byte) error {
 	kcode, err := NewKmerCode(mer)
 	if err != nil {
@@ -337,12 +337,12 @@ func (writer *Writer) Write(kcode KmerCode) (err error) {
 	return nil
 }
 
-// Flush write the last Kmer
+// Flush write the last k-mer
 func (writer *Writer) Flush() (err error) {
 	if !writer.sorted || writer.prev == nil {
 		return nil
 	}
-	// write last kmer
+	// write last k-mer
 	err = binary.Write(writer.w, be, uint8(128))
 	err = binary.Write(writer.w, be, writer.prev.Code)
 	if err != nil {

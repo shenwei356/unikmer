@@ -37,8 +37,8 @@ import (
 // uniqsCmd represents
 var uniqsCmd = &cobra.Command{
 	Use:   "uniqs",
-	Short: "mapping Kmers back to genome and find unique subsequences",
-	Long: `mapping Kmers back to genome and find unique subsequences
+	Short: "mapping k-mers back to genome and find unique subsequences",
+	Long: `mapping k-mers back to genome and find unique subsequences
 
 Attention:
   1. default output is in BED3 format, with left-closed and right-open
@@ -86,7 +86,7 @@ Attention:
 		var nfiles = len(files)
 		for i, file := range files {
 			if opt.Verbose {
-				log.Infof("read file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("reading file (%d/%d): %s", i+1, nfiles, file)
 			}
 			func() {
 				infh, r, _, err = inStream(file)
@@ -141,7 +141,7 @@ Attention:
 		}
 
 		if opt.Verbose {
-			log.Infof("%d Kmers loaded", len(m))
+			log.Infof("%d k-mers loaded", len(m))
 		}
 
 		// -----------------------------------------------------------------------
@@ -160,7 +160,7 @@ Attention:
 		if !mMapped {
 			m2 = make(map[uint64]bool, mapInitSize)
 			if opt.Verbose {
-				log.Infof("pre-read genome file: %s", genomeFile)
+				log.Infof("pre-reading genome file: %s", genomeFile)
 			}
 			fastxReader, err = fastx.NewDefaultReader(genomeFile)
 			checkError(err)
@@ -177,7 +177,7 @@ Attention:
 				sequence = record.Seq.Seq
 
 				if opt.Verbose {
-					log.Infof("process sequence: %s", record.ID)
+					log.Infof("processing sequence: %s", record.ID)
 				}
 
 				originalLen = len(record.Seq.Seq)
@@ -209,7 +209,7 @@ Attention:
 						kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
 					}
 					if err != nil {
-						checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
+						checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
 					}
 					preKmer, preKcode = kmer, kcode
 
@@ -227,7 +227,7 @@ Attention:
 			}
 
 			if opt.Verbose {
-				log.Infof("%d Kmers loaded from genome", len(m2))
+				log.Infof("%d k-mers loaded from genome", len(m2))
 			}
 			for code, flag := range m2 {
 				if !flag {
@@ -235,7 +235,7 @@ Attention:
 				}
 			}
 			if opt.Verbose {
-				log.Infof("%d Kmers in genome are multiple mapped", len(m2))
+				log.Infof("%d k-mers in genome are multiple mapped", len(m2))
 			}
 		}
 
@@ -253,7 +253,7 @@ Attention:
 
 		var c, start int
 		if opt.Verbose {
-			log.Infof("read genome file: %s", genomeFile)
+			log.Infof("reading genome file: %s", genomeFile)
 		}
 		fastxReader, err = fastx.NewDefaultReader(genomeFile)
 		checkError(err)
@@ -270,7 +270,7 @@ Attention:
 			sequence = record.Seq.Seq
 
 			if opt.Verbose {
-				log.Infof("process sequence: %s", record.ID)
+				log.Infof("processinig sequence: %s", record.ID)
 			}
 
 			originalLen = len(record.Seq.Seq)
@@ -369,6 +369,6 @@ func init() {
 	uniqsCmd.Flags().BoolP("circular", "", false, "circular genome")
 	uniqsCmd.Flags().StringP("genome", "g", "", "genome in (gzipped) fasta file")
 	uniqsCmd.Flags().IntP("min-len", "m", 200, "minimum length of subsequence")
-	uniqsCmd.Flags().BoolP("allow-muliple-mapped-kmer", "M", false, "allow multiple mapped Kmers")
+	uniqsCmd.Flags().BoolP("allow-muliple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
 	uniqsCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
 }

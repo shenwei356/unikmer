@@ -34,12 +34,12 @@ import (
 // subsetCmd represents
 var subsetCmd = &cobra.Command{
 	Use:   "subset",
-	Short: "extract smaller Kmers from binary file",
-	Long: `extract smaller Kmers from binary file
+	Short: "extract smaller k-mers from binary file",
+	Long: `extract smaller k-mers from binary file
 
 Attention:
   - It's faster than re-counting from sequence file but in cost of losing
-    few ( <= (K-k)*2 ) kmers in the ends of sequence and its reverse complement
+    few ( <= (K-k)*2 ) k-mers in the ends of sequence and its reverse complement
     sequence.
 
 `,
@@ -132,7 +132,7 @@ Attention:
 
 			kcode2, err = unikmer.NewKmerCode(kmer)
 			if err != nil {
-				checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
+				checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
 			}
 
 			if canonical {
@@ -153,6 +153,6 @@ func init() {
 	RootCmd.AddCommand(subsetCmd)
 
 	subsetCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	subsetCmd.Flags().IntP("kmer-len", "k", 0, "kmer length")
-	subsetCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical Kmers")
+	subsetCmd.Flags().IntP("kmer-len", "k", 0, "k-mer length")
+	subsetCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 }

@@ -35,8 +35,8 @@ import (
 // countCmd represents
 var countCmd = &cobra.Command{
 	Use:   "count",
-	Short: "count Kmer from FASTA/Q sequences",
-	Long: `count Kmer from FASTA/Q sequences
+	Short: "count k-mers from FASTA/Q sequences",
+	Long: `count k-mers from FASTA/Q sequences
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -108,7 +108,7 @@ var countCmd = &cobra.Command{
 		var n int64
 		for _, file := range files {
 			if opt.Verbose {
-				log.Infof("read sequence file: %s", file)
+				log.Infof("reading sequence file: %s", file)
 			}
 			fastxReader, err = fastx.NewDefaultReader(file)
 			checkError(err)
@@ -133,13 +133,13 @@ var countCmd = &cobra.Command{
 						sequence = record.Seq.Seq
 
 						if opt.Verbose {
-							log.Infof("process sequence: %s", record.ID)
+							log.Infof("processing sequence: %s", record.ID)
 						}
 					} else { // reverse complement sequence
 						sequence = record.Seq.RevComInplace().Seq
 
 						if opt.Verbose {
-							log.Infof("process reverse complement sequence: %s", record.ID)
+							log.Infof("processing reverse complement sequence: %s", record.ID)
 						}
 					}
 
@@ -172,7 +172,7 @@ var countCmd = &cobra.Command{
 							kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
 						}
 						if err != nil {
-							checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
+							checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
 						}
 						preKmer, preKcode = kmer, kcode
 
@@ -197,7 +197,7 @@ var countCmd = &cobra.Command{
 			n = int64(len(m2))
 
 			if opt.Verbose {
-				log.Infof("sort %d Kmers", n)
+				log.Infof("sorting %d k-mers", n)
 			}
 			sort.Sort(unikmer.CodeSlice(m2))
 			if opt.Verbose {
@@ -212,7 +212,7 @@ var countCmd = &cobra.Command{
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d unique Kmers saved", n)
+			log.Infof("%d unique k-mers saved", n)
 		}
 	},
 }
@@ -221,8 +221,8 @@ func init() {
 	RootCmd.AddCommand(countCmd)
 
 	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	countCmd.Flags().IntP("kmer-len", "k", 0, "Kmer length")
+	countCmd.Flags().IntP("kmer-len", "k", 0, "k-mer length")
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
-	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical Kmers")
+	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	countCmd.Flags().BoolP("sort", "s", false, helpSort)
 }

@@ -85,7 +85,7 @@ Tips:
 
 		file := files[0]
 		if opt.Verbose {
-			log.Infof("process file (%d/%d): %s", 1, nfiles, file)
+			log.Infof("processing file (%d/%d): %s", 1, nfiles, file)
 		}
 
 		// only one file given
@@ -168,7 +168,7 @@ Tips:
 					writer.Number = int64(len(m2))
 
 					if opt.Verbose {
-						log.Infof("sort %d Kmers", len(m2))
+						log.Infof("sorting %d k-mers", len(m2))
 					}
 					sort.Sort(unikmer.CodeSlice(m2))
 					if opt.Verbose {
@@ -182,7 +182,7 @@ Tips:
 
 				checkError(writer.Flush())
 				if opt.Verbose {
-					log.Infof("%d Kmers saved", len(m))
+					log.Infof("%d k-mers saved", len(m))
 				}
 			}()
 
@@ -219,12 +219,12 @@ Tips:
 		r.Close()
 
 		if opt.Verbose {
-			log.Infof("%d Kmers loaded", len(m))
+			log.Infof("%d k-mers loaded", len(m))
 		}
 
 		if len(m) == 0 {
 			if opt.Verbose {
-				log.Infof("export Kmers")
+				log.Infof("exporting k-mers")
 			}
 
 			if !isStdout(outFile) {
@@ -263,7 +263,7 @@ Tips:
 			checkError(writer.Flush())
 
 			if opt.Verbose {
-				log.Infof("%d Kmers saved", 0)
+				log.Infof("%d k-mers saved", 0)
 			}
 			return
 		}
@@ -294,7 +294,7 @@ Tips:
 
 		// clone maps
 		if opt.Verbose {
-			log.Infof("clone data for parallization")
+			log.Infof("cloning data for parallization")
 		}
 		var wg sync.WaitGroup
 		type iMap struct {
@@ -336,7 +336,7 @@ Tips:
 			go func(i int) {
 				defer func() {
 					if opt.Verbose {
-						log.Infof("worker %02d: finished with %d Kmers", i, len(maps[i]))
+						log.Infof("worker %02d: finished with %d k-mers", i, len(maps[i]))
 					}
 					wgWorkers.Done()
 				}()
@@ -368,7 +368,7 @@ Tips:
 					}
 
 					if opt.Verbose {
-						log.Infof("worker %02d:  start processing file (%d/%d): %s", i, ifile.i+1, nfiles, file)
+						log.Infof("worker %02d:  starting processing file (%d/%d): %s", i, ifile.i+1, nfiles, file)
 					}
 
 					infh, r, _, err = inStream(file)
@@ -404,7 +404,7 @@ Tips:
 					r.Close()
 
 					if opt.Verbose {
-						log.Infof("worker %02d: finish processing file (%d/%d): %s, %d Kmers remain", i, ifile.i+1, nfiles, file, len(m1))
+						log.Infof("worker %02d: finished processing file (%d/%d): %s, %d k-mers remain", i, ifile.i+1, nfiles, file, len(m1))
 					}
 					if len(m1) == 0 {
 						hasDiff = false
@@ -448,7 +448,7 @@ Tips:
 			// return
 		} else {
 			if opt.Verbose {
-				log.Infof("merge result from workers")
+				log.Infof("merging results from workers")
 			}
 			var code uint64
 			for _, m := range maps {
@@ -485,7 +485,7 @@ Tips:
 		// output
 
 		if opt.Verbose {
-			log.Infof("export Kmers")
+			log.Infof("exporting Kmers")
 		}
 
 		if !isStdout(outFile) {
@@ -531,7 +531,7 @@ Tips:
 					i++
 				}
 				if opt.Verbose {
-					log.Infof("sort %d Kmers", len(codes))
+					log.Infof("sorting %d k-mers", len(codes))
 				}
 				sort.Sort(unikmer.CodeSlice(codes))
 				if opt.Verbose {
@@ -548,7 +548,7 @@ Tips:
 		}
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d Kmers saved", len(m0))
+			log.Infof("%d k-mers saved", len(m0))
 		}
 	},
 }

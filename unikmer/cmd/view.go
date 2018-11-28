@@ -120,7 +120,7 @@ func init() {
 	RootCmd.AddCommand(viewCmd)
 
 	viewCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
-	viewCmd.Flags().BoolP("show-code", "n", false, `show encoded integer along with Kmer`)
+	viewCmd.Flags().BoolP("show-code", "n", false, `show encoded integer along with k-mer`)
 	viewCmd.Flags().BoolP("fasta", "a", false, `output in FASTA format, with encoded integer as FASTA header`)
 	viewCmd.Flags().BoolP("fastq", "q", false, `output in FASTQ format, with encoded integer as FASTA header`)
 }

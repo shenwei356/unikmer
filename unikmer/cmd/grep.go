@@ -37,8 +37,8 @@ import (
 // grepCmd represents
 var grepCmd = &cobra.Command{
 	Use:   "grep",
-	Short: "search Kmer from binary files",
-	Long: `search Kmer from binary files
+	Short: "search k-mers from binary files",
+	Long: `search k-mers from binary files
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -77,7 +77,7 @@ var grepCmd = &cobra.Command{
 			var ok bool
 			ok, err = pathutil.Exists(patternFile)
 			if err != nil {
-				checkError(fmt.Errorf("read query file: %s", err))
+				checkError(fmt.Errorf("reading query file: %s", err))
 			}
 			if !ok {
 				checkError(fmt.Errorf("query file not found: %s", patternFile))
@@ -89,7 +89,7 @@ var grepCmd = &cobra.Command{
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		if opt.Verbose {
-			log.Infof("read Kmers from %s", file)
+			log.Infof("reading k-mers from %s", file)
 		}
 
 		var infh *bufio.Reader
@@ -130,7 +130,7 @@ var grepCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("finish reading Kmers from %s", file)
+			log.Infof("finish reading k-mers from %s", file)
 		}
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
@@ -169,7 +169,7 @@ var grepCmd = &cobra.Command{
 					if degenerate {
 						queries, err = extendDegenerateSeq([]byte(query))
 						if err != nil {
-							checkError(fmt.Errorf("extend degenerate sequence '%s': %s", query, err))
+							checkError(fmt.Errorf("fail to extend degenerate sequence '%s': %s", query, err))
 						}
 					} else {
 						queries = [][]byte{[]byte(query)}
@@ -178,7 +178,7 @@ var grepCmd = &cobra.Command{
 					for _, q = range queries {
 						kcode, err = unikmer.NewKmerCode(q)
 						if err != nil {
-							checkError(fmt.Errorf("encoding query '%s': %s", mer, err))
+							checkError(fmt.Errorf("fail to encode query '%s': %s", mer, err))
 						}
 
 						_, ok = m[kcode.Code]
@@ -215,7 +215,7 @@ var grepCmd = &cobra.Command{
 				if degenerate {
 					queries, err = extendDegenerateSeq([]byte(query))
 					if err != nil {
-						checkError(fmt.Errorf("extend degenerate sequence '%s': %s", query, err))
+						checkError(fmt.Errorf("fail to extend degenerate sequence '%s': %s", query, err))
 					}
 				} else {
 					queries = [][]byte{[]byte(query)}
@@ -224,7 +224,7 @@ var grepCmd = &cobra.Command{
 				for _, q = range queries {
 					kcode, err = unikmer.NewKmerCode(q)
 					if err != nil {
-						checkError(fmt.Errorf("encoding query '%s': %s", mer, err))
+						checkError(fmt.Errorf("fail to encode query '%s': %s", mer, err))
 					}
 
 					_, ok = m[kcode.Code]
@@ -256,10 +256,10 @@ func init() {
 
 	grepCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 
-	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query Kmer(s) (multiple values delimted by comma supported)`)
-	grepCmd.Flags().StringP("query-file", "f", "", "query file (one Kmer per line)")
-	grepCmd.Flags().BoolP("degenerate", "d", false, "query Kmer contains degenerate base")
+	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query k-mers (multiple values delimted by comma supported)`)
+	grepCmd.Flags().StringP("query-file", "f", "", "query file (one k-mer per line)")
+	grepCmd.Flags().BoolP("degenerate", "d", false, "query k-mers contains degenerate base")
 	grepCmd.Flags().BoolP("invert-match", "v", false, "invert the sense of matching, to select non-matching records")
 
-	grepCmd.Flags().BoolP("all", "a", false, "show more information: extra column of matched Kmers")
+	grepCmd.Flags().BoolP("all", "a", false, "show more information: extra column of matched k-mers")
 }

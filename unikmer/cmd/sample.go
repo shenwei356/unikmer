@@ -34,8 +34,8 @@ import (
 // sampleCmd represents
 var sampleCmd = &cobra.Command{
 	Use:   "sample",
-	Short: "sample Kmers from binary files",
-	Long: `sample Kmers from binary files.
+	Short: "sample k-mers from binary files",
+	Long: `sample k-mers from binary files.
 
 The sampling type is fixed sampling.
 
@@ -96,7 +96,7 @@ Attentions:
 		var j int
 		for i, file := range files {
 			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}
 
 			flag = func() int {
@@ -166,7 +166,7 @@ Attentions:
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d Kmers saved", n)
+			log.Infof("%d k-mers saved", n)
 		}
 	},
 }

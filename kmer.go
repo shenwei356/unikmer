@@ -29,7 +29,7 @@ import (
 var ErrIllegalBase = errors.New("unikmer: illegal base")
 
 // ErrKOverflow means K > 32.
-var ErrKOverflow = errors.New("unikmer: K (1-32) overflow")
+var ErrKOverflow = errors.New("unikmer: K-mer size (1-32) overflow")
 
 // slice is much faster than switch and map
 var base2bit []uint64
@@ -116,11 +116,11 @@ func Encode(kmer []byte) (code uint64, err error) {
 	return code, nil
 }
 
-// ErrNotConsecutiveKmers means the two Kmers are not consecutive
-var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive Kmers")
+// ErrNotConsecutiveKmers means the two k-mers are not consecutive
+var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive k-mers")
 
-// MustEncodeFromFormerKmer encodes from former kmer,
-// assuming the kmer and leftKmer are both OK.
+// MustEncodeFromFormerKmer encodes from former the k-mer,
+// assuming the k-mer and leftKmer are both OK.
 func MustEncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64, error) {
 	leftCode = leftCode & ((1 << (uint(len(kmer)-1) << 1)) - 1) << 2
 	v := base2bit[kmer[len(kmer)-1]]
@@ -131,7 +131,7 @@ func MustEncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (ui
 	return leftCode, nil
 }
 
-// EncodeFromFormerKmer encodes from former kmer, inspired by ntHash
+// EncodeFromFormerKmer encodes from the former k-mer, inspired by ntHash
 func EncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64, error) {
 	if len(kmer) == 0 {
 		return 0, ErrKOverflow
@@ -145,8 +145,8 @@ func EncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64
 	return MustEncodeFromFormerKmer(kmer, leftKmer, leftCode)
 }
 
-// MustEncodeFromLatterKmer encodes from latter kmer,
-// assuming the kmer and rightKmer are both OK.
+// MustEncodeFromLatterKmer encodes from the latter k-mer,
+// assuming the k-mer and rightKmer are both OK.
 func MustEncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (uint64, error) {
 	rightCode >>= 2
 	v := base2bit[kmer[0]]
@@ -157,7 +157,7 @@ func MustEncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (
 	return rightCode, nil
 }
 
-// EncodeFromLatterKmer encodes from former kmer.
+// EncodeFromLatterKmer encodes from the former k-mer.
 func EncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (uint64, error) {
 	if len(kmer) == 0 {
 		return 0, ErrKOverflow
@@ -225,7 +225,7 @@ func Decode(code uint64, k int) []byte {
 	return kmer
 }
 
-// KmerCode is a struct representing a kmer in 64-bits.
+// KmerCode is a struct representing a k-mer in 64-bits.
 type KmerCode struct {
 	Code uint64
 	K    int
@@ -240,7 +240,7 @@ func NewKmerCode(kmer []byte) (KmerCode, error) {
 	return KmerCode{code, len(kmer)}, err
 }
 
-// NewKmerCodeFromFormerOne computes KmerCode from the Former consecutive kmer.
+// NewKmerCodeFromFormerOne computes KmerCode from the Former consecutive k-mer.
 func NewKmerCodeFromFormerOne(kmer []byte, leftKmer []byte, preKcode KmerCode) (KmerCode, error) {
 	code, err := EncodeFromFormerKmer(kmer, leftKmer, preKcode.Code)
 	if err != nil {
@@ -249,8 +249,8 @@ func NewKmerCodeFromFormerOne(kmer []byte, leftKmer []byte, preKcode KmerCode) (
 	return KmerCode{code, len(kmer)}, err
 }
 
-// NewKmerCodeMustFromFormerOne computes KmerCode from the Former consecutive kmer,
-// assuming the kmer and leftKmer are both OK.
+// NewKmerCodeMustFromFormerOne computes KmerCode from the Former consecutive k-mer,
+// assuming the k-mer and leftKmer are both OK.
 func NewKmerCodeMustFromFormerOne(kmer []byte, leftKmer []byte, preKcode KmerCode) (KmerCode, error) {
 	code, err := MustEncodeFromFormerKmer(kmer, leftKmer, preKcode.Code)
 	if err != nil {
@@ -288,12 +288,12 @@ func (kcode KmerCode) Canonical() KmerCode {
 	return kcode
 }
 
-// Bytes returns kmer in []byte.
+// Bytes returns k-mer in []byte.
 func (kcode KmerCode) Bytes() []byte {
 	return Decode(kcode.Code, kcode.K)
 }
 
-// String returns kmer in string
+// String returns k-mer in string
 func (kcode KmerCode) String() string {
 	return string(Decode(kcode.Code, kcode.K))
 }

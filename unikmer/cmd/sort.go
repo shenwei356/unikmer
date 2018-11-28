@@ -35,8 +35,8 @@ import (
 // sortCmd represents
 var sortCmd = &cobra.Command{
 	Use:   "sort",
-	Short: "sort binary files",
-	Long: `sort binary files
+	Short: "sort k-mers in binary files to reduce file size",
+	Long: `sort k-mers in binary files to reduce file size
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
@@ -90,7 +90,7 @@ var sortCmd = &cobra.Command{
 			}
 
 			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}
 
 			flag = func() int {
@@ -145,7 +145,7 @@ var sortCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("sort %d Kmers", len(m))
+			log.Infof("sorting %d k-mers", len(m))
 		}
 		sort.Sort(unikmer.CodeSlice(m))
 		if opt.Verbose {
@@ -173,7 +173,7 @@ var sortCmd = &cobra.Command{
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d Kmers saved", n)
+			log.Infof("%d k-mers saved", n)
 		}
 	},
 }
@@ -182,5 +182,5 @@ func init() {
 	RootCmd.AddCommand(sortCmd)
 
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated Kmers`)
+	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 }

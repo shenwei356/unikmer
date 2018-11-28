@@ -72,7 +72,7 @@ Tips:
 		sTrue := getFlagString(cmd, "symbol-true")
 		sFalse := getFlagString(cmd, "symbol-false")
 		if sTrue == sFalse {
-			checkError(fmt.Errorf("values of -/--symbol-true and -F/--symbol--false should no be the same"))
+			checkError(fmt.Errorf("values of -/--symbol-true and -F/--symbol--false should be different"))
 		}
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
@@ -398,7 +398,7 @@ func init() {
 	RootCmd.AddCommand(statCmd)
 
 	statCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
-	statCmd.Flags().BoolP("all", "a", false, "all information, including number of Kmers")
+	statCmd.Flags().BoolP("all", "a", false, "all information, including number of k-mers")
 	statCmd.Flags().BoolP("tabular", "t", false, "output in machine-friendly tabular format")
 	statCmd.Flags().BoolP("skip-err", "e", false, "skip error, only show warning message")
 	statCmd.Flags().StringP("symbol-true", "T", "✓", "smybol for true")

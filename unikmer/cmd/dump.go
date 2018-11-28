@@ -32,8 +32,8 @@ import (
 // dumpCmd represents
 var dumpCmd = &cobra.Command{
 	Use:   "dump",
-	Short: "convert plain Kmer text to binary format",
-	Long: `convert plain Kmer text to binary format
+	Short: "convert plain k-mer text to binary format",
+	Long: `convert plain k-mer text to binary format
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -99,7 +99,7 @@ var dumpCmd = &cobra.Command{
 					} else if k == -1 {
 						k = l
 					} else if l != k {
-						checkError(fmt.Errorf("Kmer length mismatch, previous: %d, current: %d. %s", k, l, line))
+						checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
 					}
 
 					if writer == nil {
@@ -114,7 +114,7 @@ var dumpCmd = &cobra.Command{
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
 					if err != nil {
-						checkError(fmt.Errorf("encoding '%s': %s", line, err))
+						checkError(fmt.Errorf("fail to '%s': %s", line, err))
 					}
 
 					if unique {
@@ -133,7 +133,7 @@ var dumpCmd = &cobra.Command{
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d unique Kmers found", n)
+			log.Infof("%d unique k-mers found", n)
 		}
 	},
 }
@@ -142,5 +142,5 @@ func init() {
 	RootCmd.AddCommand(dumpCmd)
 
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated Kmers`)
+	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 }

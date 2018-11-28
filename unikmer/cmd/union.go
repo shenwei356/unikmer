@@ -97,7 +97,7 @@ Attentions:
 			}
 
 			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}
 
 			flag = func() int {
@@ -179,7 +179,7 @@ Attentions:
 				i++
 			}
 			if opt.Verbose {
-				log.Infof("sort %d Kmers", len(codes))
+				log.Infof("sorting %d k-mers", len(codes))
 			}
 			sort.Sort(unikmer.CodeSlice(codes))
 			if opt.Verbose {
@@ -192,7 +192,7 @@ Attentions:
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d Kmers saved", n)
+			log.Infof("%d k-mers saved", n)
 		}
 	},
 }

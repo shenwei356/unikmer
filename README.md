@@ -1,10 +1,10 @@
 # unikmer
 
-unikmer (unique Kmer) is a golang package and a command-line toolkit for
-manipulating small [Kmers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
-while NOT recording Kmer frequencies.
+unikmer (unique-kmer) is a golang package and a command-line toolkit for
+manipulating unique small [k-mers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
+without frequency information.
 
-Kmers (k <= 32) are encoded into `uint64`, stored in builtin `map` of golang in RAM,
+K-mers (k <= 32) are encoded into `uint64`, stored in builtin `map` of golang in RAM,
 and serialized in binary format.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -24,20 +24,21 @@ and serialized in binary format.
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-
 ## The package
 
 [![GoDoc](https://godoc.org/github.com/shenwei356/unikmer?status.svg)](https://godoc.org/github.com/shenwei356/unikmer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
-The unikmer package provides basic manipulations of unique small Kmers (NOT including
-Kmer frequencies) and provides serialization methods.
+The unikmer package provides basic manipulations of unique small K-mers 
+(without frequency information) and also provides serialization methods.
 
 ### Installation
 
     go get -u github.com/shenwei356/unikmer
 
 ### Benchmark
+
+CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 
     $ go test . -bench=Bench* -benchmem
     goos: linux
@@ -54,28 +55,33 @@ Kmer frequencies) and provides serialization methods.
 
 ## The toolkit
 
-`unikmer` is a command-line toolkit providing some functions including counting,
-format convertion, set operations and searching on unique Kmers.
+`unikmer` is a command-line toolkit providing functions including counting,
+format convertion, set operations and searching on unique small k-mers (k <= 32)
+without frequency information.
 
 ### Installation
 
-1. Download [binary files](https://github.com/shenwei356/unikmer/releases).
+1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases).
 
-1. Bioconda (not available now)
+1. Via Bioconda (not available now)
 
         conda install unikmer
+
+1. Via Homebrew
+
+        brew install brewsci/bio/unikmer
 
 ### Commands
 
 1. Counting
 
-        count           count Kmer from FASTA/Q sequences
-        subset          extract smaller Kmers from binary file
+        count           count k-mers from FASTA/Q sequences
+        subset          extract smaller k-mers from binary file
 
 1. Format conversion
 
         view            read and output binary format to plain text
-        dump            convert plain Kmer text to binary format
+        dump            convert plain k-mer text to binary format
 
 1. Set operations
 
@@ -83,28 +89,28 @@ format convertion, set operations and searching on unique Kmers.
         union           union of multiple binary files
         concat          concatenate multiple binary files without removing duplicates
         diff            set difference of multiple binary files
-        sample          sample Kmers from binary files
-        sort            sort binary files
+        sample          sample k-mers from binary files
+        sort            sort k-mers in binary files to reduce file size
 
 1. Searching
 
-        grep            search Kmer from binary files
-        locate          locate Kmers in genome
-        uniqs           mapping Kmers back to genome and find unique subsequences
+        grep            search k-mers from binary files
+        locate          locate k-mers in genome
+        uniqs           mapping k-mers back to genome and find unique subsequences
 
 1. Misc
 
         stats           statistics of binary files
-        num             print number of Kmers in binary files
+        num             print number of k-mers in binary files
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update
 
 ### Binary file (.unik)
 
-Kmers (represented in `uint64` in RAM ) are serialized in 8-Byte
-(or less Bytes for shorter Kmers in compact format,
-or much less Bytes for sorted Kmers) arrays and
+K-mers (represented in `uint64` in RAM ) are serialized in 8-Byte
+(or less Bytes for shorter k-mers in compact format,
+or much less Bytes for sorted k-mers) arrays and
 optionally compressed in gzip format with extension of `.unik`.
 
 #### Compression rate comparison
@@ -116,21 +122,21 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 :---------------|:----------------------:|:-------------------------:|:------------------------:|:----------------:|:------------------------------------------------------
 `plain`         |                        |                           |                          |                  |plain text
 `plain.gz`      |                        |✔                          |                          |                  |gzipped plain text
-`.unik`         |✔                       |✔                          |                          |                  |gzipped encoded kmer in fixed-length byte array
-`.unik.cpt`     |✔                       |✔                          |✔                         |                  |gzipped encoded kmer in shorter fixed-length byte array
-`.unik.sort`    |✔                       |✔                          |                          |✔                 |gzipped sorted encoded kmers
-`.unik.ungz`    |✔                       |                           |                          |                  |encoded kmer in fixed-length byte array
-`.unik.cpt.ungz`|✔                       |                           |✔                         |                  |encoded kmer in shorter fixed-length byte array
+`.unik`         |✔                       |✔                          |                          |                  |gzipped encoded k-mers in fixed-length byte array
+`.unik.cpt`     |✔                       |✔                          |✔                         |                  |gzipped encoded k-mers in shorter fixed-length byte array
+`.unik.sort`    |✔                       |✔                          |                          |✔                 |gzipped sorted encoded k-mers
+`.unik.ungz`    |✔                       |                           |                          |                  |encoded k-mers in fixed-length byte array
+`.unik.cpt.ungz`|✔                       |                           |✔                         |                  |encoded k-mers in shorter fixed-length byte array
 
 
-- <sup>a</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes.
-- <sup>b</sup> Kmers file is compressed in gzip format by default,
+- <sup>a</sup> One k-mer is encoded as `uint64` and serialized in 8 Bytes.
+- <sup>b</sup> K-mers file is compressed in gzip format by default,
   users can switch on global option `-C/--no-compress` to output non-compressed file.
-- <sup>c</sup> One Kmer is encoded as `uint64` and serialized in 8 Bytes by default.
- However few Bytes are needed for short Kmers, e.g., 4 Bytes are enough for
+- <sup>c</sup> One k-mer is encoded as `uint64` and serialized in 8 Bytes by default.
+ However few Bytes are needed for short k-mers, e.g., 4 Bytes are enough for
   15-mers (30 bits). This makes the file more compact with smaller file size,
   controled by global option `-c/--compact `.
-- <sup>d</sup> One Kmer is encoded as `uint64`, all kmers are sorted and compressed
+- <sup>d</sup> One k-mer is encoded as `uint64`, all k-mers are sorted and compressed
   using varint-GB algorithm.
 - In all test, flag `--canonical` is ON when running `unikmer count`.
 
@@ -151,7 +157,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
 
-    # counting (only keep the canonical kmers)
+    # counting (only keep the canonical k-mers)
     $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23 --canonical
     elapsed time: 1.536s
     peak rss: 236.05 MB
@@ -161,7 +167,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
 
-    # counting (only keep the canonical kmers and compact output)
+    # counting (only keep the canonical k-mers and compact output)
     # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23 --canonical --compact
     $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23 --canonical --compact
     elapsed time: 1.540s
@@ -171,7 +177,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     -rw-r--r-- 1 shenwei shenwei 19M 9月  23 14:15 Ecoli-MG1655.fasta.gz.k23.unik
 
 
-    # counting (only keep the canonical kmers and sort Kmers)
+    # counting (only keep the canonical k-mers and sort k-mers)
     # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted --canonical --compact --sort
     $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted --canonical --compact --sort
     elapsed time: 2.847s

@@ -79,7 +79,7 @@ var interCmd = &cobra.Command{
 			}
 
 			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}
 
 			flag = func() int {
@@ -161,7 +161,7 @@ var interCmd = &cobra.Command{
 						writer.Number = int64(len(m2))
 
 						if opt.Verbose {
-							log.Infof("sort %d Kmers", len(m2))
+							log.Infof("sorting %d k-mers", len(m2))
 						}
 						sort.Sort(unikmer.CodeSlice(m2))
 						if opt.Verbose {
@@ -175,7 +175,7 @@ var interCmd = &cobra.Command{
 
 					checkError(writer.Flush())
 					if opt.Verbose {
-						log.Infof("%d Kmers saved", len(m))
+						log.Infof("%d k-mers saved", len(m))
 					}
 					return flagReturn
 				}
@@ -227,7 +227,7 @@ var interCmd = &cobra.Command{
 				}
 
 				if opt.Verbose {
-					log.Infof("%d kmers remain", len(m))
+					log.Infof("%d k-mers remain", len(m))
 				}
 				if len(m) == 0 {
 					hasInter = false
@@ -254,7 +254,7 @@ var interCmd = &cobra.Command{
 		// output
 
 		if opt.Verbose {
-			log.Infof("export kmers")
+			log.Infof("exporting k-mers")
 		}
 
 		if !isStdout(outFile) {
@@ -300,7 +300,7 @@ var interCmd = &cobra.Command{
 					i++
 				}
 				if opt.Verbose {
-					log.Infof("sort %d Kmers", len(codes))
+					log.Infof("sorting %d k-mers", len(codes))
 				}
 				sort.Sort(unikmer.CodeSlice(codes))
 				if opt.Verbose {
@@ -318,7 +318,7 @@ var interCmd = &cobra.Command{
 		}
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d Kmers saved", len(m))
+			log.Infof("%d k-mers saved", len(m))
 		}
 	},
 }

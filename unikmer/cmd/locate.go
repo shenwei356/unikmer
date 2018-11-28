@@ -37,11 +37,11 @@ import (
 // locateCmd represents
 var locateCmd = &cobra.Command{
 	Use:   "locate",
-	Short: "locate Kmers in genome",
-	Long: `locate Kmers in genome
+	Short: "locate k-mers in genome",
+	Long: `locate k-mers in genome
 
 Attention:
-	1. output location is 1-based
+  1. output location is 1-based
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -82,10 +82,10 @@ Attention:
 		var nfiles = len(files)
 		for i, file := range files {
 			if isStdin(file) {
-				log.Warningf("ignore stdin")
+				log.Warningf("ignoring stdin")
 			}
 			if opt.Verbose {
-				log.Infof("pre-read file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("pre-reading file (%d/%d): %s", i+1, nfiles, file)
 			}
 			func() {
 				infh, r, _, err = inStream(file)
@@ -126,7 +126,7 @@ Attention:
 		var i, j, iters int
 		var ok bool
 		if opt.Verbose {
-			log.Infof("read genome file: %s", genomeFile)
+			log.Infof("reading genome file: %s", genomeFile)
 		}
 		fastxReader, err = fastx.NewDefaultReader(genomeFile)
 		checkError(err)
@@ -151,13 +151,13 @@ Attention:
 					sequence = record.Seq.Seq
 
 					if opt.Verbose {
-						log.Infof("process sequence: %s", record.ID)
+						log.Infof("processing sequence: %s", record.ID)
 					}
 				} else { // reverse complement sequence
 					sequence = record.Seq.RevComInplace().Seq
 
 					if opt.Verbose {
-						log.Infof("process reverse complement sequence: %s", record.ID)
+						log.Infof("processing reverse complement sequence: %s", record.ID)
 					}
 				}
 
@@ -190,7 +190,7 @@ Attention:
 						kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
 					}
 					if err != nil {
-						checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
+						checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
 					}
 					preKmer, preKcode = kmer, kcode
 
@@ -229,10 +229,10 @@ Attention:
 		var loc int
 		for i, file := range files {
 			if isStdin(file) {
-				log.Warningf("ignore stdin")
+				log.Warningf("ignoring stdin")
 			}
 			if opt.Verbose {
-				log.Infof("process file (%d/%d): %s", i+1, nfiles, file)
+				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}
 			func() {
 				infh, r, _, err = inStream(file)

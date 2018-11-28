@@ -36,13 +36,13 @@ var RootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
 
 A command-line toolkit providing functions including counting, format
-convertion, set operations and searching on unique Kmers (k <= 32) while
-NOT recording Kmer frequencies.
+convertion, set operations and searching on unique small k-mers (k <= 32)
+without frequency information.
 
 Kmers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang
 in RAM, and serialized in binary format.
 
-Version: %s
+Version: v%s
 
 Author: Wei Shen <shenwei356@gmail.com>
 
@@ -76,4 +76,4 @@ func init() {
 	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, files from cli arguments are ignored")
 }
 
-const helpSort = "sort Kmers, this significantly reduce file size. You can even disable gzip compression by flag -C/--no-compress. This flag overwrites global option -c/--compact"
+const helpSort = "sort k-mers, this significantly reduce file size. You can even disable gzip compression by flag -C/--no-compress. This flag overwrites global option -c/--compact"
