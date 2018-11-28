@@ -101,7 +101,7 @@ without frequency information.
 1. Misc
 
         stats           statistics of binary files
-        num             print number of k-mers in binary files
+        num             quickly inspect number of k-mers in binary files
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update

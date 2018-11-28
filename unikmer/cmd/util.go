@@ -243,3 +243,20 @@ func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikm
 
 	return &reader.Header, n, nil
 }
+
+func uniqInts(data []int) []int {
+	if len(data) == 0 || len(data) == 1 {
+		return data
+	}
+	m := make(map[int]struct{}, len(data))
+	for _, d := range data {
+		m[d] = struct{}{}
+	}
+	data2 := make([]int, len(m))
+	i := 0
+	for k := range m {
+		data2[i] = k
+		i++
+	}
+	return data2
+}

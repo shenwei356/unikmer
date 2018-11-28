@@ -114,7 +114,7 @@ var dumpCmd = &cobra.Command{
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
 					if err != nil {
-						checkError(fmt.Errorf("fail to '%s': %s", line, err))
+						checkError(fmt.Errorf("fail to encode '%s': %s", line, err))
 					}
 
 					if unique {

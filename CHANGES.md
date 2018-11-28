@@ -1,3 +1,6 @@
+- v0.5.2
+    - `unikmer locate`: fix bug
+    - `unikmer`: doc update
 - v0.5.1
     - `unikmer locate/uniqs`: fix options checking
 - v0.5.0

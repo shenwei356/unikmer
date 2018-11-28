@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/shenwei356/bio/seq"
@@ -123,7 +124,7 @@ Attention:
 		var fastxReader *fastx.Reader
 		var kcode, preKcode unikmer.KmerCode
 		var first bool
-		var i, j, iters int
+		var i int
 		var ok bool
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
@@ -140,73 +141,52 @@ Attention:
 				break
 			}
 
-			if canonical {
-				iters = 1
-			} else {
-				iters = 2
+			sequence = record.Seq.Seq
+
+			if opt.Verbose {
+				log.Infof("processing sequence: %s", record.ID)
 			}
 
-			for j = 0; j < iters; j++ {
-				if j == 0 { // sequence
-					sequence = record.Seq.Seq
+			originalLen = len(record.Seq.Seq)
+			l = len(sequence)
 
-					if opt.Verbose {
-						log.Infof("processing sequence: %s", record.ID)
+			end = l - 1
+			if end < 0 {
+				end = 0
+			}
+			first = true
+			for i = 0; i <= end; i++ {
+				e = i + k
+				if e > originalLen {
+					if circular {
+						e = e - originalLen
+						kmer = sequence[i:]
+						kmer = append(kmer, sequence[0:e]...)
+					} else {
+						break
 					}
-				} else { // reverse complement sequence
-					sequence = record.Seq.RevComInplace().Seq
-
-					if opt.Verbose {
-						log.Infof("processing reverse complement sequence: %s", record.ID)
-					}
+				} else {
+					kmer = sequence[i : i+k]
 				}
 
-				originalLen = len(record.Seq.Seq)
-				l = len(sequence)
-
-				end = l - 1
-				if end < 0 {
-					end = 0
+				if first {
+					kcode, err = unikmer.NewKmerCode(kmer)
+					first = false
+				} else {
+					kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
 				}
-				first = true
-				for i = 0; i <= end; i++ {
-					e = i + k
-					if e > originalLen {
-						if circular {
-							e = e - originalLen
-							kmer = sequence[i:]
-							kmer = append(kmer, sequence[0:e]...)
-						} else {
-							break
-						}
-					} else {
-						kmer = sequence[i : i+k]
-					}
-
-					if first {
-						kcode, err = unikmer.NewKmerCode(kmer)
-						first = false
-					} else {
-						kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-					}
-					if err != nil {
-						checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
-					}
-					preKmer, preKcode = kmer, kcode
-
-					if canonical {
-						kcode = kcode.Canonical()
-					}
-
-					if _, ok = m[kcode.Code]; !ok {
-						m[kcode.Code] = make([]int, 0, 1)
-					}
-					if iters == 0 {
-						m[kcode.Code] = append(m[kcode.Code], i)
-					} else {
-						m[kcode.Code] = append(m[kcode.Code], l-i-k)
-					}
+				if err != nil {
+					checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
 				}
+				preKmer, preKcode = kmer, kcode
+
+				kcode = kcode.Canonical()
+
+				if _, ok = m[kcode.Code]; !ok {
+					m[kcode.Code] = make([]int, 0, 1)
+				}
+
+				m[kcode.Code] = append(m[kcode.Code], i)
 			}
 		}
 		if opt.Verbose {
@@ -225,8 +205,9 @@ Attention:
 			w.Close()
 		}()
 
-		var locs []int
+		var locs, locs2, locs3 []int
 		var loc int
+		var ok2 bool
 		for i, file := range files {
 			if isStdin(file) {
 				log.Warningf("ignoring stdin")
@@ -242,22 +223,59 @@ Attention:
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
-				for {
-					kcode, err = reader.Read()
-					if err != nil {
-						if err == io.EOF {
-							break
+				if !canonical {
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
 						}
-						checkError(err)
-					}
 
-					if locs, ok = m[kcode.Code]; ok {
+						locs, ok = m[kcode.Code]
+						locs2, ok2 = m[kcode.RevComp().Code]
+						if ok {
+							locs3 = locs
+							if ok2 {
+								locs3 = append(locs3, locs2...)
+							}
+						} else {
+							if ok2 {
+								locs3 = locs2
+							} else {
+								continue
+							}
+						}
+						locs = uniqInts(locs3)
+						sort.Ints(locs)
 						outfh.WriteString(kcode.String() + "\t")
 						outfh.WriteString(fmt.Sprintf("%d", locs[0]+1))
 						for _, loc = range locs[1:] {
 							outfh.WriteString(fmt.Sprintf(",%d", loc+1))
 						}
 						outfh.WriteString("\n")
+					}
+				} else {
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						if locs, ok = m[kcode.Code]; ok {
+							// locs = uniqInts(locs)
+							sort.Ints(locs)
+							outfh.WriteString(kcode.String() + "\t")
+							outfh.WriteString(fmt.Sprintf("%d", locs[0]+1))
+							for _, loc = range locs[1:] {
+								outfh.WriteString(fmt.Sprintf(",%d", loc+1))
+							}
+							outfh.WriteString("\n")
+						}
 					}
 				}
 			}()
