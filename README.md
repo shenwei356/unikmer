@@ -61,7 +61,7 @@ without frequency information.
 
 ### Installation
 
-1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases).
+1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases) (Latest version).
 
 1. Via Bioconda (not available now)
 

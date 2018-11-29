@@ -39,7 +39,7 @@ A command-line toolkit providing functions including counting, format
 convertion, set operations and searching on unique small k-mers (k <= 32)
 without frequency information.
 
-Kmers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang
+K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang
 in RAM, and serialized in binary format.
 
 Version: v%s
