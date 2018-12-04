@@ -368,7 +368,7 @@ Tips:
 					}
 
 					if opt.Verbose {
-						log.Infof("worker %02d:  starting processing file (%d/%d): %s", i, ifile.i+1, nfiles, file)
+						log.Infof("worker %02d: starting processing file (%d/%d): %s", i, ifile.i+1, nfiles, file)
 					}
 
 					infh, r, _, err = inStream(file)
