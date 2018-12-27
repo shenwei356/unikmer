@@ -51,6 +51,8 @@ var dumpCmd = &cobra.Command{
 			files = getFileList(args)
 		}
 
+		checkFiles("", files...)
+
 		outFile := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
 

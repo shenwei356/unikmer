@@ -62,6 +62,8 @@ var countCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
+		checkFiles("", files...)
+
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")
 

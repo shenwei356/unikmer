@@ -1,8 +1,10 @@
+- v0.5.3
+    - `unikmer count/dump`: check file before handling them.
 - v0.5.2
-    - `unikmer locate`: fix bug
-    - `unikmer`: doc update
+    - `unikmer locate`: fix bug.
+    - `unikmer`: doc update.
 - v0.5.1
-    - `unikmer locate/uniqs`: fix options checking
+    - `unikmer locate/uniqs`: fix options checking.
 - v0.5.0
     - `unikmer diff`: fix concurrency bug when cloning kmers from first file.
     - new command `unikmer locate`: locate Kmers in genome.
