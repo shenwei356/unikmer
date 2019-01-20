@@ -56,6 +56,7 @@ var encodeCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-file")
 		all := getFlagBool(cmd, "all")
+		canonical := getFlagBool(cmd, "canonical")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -97,6 +98,9 @@ var encodeCmd = &cobra.Command{
 					if err != nil {
 						checkError(fmt.Errorf("fail to encode '%s': %s", line, err))
 					}
+					if canonical {
+						kcode = kcode.Canonical()
+					}
 
 					if all {
 						outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%b\n", line, kcode.String(), kcode.Code, kcode.Code))
@@ -115,5 +119,5 @@ func init() {
 
 	encodeCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	encodeCmd.Flags().BoolP("all", "a", false, `output all data: orginial k-mer, parsed k-mer, encoded integer, encode bits`)
-
+	encodeCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 }

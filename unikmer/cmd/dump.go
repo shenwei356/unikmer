@@ -55,6 +55,7 @@ var dumpCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
+		canonical := getFlagBool(cmd, "canonical")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -109,6 +110,9 @@ var dumpCmd = &cobra.Command{
 						if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
+						if canonical {
+							mode |= unikmer.UNIK_CANONICAL
+						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)
 						defer checkError(writer.Flush())
@@ -119,6 +123,9 @@ var dumpCmd = &cobra.Command{
 						checkError(fmt.Errorf("fail to encode '%s': %s", line, err))
 					}
 
+					if canonical {
+						kcode = kcode.Canonical()
+					}
 					if unique {
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
@@ -145,4 +152,5 @@ func init() {
 
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
+	dumpCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 }
