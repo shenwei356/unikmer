@@ -151,7 +151,7 @@ func checkFiles(suffix string, files ...string) {
 			checkError(fmt.Errorf("file (linked file) does not exist: %s", file))
 		}
 		if suffix != "" && !strings.HasSuffix(file, suffix) {
-			checkError(fmt.Errorf("input should be stdin or %s file: %s", extDataFile, file))
+			checkError(fmt.Errorf("input should be stdin or %s file: %s", suffix, file))
 		}
 	}
 }

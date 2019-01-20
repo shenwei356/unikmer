@@ -80,6 +80,8 @@ without frequency information.
 
 1. Format conversion
 
+        encode          encode plain k-mer text to integer
+        decode          decode encode integer to k-mer text
         view            read and output binary format to plain text
         dump            convert plain k-mer text to binary format
 

@@ -1,3 +1,7 @@
+- v0.6.0
+    - `unikmer`: check encoded integer overflow
+    - new command `unikmer encode`: encode plain k-mer text to integer
+    - new command `unikmer decode`: decode encoded integer to k-mer text
 - v0.5.3
     - `unikmer count/dump`: check file before handling them.
 - v0.5.2

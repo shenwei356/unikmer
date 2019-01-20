@@ -9,7 +9,7 @@
 //
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+//b
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,10 +31,21 @@ var ErrIllegalBase = errors.New("unikmer: illegal base")
 // ErrKOverflow means K > 32.
 var ErrKOverflow = errors.New("unikmer: K-mer size (1-32) overflow")
 
+// ErrCodeOverflow means the encode interger is bigger than 4^k
+var ErrCodeOverflow = errors.New("unikmer: code value overflow")
+
 // slice is much faster than switch and map
 var base2bit []uint64
 
+// MaxCode is the maxinum interger for all Ks.
+var MaxCode []uint64
+
 func init() {
+	MaxCode = make([]uint64, 33)
+	for i := 1; i <= 32; i++ {
+		MaxCode[i] = 1<<uint(i*2) - 1
+	}
+
 	base2bit = make([]uint64, 255)
 	for i := range base2bit {
 		base2bit[i] = 4
@@ -216,6 +227,9 @@ var bit2base = [4]byte{'A', 'C', 'G', 'T'}
 func Decode(code uint64, k int) []byte {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
+	}
+	if code > MaxCode[k] {
+		panic(ErrCodeOverflow)
 	}
 	kmer := make([]byte, k)
 	for i := 0; i < k; i++ {
