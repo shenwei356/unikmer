@@ -223,6 +223,9 @@ func RevComp(code uint64, k int) (c uint64) {
 // bit2base is for mapping bit to base.
 var bit2base = [4]byte{'A', 'C', 'G', 'T'}
 
+// bit2str is for output bits string
+var bit2str = [4]string{"00", "01", "10", "11"}
+
 // Decode converts the code to original seq
 func Decode(code uint64, k int) []byte {
 	if k <= 0 || k > 32 {
@@ -310,4 +313,13 @@ func (kcode KmerCode) Bytes() []byte {
 // String returns k-mer in string
 func (kcode KmerCode) String() string {
 	return string(Decode(kcode.Code, kcode.K))
+}
+
+// BitsString returns code to string
+func (kcode KmerCode) BitsString() string {
+	var buf bytes.Buffer
+	for _, b := range Decode(kcode.Code, kcode.K) {
+		buf.WriteString(bit2str[base2bit[b]])
+	}
+	return buf.String()
 }

@@ -103,7 +103,7 @@ var encodeCmd = &cobra.Command{
 					}
 
 					if all {
-						outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%b\n", line, kcode.String(), kcode.Code, kcode.Code))
+						outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%s\n", line, kcode.String(), kcode.Code, kcode.BitsString()))
 					} else {
 						outfh.WriteString(fmt.Sprintf("%d\n", kcode.Code))
 					}

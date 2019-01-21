@@ -1,3 +1,5 @@
+- v0.6.2
+    - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1
     - `unikmer dump`: 
         - new option `-K/--canonical` to keep the canonical k-mers.
