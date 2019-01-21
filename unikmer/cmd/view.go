@@ -60,6 +60,7 @@ var viewCmd = &cobra.Command{
 		showCode := getFlagBool(cmd, "show-code")
 		outFasta := getFlagBool(cmd, "fasta")
 		outFastq := getFlagBool(cmd, "fastq")
+		showCodeOnly := getFlagBool(cmd, "show-code-only")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -104,6 +105,8 @@ var viewCmd = &cobra.Command{
 						outfh.WriteString(fmt.Sprintf(">%d\n%s\n", kcode.Code, kcode.String()))
 					} else if outFastq {
 						outfh.WriteString(fmt.Sprintf(">%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
+					} else if showCodeOnly {
+						outfh.WriteString(fmt.Sprintf("%d\n", kcode.Code))
 					} else if showCode {
 						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
 					} else {
@@ -121,6 +124,7 @@ func init() {
 
 	viewCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	viewCmd.Flags().BoolP("show-code", "n", false, `show encoded integer along with k-mer`)
+	viewCmd.Flags().BoolP("show-code-only", "N", false, `only show encoded integers, faster than cutting from result of -n/--show-cde`)
 	viewCmd.Flags().BoolP("fasta", "a", false, `output in FASTA format, with encoded integer as FASTA header`)
 	viewCmd.Flags().BoolP("fastq", "q", false, `output in FASTQ format, with encoded integer as FASTQ header`)
 }
