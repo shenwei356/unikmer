@@ -1,5 +1,9 @@
 - v0.6.1
-    - `unikmer dump/encode`: add option `-K/--canonical` to only keep the canonical k-mers
+    - `unikmer dump`: 
+        - new option `-K/--canonical` to keep the canonical k-mers.
+        - new option `-k/--canonical-only` to only keep the canonical k-mers.
+        - new option `-s/--sorted` to save sorted k-mers. 
+    - `unikmer encode`: add option `-K/--canonical` to keep the canonical k-mers.
 - v0.6.0
     - `unikmer`: check encoded integer overflow
     - new command `unikmer encode`: encode plain k-mer text to integer

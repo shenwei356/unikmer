@@ -119,5 +119,5 @@ func init() {
 
 	encodeCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	encodeCmd.Flags().BoolP("all", "a", false, `output all data: orginial k-mer, parsed k-mer, encoded integer, encode bits`)
-	encodeCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
+	encodeCmd.Flags().BoolP("canonical", "K", false, "keep the canonical k-mers")
 }

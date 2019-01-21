@@ -56,6 +56,8 @@ var dumpCmd = &cobra.Command{
 		outFile := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
 		canonical := getFlagBool(cmd, "canonical")
+		canonicalOnly := getFlagBool(cmd, "canonical-only")
+		sortedKmers := getFlagBool(cmd, "sorted")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -83,7 +85,7 @@ var dumpCmd = &cobra.Command{
 		var chunk breader.Chunk
 		var data interface{}
 		var line string
-		var kcode unikmer.KmerCode
+		var kcode, kcodeC unikmer.KmerCode
 		var ok bool
 		var n int64
 
@@ -110,8 +112,11 @@ var dumpCmd = &cobra.Command{
 						if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
-						if canonical {
+						if canonical || canonicalOnly {
 							mode |= unikmer.UNIK_CANONICAL
+						}
+						if sortedKmers {
+							mode |= unikmer.UNIK_SORTED
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)
@@ -123,9 +128,16 @@ var dumpCmd = &cobra.Command{
 						checkError(fmt.Errorf("fail to encode '%s': %s", line, err))
 					}
 
-					if canonical {
+					if canonicalOnly {
+						kcodeC = kcode.Canonical()
+						if kcode.Code != kcodeC.Code {
+							continue
+						}
+						kcode = kcodeC
+					} else if canonical {
 						kcode = kcode.Canonical()
 					}
+
 					if unique {
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
@@ -152,5 +164,7 @@ func init() {
 
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
-	dumpCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
+	dumpCmd.Flags().BoolP("canonical", "K", false, "save the canonical k-mers")
+	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This option overides -K/--canonical")
+	dumpCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
 }
