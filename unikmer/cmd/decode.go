@@ -93,7 +93,7 @@ var decodeCmd = &cobra.Command{
 
 					code, err = strconv.ParseUint(line, 10, 64)
 					if err != nil {
-						checkError(fmt.Errorf("encode kmer should be non-negative integer: %d", code))
+						checkError(fmt.Errorf("encode kmer should be non-negative integer: %s", line))
 					}
 
 					if code < 0 {
