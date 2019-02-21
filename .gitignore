@@ -18,3 +18,4 @@ doc/site/*
 
 *ssshtest
 testdata/*.unik
+t_*

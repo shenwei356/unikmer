@@ -71,6 +71,7 @@ Attention:
 		minLen := getFlagPositiveInt(cmd, "min-len")
 		mMapped := getFlagBool(cmd, "allow-muliple-mapped-kmer")
 		outputFASTA := getFlagBool(cmd, "output-fasta")
+		maxContNonUniqKmers := getFlagNonNegativeInt(cmd, "max-cont-non-uniq-kmers")
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
@@ -251,7 +252,7 @@ Attention:
 			w.Close()
 		}()
 
-		var c, start int
+		var c, start, nonUniqs, lastmatch, ii int
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
 		}
@@ -313,49 +314,61 @@ Attention:
 				kcode = kcode.Canonical()
 
 				if _, ok = m[kcode.Code]; ok {
+					lastmatch = i
+					nonUniqs = 0
 					if !mMapped {
 						if multipleMapped, ok = m2[kcode.Code]; ok && multipleMapped {
-							if start >= 0 && i-start >= minLen {
+							ii = lastmatch + k - 1
+							if start >= 0 && ii-start >= minLen {
 								if outputFASTA {
-									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, i,
-										record.Seq.SubSeq(start+1, i).FormatSeq(60)))
+									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
+										record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, i))
+									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
 								}
 							}
 							c = 0
 							start = -1
 						} else {
 							c++
-							if c == k {
+							if start == -1 {
 								start = i
 							}
 						}
 					} else {
 						c++
-						if c == k {
+						if start == -1 {
 							start = i
 						}
 					}
-				} else {
-					if start >= 0 && i-start >= minLen {
+				} else { // k-mer not found
+					nonUniqs++
+
+					if nonUniqs <= maxContNonUniqKmers {
+						continue
+					}
+
+					ii = lastmatch + k - 1
+					if start >= 0 && ii-start >= minLen {
 						if outputFASTA {
-							outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, i,
-								record.Seq.SubSeq(start+1, i).FormatSeq(60)))
+							outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
+								record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, i))
+							outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
 						}
 					}
 					c = 0
 					start = -1
+					nonUniqs = 0
 				}
 			}
-			if start >= 0 && i-start >= minLen {
+			ii = lastmatch + k - 1
+			if start >= 0 && ii-start >= minLen {
 				if outputFASTA {
-					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, i,
-						record.Seq.SubSeq(start+1, i).FormatSeq(60)))
+					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
+						record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
 				} else {
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, i))
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
 				}
 			}
 		}
@@ -371,4 +384,5 @@ func init() {
 	uniqsCmd.Flags().IntP("min-len", "m", 200, "minimum length of subsequence")
 	uniqsCmd.Flags().BoolP("allow-muliple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
 	uniqsCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
+	uniqsCmd.Flags().IntP("max-cont-non-uniq-kmers", "x", 0, "max continuous non-unique k-mers")
 }
