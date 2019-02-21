@@ -253,6 +253,7 @@ Attention:
 		}()
 
 		var c, start, nonUniqs, lastmatch, ii int
+		var flag bool = true
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
 		}
@@ -314,11 +315,13 @@ Attention:
 				kcode = kcode.Canonical()
 
 				if _, ok = m[kcode.Code]; ok {
-					lastmatch = i
+					if c+1 >= k {
+						lastmatch = i
+					}
 					nonUniqs = 0
 					if !mMapped {
 						if multipleMapped, ok = m2[kcode.Code]; ok && multipleMapped {
-							ii = lastmatch + k - 1
+							ii = lastmatch + 1
 							if start >= 0 && ii-start >= minLen {
 								if outputFASTA {
 									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
@@ -329,40 +332,51 @@ Attention:
 							}
 							c = 0
 							start = -1
+							flag = true
 						} else {
 							c++
-							if start == -1 {
-								start = i
+							if c == k {
+								if flag {
+									start = i
+								}
 							}
 						}
 					} else {
 						c++
-						if start == -1 {
-							start = i
+						if c == k {
+							if flag {
+								start = i
+							}
 						}
 					}
 				} else { // k-mer not found
 					nonUniqs++
 
 					if nonUniqs <= maxContNonUniqKmers {
-						continue
-					}
-
-					ii = lastmatch + k - 1
-					if start >= 0 && ii-start >= minLen {
-						if outputFASTA {
-							outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
-								record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
-						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
+						c = 0
+						if start > 0 {
+							flag = false
 						}
+					} else {
+						ii = lastmatch + 1
+						if start >= 0 && ii-start >= minLen {
+							if outputFASTA {
+								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
+									record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
+							} else {
+								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
+							}
+						}
+
+						c = 0
+						start = -1
+						nonUniqs = 0
+						flag = true
 					}
-					c = 0
-					start = -1
-					nonUniqs = 0
 				}
+				// fmt.Println(i, c, start, lastmatch, nonUniqs)
 			}
-			ii = lastmatch + k - 1
+			ii = lastmatch + 1
 			if start >= 0 && ii-start >= minLen {
 				if outputFASTA {
 					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
