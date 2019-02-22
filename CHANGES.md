@@ -1,5 +1,7 @@
 - v0.6.4
-    - `unikmer uniqs`: new option `-x/--max-cont-non-uniq-kmers` for max continuous non-unique k-mers
+    - `unikmer uniqs`:
+        - new option `-x/--max-cont-non-uniq-kmers` for limiting max continuous non-unique k-mers.
+        - new option `-X/--max-num-cont-non-uniq-kmers` for limiting max number of continuous non-unique k-mers
 - v0.6.3
     - `unikmer view`: new option `-N/--show-code-only` for only showing encoded integers
 - v0.6.2

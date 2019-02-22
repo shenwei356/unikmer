@@ -72,8 +72,19 @@ Attention:
 		mMapped := getFlagBool(cmd, "allow-muliple-mapped-kmer")
 		outputFASTA := getFlagBool(cmd, "output-fasta")
 		maxContNonUniqKmers := getFlagNonNegativeInt(cmd, "max-cont-non-uniq-kmers")
+		maxContNonUniqKmersNum := getFlagNonNegativeInt(cmd, "max-num-cont-non-uniq-kmers")
+
+		if maxContNonUniqKmersNum > 0 && maxContNonUniqKmers == 0 {
+			log.Warningf("-X/--max-num-cont-non-uniq-kmers %d is ignored becaue value of -x/--max-cont-non-uniq-kmers is 0", maxContNonUniqKmersNum)
+		}
+		if maxContNonUniqKmers > 0 && maxContNonUniqKmersNum == 0 {
+			checkError(fmt.Errorf("value of -X/--max-num-cont-non-uniq-kmers should be > 0 when value of -x/--max-cont-non-uniq-kmers is > 0"))
+		}
 
 		m := make(map[uint64]struct{}, mapInitSize)
+
+		// debug := bufio.NewWriterSize(os.Stdout, os.Getpagesize())
+		// defer debug.Flush()
 
 		// -----------------------------------------------------------------------
 
@@ -252,7 +263,7 @@ Attention:
 			w.Close()
 		}()
 
-		var c, start, nonUniqs, lastmatch, ii int
+		var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch, ii int
 		var flag bool = true
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
@@ -285,6 +296,8 @@ Attention:
 
 			c = 0
 			start = -1
+			nonUniqs = 0
+			nonUniqsNum = 0
 
 			first = true
 			for i = 0; i <= end; i++ {
@@ -317,12 +330,14 @@ Attention:
 				if _, ok = m[kcode.Code]; ok {
 					if c+1 >= k {
 						lastmatch = i
+						lastNonUniqsNum = nonUniqsNum
 					}
 					nonUniqs = 0
 					if !mMapped {
 						if multipleMapped, ok = m2[kcode.Code]; ok && multipleMapped {
 							ii = lastmatch + 1
-							if start >= 0 && ii-start >= minLen {
+							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
+								start >= 0 && ii-start >= minLen {
 								if outputFASTA {
 									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
 										record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
@@ -330,6 +345,7 @@ Attention:
 									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
 								}
 							}
+
 							c = 0
 							start = -1
 							flag = true
@@ -338,6 +354,9 @@ Attention:
 							if c == k {
 								if flag {
 									start = i
+									nonUniqsNum = 0
+									nonUniqs = 0
+									lastNonUniqsNum = 0
 								}
 							}
 						}
@@ -346,20 +365,26 @@ Attention:
 						if c == k {
 							if flag {
 								start = i
+								nonUniqsNum = 0
+								nonUniqs = 0
+								lastNonUniqsNum = 0
 							}
 						}
 					}
 				} else { // k-mer not found
 					nonUniqs++
-
-					if nonUniqs <= maxContNonUniqKmers {
+					if nonUniqs == 1 {
+						nonUniqsNum++
+					}
+					if nonUniqs <= maxContNonUniqKmers && nonUniqsNum <= maxContNonUniqKmersNum {
 						c = 0
 						if start > 0 {
 							flag = false
 						}
 					} else {
 						ii = lastmatch + 1
-						if start >= 0 && ii-start >= minLen {
+						if lastNonUniqsNum <= maxContNonUniqKmersNum &&
+							start >= 0 && ii-start >= minLen {
 							if outputFASTA {
 								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
 									record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
@@ -367,17 +392,16 @@ Attention:
 								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
 							}
 						}
-
 						c = 0
 						start = -1
-						nonUniqs = 0
 						flag = true
 					}
 				}
-				// fmt.Println(i, c, start, lastmatch, nonUniqs)
+				// debug.WriteString(fmt.Sprintln(i, c, start, lastmatch, nonUniqs, nonUniqsNum, lastNonUniqsNum))
 			}
 			ii = lastmatch + 1
-			if start >= 0 && ii-start >= minLen {
+			if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
+				start >= 0 && ii-start >= minLen {
 				if outputFASTA {
 					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
 						record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
@@ -399,4 +423,5 @@ func init() {
 	uniqsCmd.Flags().BoolP("allow-muliple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
 	uniqsCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
 	uniqsCmd.Flags().IntP("max-cont-non-uniq-kmers", "x", 0, "max continuous non-unique k-mers")
+	uniqsCmd.Flags().IntP("max-num-cont-non-uniq-kmers", "X", 0, "max number of continuous non-unique k-mers")
 }
