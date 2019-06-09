@@ -1,16 +1,16 @@
 - v0.6.3
-    - `unikmer view`: new option `-N/--show-code-only` for only showing encoded integers
+    - `unikmer view`: new option `-N/--show-code-only` for only showing encoded integers.
     - `unikmer uniqs`:
         - new option `-x/--max-cont-non-uniq-kmers` for limiting max continuous non-unique k-mers.
         - new option `-X/--max-num-cont-non-uniq-kmers` for limiting max number of continuous non-unique k-mers.
-    - `unikmer uniq`: new option `-d/--repeated` for only printing duplicate k-mers.
+    - `unikmer union`: new option `-d/--repeated` for only printing duplicate k-mers.
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1
     - `unikmer dump`: 
         - new option `-K/--canonical` to keep the canonical k-mers.
         - new option `-k/--canonical-only` to only keep the canonical k-mers.
-        - new option `-s/--sorted` to save sorted k-mers. 
+        - new option `-s/--sorted` to save sorted k-mers.
     - `unikmer encode`: add option `-K/--canonical` to keep the canonical k-mers.
 - v0.6.0
     - `unikmer`: check encoded integer overflow
