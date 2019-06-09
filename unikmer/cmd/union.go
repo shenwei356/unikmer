@@ -62,8 +62,15 @@ Attentions:
 
 		outFile := getFlagString(cmd, "out-prefix")
 		sortKmers := getFlagBool(cmd, "sort")
+		repeated := getFlagBool(cmd, "repeated")
 
-		m := make(map[uint64]struct{}, mapInitSize)
+		var m map[uint64]struct{}
+		var mb map[uint64]bool
+		if repeated {
+			mb = make(map[uint64]bool, mapInitSize)
+		} else {
+			m = make(map[uint64]struct{}, mapInitSize)
+		}
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -129,6 +136,32 @@ Attentions:
 					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 
+				if repeated {
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						// new kmers
+						if _, ok = mb[kcode.Code]; !ok {
+							mb[kcode.Code] = false
+						} else {
+							n++
+							if !sortKmers {
+								writer.Write(kcode) // not need to check err
+							} else {
+								mb[kcode.Code] = true
+							}
+						}
+					}
+
+					return flagContinue
+				}
+
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -172,11 +205,25 @@ Attentions:
 
 			writer.Number = int64(len(m))
 
-			codes := make([]uint64, len(m))
+			var codes []uint64
+			if repeated {
+				codes = make([]uint64, 0, len(m))
+			} else {
+				codes = make([]uint64, len(m))
+			}
+
 			i := 0
-			for code := range m {
-				codes[i] = code
-				i++
+			if repeated {
+				for code, r := range mb {
+					if r {
+						codes = append(codes, code)
+					}
+				}
+			} else {
+				for code := range m {
+					codes[i] = code
+					i++
+				}
 			}
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(codes))
@@ -202,4 +249,5 @@ func init() {
 
 	unionCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	unionCmd.Flags().BoolP("sort", "s", false, helpSort)
+	unionCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 }
