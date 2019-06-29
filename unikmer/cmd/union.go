@@ -94,7 +94,7 @@ Attentions:
 		var k int = -1
 		var canonical bool
 		var firstFile = true
-		var ok bool
+		var existed, ok bool
 		var n int64
 		var flag int
 		var nfiles = len(files)
@@ -147,14 +147,15 @@ Attentions:
 						}
 
 						// new kmers
-						if _, ok = mb[kcode.Code]; !ok {
+						if existed, ok = mb[kcode.Code]; !ok {
 							mb[kcode.Code] = false
 						} else {
-							n++
-							if !sortKmers {
-								writer.Write(kcode) // not need to check err
-							} else {
-								mb[kcode.Code] = true
+							if !existed {
+								mb[kcode.Code] = true // mark repeated
+								n++
+								if !sortKmers {
+									writer.Write(kcode) // not need to check err
+								}
 							}
 						}
 					}
