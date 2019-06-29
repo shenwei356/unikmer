@@ -204,20 +204,16 @@ Attentions:
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 
-			writer.Number = int64(len(m))
+			writer.Number = int64(n)
 
-			var codes []uint64
-			if repeated {
-				codes = make([]uint64, 0, len(m))
-			} else {
-				codes = make([]uint64, len(m))
-			}
+			codes := make([]uint64, n)
 
 			i := 0
 			if repeated {
 				for code, r := range mb {
 					if r {
-						codes = append(codes, code)
+						codes[i] = code
+						i++
 					}
 				}
 			} else {
