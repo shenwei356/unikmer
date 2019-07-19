@@ -263,7 +263,7 @@ Attention:
 			w.Close()
 		}()
 
-		var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch, ii int
+		var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch int
 		var flag bool = true
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
@@ -328,21 +328,16 @@ Attention:
 				kcode = kcode.Canonical()
 
 				if _, ok = m[kcode.Code]; ok {
-					if c+1 >= k {
-						lastmatch = i
-						lastNonUniqsNum = nonUniqsNum
-					}
 					nonUniqs = 0
 					if !mMapped {
 						if multipleMapped, ok = m2[kcode.Code]; ok && multipleMapped {
-							ii = lastmatch + 1
 							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
-								start >= 0 && ii-start >= minLen {
+								start >= 0 && lastmatch-start+k >= minLen {
 								if outputFASTA {
-									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
-										record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
+									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k+1,
+										record.Seq.SubSeq(start+1, lastmatch+k+1).FormatSeq(60)))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
+									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k+1))
 								}
 							}
 
@@ -351,7 +346,7 @@ Attention:
 							flag = true
 						} else {
 							c++
-							if c == k {
+							if c == 1 { // re-count
 								if flag {
 									start = i
 									nonUniqsNum = 0
@@ -362,7 +357,7 @@ Attention:
 						}
 					} else {
 						c++
-						if c == k {
+						if c == 1 { // re-count
 							if flag {
 								start = i
 								nonUniqsNum = 0
@@ -370,6 +365,11 @@ Attention:
 								lastNonUniqsNum = 0
 							}
 						}
+					}
+
+					if c > 1 { // at least 2 continuous sites.
+						lastmatch = i
+						lastNonUniqsNum = nonUniqsNum
 					}
 				} else { // k-mer not found
 					nonUniqs++
@@ -382,16 +382,16 @@ Attention:
 							flag = false
 						}
 					} else {
-						ii = lastmatch + 1
 						if lastNonUniqsNum <= maxContNonUniqKmersNum &&
-							start >= 0 && ii-start >= minLen {
+							start >= 0 && lastmatch-start+k >= minLen {
 							if outputFASTA {
-								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
-									record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
+								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k+1,
+									record.Seq.SubSeq(start+1, lastmatch+k+1).FormatSeq(60)))
 							} else {
-								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
+								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k+1))
 							}
 						}
+						// re-count
 						c = 0
 						start = -1
 						flag = true
@@ -399,14 +399,13 @@ Attention:
 				}
 				// debug.WriteString(fmt.Sprintln(i, c, start, lastmatch, nonUniqs, nonUniqsNum, lastNonUniqsNum))
 			}
-			ii = lastmatch + 1
 			if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
-				start >= 0 && ii-start >= minLen {
+				start >= 0 && lastmatch-start+k >= minLen {
 				if outputFASTA {
-					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, ii,
-						record.Seq.SubSeq(start+1, ii).FormatSeq(60)))
+					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k+1,
+						record.Seq.SubSeq(start+1, lastmatch+k+1).FormatSeq(60)))
 				} else {
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, ii))
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k+1))
 				}
 			}
 		}

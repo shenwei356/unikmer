@@ -3,6 +3,7 @@
     - `unikmer uniqs`:
         - new option `-x/--max-cont-non-uniq-kmers` for limiting max continuous non-unique k-mers.
         - new option `-X/--max-num-cont-non-uniq-kmers` for limiting max number of continuous non-unique k-mers.
+        - fix bug.
     - `unikmer union`: new option `-d/--repeated` for only printing duplicate k-mers.
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
