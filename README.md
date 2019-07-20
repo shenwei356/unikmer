@@ -251,6 +251,28 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     inter.k23.unik                         23  ✓        ✓        ✓          ✓       2,576,170
     union.k23.unik                         23  ✓        ✓        ✓          ✓       6,872,728
 
+    # -----------------------------------------------------------------------------------------
+
+    # mapping k-mers to genome
+    g=Ecoli-IAI39.fasta
+    f=inter.k23.unik
+
+    # to fasta
+    unikmer view $f -a -o $f.fa.gz
+
+    # make index
+    ls $g | rush 'bwa index {}; samtools faidx {}'
+
+    ncpu=12
+    ls $f.fa.gz | rush -j 1 -v ref=$g -v j=$ncpu \
+    ' bwa aln -o 0 -l 17 -k 0 -t {j} {ref} {} \
+        | bwa samse {ref} - {} \
+        | samtools view -bS > {}.bam; \
+        samtools sort -T {}.tmp -@ {j} {}.bam -o {}.sorted.bam; \
+        samtools index {}.sorted.bam; \
+        samtools flagstat {}.sorted.bam > {}.sorted.bam.flagstat; \
+        /bin/rm {}.bam '  
+
 ## Contributing
 
 We welcome pull requests, bug fixes and issue reports.

@@ -104,7 +104,7 @@ var viewCmd = &cobra.Command{
 					if outFasta {
 						outfh.WriteString(fmt.Sprintf(">%d\n%s\n", kcode.Code, kcode.String()))
 					} else if outFastq {
-						outfh.WriteString(fmt.Sprintf(">%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
+						outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
 					} else if showCodeOnly {
 						outfh.WriteString(fmt.Sprintf("%d\n", kcode.Code))
 					} else if showCode {

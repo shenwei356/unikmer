@@ -334,10 +334,10 @@ Attention:
 							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
 								start >= 0 && lastmatch-start+k >= minLen {
 								if outputFASTA {
-									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k+1,
-										record.Seq.SubSeq(start+1, lastmatch+k+1).FormatSeq(60)))
+									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+										record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k+1))
+									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
 								}
 							}
 
@@ -367,7 +367,7 @@ Attention:
 						}
 					}
 
-					if c > 1 { // at least 2 continuous sites.
+					if c >= 1 { // at least 1 continuous sites.
 						lastmatch = i
 						lastNonUniqsNum = nonUniqsNum
 					}
@@ -385,10 +385,10 @@ Attention:
 						if lastNonUniqsNum <= maxContNonUniqKmersNum &&
 							start >= 0 && lastmatch-start+k >= minLen {
 							if outputFASTA {
-								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k+1,
-									record.Seq.SubSeq(start+1, lastmatch+k+1).FormatSeq(60)))
+								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+									record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
 							} else {
-								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k+1))
+								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
 							}
 						}
 						// re-count
@@ -402,10 +402,10 @@ Attention:
 			if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
 				start >= 0 && lastmatch-start+k >= minLen {
 				if outputFASTA {
-					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k+1,
-						record.Seq.SubSeq(start+1, lastmatch+k+1).FormatSeq(60)))
+					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+						record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
 				} else {
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k+1))
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
 				}
 			}
 		}
