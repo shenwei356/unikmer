@@ -8,6 +8,7 @@
         - fix bug for `-m/--min-len `.
     - `unikmer union`:
         - new option `-d/--repeated` for only printing duplicate k-mers.
+    - new command `unikmer dup` (experimental): find duplicated k-mers
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1
