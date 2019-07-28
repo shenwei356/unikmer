@@ -67,6 +67,7 @@ Attentions:
 		capacity := getFlagPositiveInt(cmd, "capacity")
 
 		ibf := boom.NewInverseBloomFilter(uint(capacity))
+		sbf := boom.NewDefaultScalableBloomFilter(0.0001)
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -143,8 +144,10 @@ Attentions:
 					// new kmers
 					be.PutUint64(buf, kcode.Code)
 					if ibf.TestAndAdd(buf) {
-						n++
-						writer.Write(kcode) // not need to check err
+						if !sbf.TestAndAdd(buf) {
+							n++
+							writer.Write(kcode) // not need to check err
+						}
 					}
 				}
 
