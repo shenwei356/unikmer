@@ -45,15 +45,14 @@ func init() {
 }
 
 func main() {
-	// go tool pprof ./unikmer pprof
-	// f, _ := os.Create("pprof")
-	// pprof.StartCPUProfile(f)
-	// defer pprof.StopCPUProfile()
+	// go tool pprof -http=:8080 cpu.pprof
+	// defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+
+	// go tool trace -http=:8080 trace.out
+	// defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
+
+	// go tool pprof -http=:8080 mem.pprof
+	// defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 
 	cmd.Execute()
-
-	// go tool pprof --alloc_space ./unikmer mprof
-	// f2, _ := os.Create("mprof")
-	// pprof.WriteHeapProfile(f2)
-	// defer f2.Close()
 }
