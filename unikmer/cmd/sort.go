@@ -57,6 +57,7 @@ var sortCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
+		repeated := getFlagBool(cmd, "repeated")
 
 		m := make([]uint64, 0, mapInitSize)
 
@@ -163,6 +164,26 @@ var sortCmd = &cobra.Command{
 				n++
 				writer.Write(unikmer.KmerCode{Code: code, K: k})
 			}
+		} else if repeated {
+			var last uint64 = ^uint64(0)
+			var count int
+			for _, code := range m {
+				if code == last {
+					count++
+				} else if count > 1 {
+					writer.Write(unikmer.KmerCode{Code: last, K: k})
+					n++
+					last = code
+					count = 1
+				} else {
+					last = code
+					count = 1
+				}
+			}
+			if count > 1 {
+				writer.Write(unikmer.KmerCode{Code: last, K: k})
+				n++
+			}
 		} else {
 			writer.Number = int64(len(m))
 			for _, code := range m {
@@ -171,6 +192,10 @@ var sortCmd = &cobra.Command{
 			n = len(m)
 		}
 
+		if n == 0 {
+			writer.Number = 0
+			checkError(writer.WriteHeader())
+		}
 		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d k-mers saved", n)
@@ -183,4 +208,5 @@ func init() {
 
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
+	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 }
