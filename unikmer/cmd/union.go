@@ -34,9 +34,8 @@ import (
 
 // unionCmd represents
 var unionCmd = &cobra.Command{
-	Use:     "union",
-	Aliases: []string{"uniq"},
-	Short:   "union of multiple binary files",
+	Use:   "union",
+	Short: "union of multiple binary files",
 	Long: `union of multiple binary files
 
 Attentions:
