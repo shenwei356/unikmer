@@ -1,4 +1,4 @@
-// Copyright © 2018 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ import (
 var ErrIllegalBase = errors.New("unikmer: illegal base")
 
 // ErrKOverflow means K > 32.
-var ErrKOverflow = errors.New("unikmer: K-mer size (1-32) overflow")
+var ErrKOverflow = errors.New("unikmer: k-mer size (1-32) overflow")
 
 // ErrCodeOverflow means the encode interger is bigger than 4^k
 var ErrCodeOverflow = errors.New("unikmer: code value overflow")
@@ -91,10 +91,10 @@ func init() {
 //
 // Codes:
 //
-// 	  A    00
-// 	  C    01
-// 	  G    10
-// 	  T    11
+// 	  A    0b00
+// 	  C    0b01
+// 	  G    0b10
+// 	  T    0b11
 //
 // For degenerate bases, only the first base is kept.
 //
