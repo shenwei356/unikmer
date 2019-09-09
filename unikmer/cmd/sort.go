@@ -25,8 +25,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
+	"sync"
 
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
@@ -55,12 +57,20 @@ var sortCmd = &cobra.Command{
 
 		checkFiles(extDataFile, files...)
 
-		outFile := getFlagString(cmd, "out-prefix")
+		outFile0 := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
 		repeated := getFlagBool(cmd, "repeated")
+		tmpDir := getFlagString(cmd, "tmp-dir")
+
+		maxMem, err := ParseByteSize(getFlagString(cmd, "max-mem"))
+		if err != nil {
+			checkError(fmt.Errorf("parsing byte size: %s", err))
+		}
+		maxElem := maxMem >> 3 // uint64 == 8 bytes
 
 		m := make([]uint64, 0, mapInitSize)
 
+		outFile := outFile0
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
@@ -82,9 +92,18 @@ var sortCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 		var k int = -1
 		var canonical bool
+		var mode uint32
 		var firstFile = true
 		var flag int
 		var nfiles = len(files)
+
+		var tmpFiles []string
+		var iTmpFile int
+		var hasTmpFile bool
+
+		var wg sync.WaitGroup
+		tokens := make(chan int, opt.NumCPUs)
+
 		for i, file := range files {
 			if !firstFile && file == files[0] {
 				continue
@@ -106,7 +125,6 @@ var sortCmd = &cobra.Command{
 					k = reader.K
 					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 
-					var mode uint32
 					if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
@@ -133,6 +151,40 @@ var sortCmd = &cobra.Command{
 
 					m = append(m, kcode.Code)
 
+					if maxElem > 0 && len(m) >= maxElem {
+						if !hasTmpFile {
+							tmpFiles = make([]string, 0, 10)
+							hasTmpFile = true
+						}
+						iTmpFile++
+						outFile1 := tmpFileName(tmpDir, outFile0, iTmpFile)
+						tmpFiles = append(tmpFiles, outFile1)
+
+						wg.Add(1)
+						tokens <- 1
+						go func(m []uint64, iTmpFile int, outFile string) {
+							defer func() {
+								wg.Done()
+								<-tokens
+							}()
+
+							if opt.Verbose {
+								log.Infof("[part %d] sorting %d k-mers", iTmpFile, len(m))
+							}
+							sort.Sort(unikmer.CodeSlice(m))
+							if opt.Verbose {
+								log.Infof("[part %d] done sorting", iTmpFile)
+							}
+
+							dumpCodes2File(m, k, mode, outFile, opt)
+							if opt.Verbose {
+								log.Infof("[part %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
+							}
+						}(m, iTmpFile, outFile1)
+
+						m = make([]uint64, 0, mapInitSize)
+					}
+
 				}
 
 				return flagContinue
@@ -145,6 +197,43 @@ var sortCmd = &cobra.Command{
 			}
 		}
 
+		// remaining k-mers in memory
+		if hasTmpFile {
+			// dump remaining k-mers to file
+			if len(m) > 0 {
+				iTmpFile++
+				outFile1 := tmpFileName(tmpDir, outFile0, iTmpFile)
+				tmpFiles = append(tmpFiles, outFile1)
+
+				wg.Add(1)
+				tokens <- 1
+				go func(m []uint64, iTmpFile int, outFile string) {
+					defer func() {
+						wg.Done()
+						<-tokens
+					}()
+
+					if opt.Verbose {
+						log.Infof("[part %d] sorting %d k-mers", iTmpFile, len(m))
+					}
+					sort.Sort(unikmer.CodeSlice(m))
+					if opt.Verbose {
+						log.Infof("[part %d] done sorting", iTmpFile)
+					}
+
+					dumpCodes2File(m, k, mode, outFile, opt)
+					if opt.Verbose {
+						log.Infof("[part %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
+					}
+				}(m, iTmpFile, outFile1)
+			}
+
+			wg.Wait()
+
+			return
+		}
+
+		// all k-mers are stored in memory
 		if opt.Verbose {
 			log.Infof("sorting %d k-mers", len(m))
 		}
@@ -209,4 +298,16 @@ func init() {
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
+	sortCmd.Flags().StringP("max-mem", "m", "", `maximum memory to use, supports K/M/G suffix`)
+	sortCmd.Flags().StringP("tmp-dir", "t", "./", `temp directory for intermediate files`)
+}
+
+func tmpFileName(tmpDir string, outFile0 string, i int) string {
+	var outFile string
+	if isStdout(outFile0) {
+		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_%d", "stdout", i))
+	} else {
+		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_%d", outFile0, i))
+	}
+	return outFile + extDataFile
 }
