@@ -38,7 +38,8 @@ var filterCmd = &cobra.Command{
 	Long: `filter low-complexity k-mers
 
 Attentions:
-  1. this command only detects single base repeat now
+  1. this command only detects single base repeat now.
+  2. output stream uses same flag as input, avoid repeatedly sorting sorted input.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -54,6 +55,10 @@ Attentions:
 			checkError(err)
 		} else {
 			files = getFileList(args)
+		}
+
+		if len(files) > 1 {
+			checkError(fmt.Errorf("no more than one file should be given"))
 		}
 
 		checkFiles(extDataFile, files...)
@@ -108,16 +113,7 @@ Attentions:
 						repeatLen = k
 					}
 
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
-
-					var mode uint32
-					if opt.Compact {
-						mode |= unikmer.UNIK_COMPACT
-					}
-					if canonical {
-						mode |= unikmer.UNIK_CANONICAL
-					}
-					writer, err = unikmer.NewWriter(outfh, k, mode)
+					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
 					checkError(err)
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
