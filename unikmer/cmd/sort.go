@@ -443,7 +443,7 @@ func tmpFileName(tmpDir string, outFile0 string, i int) string {
 	if isStdout(outFile0) {
 		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", "stdout", i))
 	} else {
-		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", outFile0, i))
+		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", filepath.Base(outFile0), i))
 	}
 	return outFile + extDataFile
 }
