@@ -1,4 +1,5 @@
 - v0.7.0
+    - new command `unikmer filter`: filter low-complexity k-mers
     - `unikmer view`:
         - new option `-N/--show-code-only` for only showing encoded integers.
         - fix output error for `-q/--fastq`.
@@ -12,7 +13,6 @@
         - new option `-u/--unique` for removing duplicated k-mers.
         - new option `-d/--repeated` for only printing duplicate k-mers.
         - new option `-m/--max-mem` for limiting maximum memory for sorting.
-        - support external sorting
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1

@@ -93,6 +93,7 @@ without frequency information.
         diff            set difference of multiple binary files
         sample          sample k-mers from binary files
         sort            sort k-mers in binary files to reduce file size
+        filter          filter low-complexity k-mers
 
 1. Searching
 
