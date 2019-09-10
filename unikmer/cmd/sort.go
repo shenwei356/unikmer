@@ -240,7 +240,7 @@ Note:
 			wg.Wait()
 
 			// merge sort
-
+			// this implemention was heavily inspired by https://github.com/oxtoacart/emsort/blob/master/emsort.go
 			if opt.Verbose {
 				log.Infof("merging from %d chunk files", len(tmpFiles))
 			}
@@ -413,9 +413,9 @@ func init() {
 func tmpFileName(tmpDir string, outFile0 string, i int) string {
 	var outFile string
 	if isStdout(outFile0) {
-		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_%d", "stdout", i))
+		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", "stdout", i))
 	} else {
-		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_%d", outFile0, i))
+		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", outFile0, i))
 	}
 	return outFile + extDataFile
 }
