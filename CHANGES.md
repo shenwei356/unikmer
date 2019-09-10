@@ -1,14 +1,17 @@
-- v0.6.3
-    - `unikmer view`: 
+- v0.7.0
+    - `unikmer view`:
         - new option `-N/--show-code-only` for only showing encoded integers.
         - fix output error for `-q/--fastq`.
     - `unikmer uniqs`:
         - new option `-x/--max-cont-non-uniq-kmers` for limiting max continuous non-unique k-mers.
         - new option `-X/--max-num-cont-non-uniq-kmers` for limiting max number of continuous non-unique k-mers.
-        - fix bug for `-m/--min-len `.
+        - fix bug for `-m/--min-len`.
     - `unikmer union`:
         - new option `-d/--repeated` for only printing duplicate k-mers.
     - `unikmer sort`:
+        - new option `-u/--unique` for removing duplicated k-mers.
+        - new option `-d/--repeated` for only printing duplicate k-mers.
+        - new option `-m/--max-mem` for limiting maximum memory for sorting.
         - support external sorting
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)

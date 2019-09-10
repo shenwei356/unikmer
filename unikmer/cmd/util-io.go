@@ -32,7 +32,7 @@ import (
 )
 
 // BufferSize is size of buffer
-var BufferSize = 65536 // os.Getpagesize()
+var BufferSize = 65536 //os.Getpagesize()
 
 func outStream(file string, gzipped bool, level int) (*bufio.Writer, io.WriteCloser, *os.File, error) {
 	var w *os.File
@@ -86,7 +86,8 @@ func inStream(file string) (*bufio.Reader, *os.File, bool, error) {
 	if gzipped, err = isGzip(br); err != nil {
 		return nil, nil, gzipped, fmt.Errorf("fail to check is file (%s) gzipped: %s", file, err)
 	} else if gzipped {
-		gr, err := gzip.NewReader(br)
+		// gr, err := gzip.NewReader(br)
+		gr, err := gzip.NewReaderN(br, 65536, 8)
 		if err != nil {
 			return nil, r, gzipped, fmt.Errorf("fail to create gzip reader for %s: %s", file, err)
 		}

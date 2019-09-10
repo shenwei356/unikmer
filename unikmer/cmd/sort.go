@@ -42,9 +42,9 @@ var sortCmd = &cobra.Command{
 	Long: `sort k-mers in binary files to reduce file size
 
 Note:
-  1. use -m/--max-mem to limit memory usage, 
-	 although not precise due to GC of golang
-	 1). increase value of -j/--threads to accelerate first (splitting) stage.
+  1. You can use -m/--max-mem to limit memory usage, though which is not precise
+     and actually RSS is higher. One 
+  2. Increasing value of -j/--threads can slighly accelerates splitting stage.   
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -109,6 +109,7 @@ Note:
 		var tmpFiles []string
 		var iTmpFile int
 		var hasTmpFile bool
+		limitMem := maxElem > 0
 
 		var wg sync.WaitGroup
 		tokens := make(chan int, opt.NumCPUs)
@@ -160,7 +161,7 @@ Note:
 
 					m = append(m, kcode.Code)
 
-					if maxElem > 0 && len(m) >= maxElem {
+					if limitMem && len(m) >= maxElem {
 						if !hasTmpFile {
 							tmpFiles = make([]string, 0, 10)
 							hasTmpFile = true
@@ -222,16 +223,16 @@ Note:
 					}()
 
 					if opt.Verbose {
-						log.Infof("[part %d] sorting %d k-mers", iTmpFile, len(m))
+						log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
 					}
 					sort.Sort(unikmer.CodeSlice(m))
 					if opt.Verbose {
-						log.Infof("[part %d] done sorting", iTmpFile)
+						log.Infof("[chunk %d] done sorting", iTmpFile)
 					}
 
 					dumpCodes2File(m, k, mode, outFile, opt)
 					if opt.Verbose {
-						log.Infof("[part %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
+						log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
 					}
 				}(m, iTmpFile, outFile1)
 			}
@@ -240,6 +241,7 @@ Note:
 			wg.Wait()
 
 			// merge sort
+
 			// this implemention was heavily inspired by https://github.com/oxtoacart/emsort/blob/master/emsort.go
 			if opt.Verbose {
 				log.Infof("merging from %d chunk files", len(tmpFiles))
@@ -307,6 +309,10 @@ Note:
 
 			var e *codeEntry
 			var n int64
+			var last uint64 = ^uint64(0)
+			var code uint64
+			var count int
+
 			for {
 				if len(*(codes.entries)) == 0 {
 					checkError(fillBuffer())
@@ -314,10 +320,32 @@ Note:
 				if len(*(codes.entries)) == 0 {
 					break
 				}
-				e = heap.Pop(codes).(*codeEntry)
 
-				writer.Write(unikmer.KmerCode{Code: e.code, K: k})
-				n++
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+
+				if unique {
+					if code != last {
+						last = code
+						n++
+						writer.Write(unikmer.KmerCode{Code: code, K: k})
+					}
+				} else if repeated {
+					if code == last {
+						count++
+					} else if count > 1 {
+						writer.Write(unikmer.KmerCode{Code: last, K: k})
+						n++
+						last = code
+						count = 1
+					} else {
+						last = code
+						count = 1
+					}
+				} else {
+					writer.Write(unikmer.KmerCode{Code: code, K: k})
+					n++
+				}
 
 				reader = readers[e.idx]
 				if reader != nil {
@@ -406,8 +434,8 @@ func init() {
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
-	sortCmd.Flags().StringP("max-mem", "m", "", `maximum memory to use, supports K/M/G suffix`)
-	sortCmd.Flags().StringP("tmp-dir", "t", "./", `temp directory for intermediate files`)
+	sortCmd.Flags().StringP("max-mem", "m", "", `limit maximum memory for sorting, supports K/M/G suffix, type "unikmer sort -h" for detail`)
+	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 }
 
 func tmpFileName(tmpDir string, outFile0 string, i int) string {
