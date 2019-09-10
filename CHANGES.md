@@ -12,7 +12,7 @@
     - `unikmer sort`:
         - new option `-u/--unique` for removing duplicated k-mers.
         - new option `-d/--repeated` for only printing duplicate k-mers.
-        - new option `-m/--max-mem` for limiting maximum memory for sorting.
+        - new option `-m/--chunk-size` for limiting maximum memory for sorting.
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1

@@ -42,9 +42,10 @@ var sortCmd = &cobra.Command{
 	Long: `sort k-mers in binary files to reduce file size
 
 Note:
-  1. You can use -m/--max-mem to limit memory usage, though which is not precise
-     and actually RSS is higher. One 
-  2. Increasing value of -j/--threads can slighly accelerates splitting stage.   
+  1. You can use -m/--chunk-size to limit memory usage, though which is not precise
+     and actually RSS is higher than -m * -j.
+  2. Increasing value of -j/--threads can slighly accelerates splitting stage,
+     while memory occupation increases.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -69,7 +70,7 @@ Note:
 		repeated := getFlagBool(cmd, "repeated")
 		tmpDir := getFlagString(cmd, "tmp-dir")
 
-		maxMem, err := ParseByteSize(getFlagString(cmd, "max-mem"))
+		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
 		if err != nil {
 			checkError(fmt.Errorf("parsing byte size: %s", err))
 		}
@@ -289,10 +290,12 @@ Note:
 
 			entries := make([]*codeEntry, 0, maxElem)
 			codes := codeEntryHeap{entries: &entries}
-			maxChunkElem := maxElem / (len(tmpFiles) + 1)
-			if maxChunkElem < 1 {
-				maxChunkElem = 1
-			}
+
+			// maxChunkElem := maxElem / (len(tmpFiles) + 1)
+			// if maxChunkElem < 1 {
+			// 	maxChunkElem = 1
+			// }
+			maxChunkElem := 1
 
 			fillBuffer := func() error {
 				var err error
@@ -448,7 +451,7 @@ func init() {
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
-	sortCmd.Flags().StringP("max-mem", "m", "", `limit maximum memory for sorting, supports K/M/G suffix, type "unikmer sort -h" for detail`)
+	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 }
 

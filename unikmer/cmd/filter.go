@@ -169,7 +169,7 @@ func init() {
 	RootCmd.AddCommand(filterCmd)
 
 	filterCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	filterCmd.Flags().IntP("repeat-len", "n", 5, `minimum length of single base repeat`)
+	filterCmd.Flags().IntP("repeat-len", "n", 8, `minimum length of single base repeat`)
 	filterCmd.Flags().BoolP("invert", "v", false, `invert result, i.e., output low-complexity k-mers`)
 }
 
