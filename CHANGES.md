@@ -8,6 +8,8 @@
         - fix bug for `-m/--min-len `.
     - `unikmer union`:
         - new option `-d/--repeated` for only printing duplicate k-mers.
+    - `unikmer sort`:
+        - support external sorting
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1

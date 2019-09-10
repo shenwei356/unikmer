@@ -22,6 +22,7 @@ package cmd
 
 import (
 	"bufio"
+	"container/heap"
 	"fmt"
 	"io"
 	"os"
@@ -39,6 +40,12 @@ var sortCmd = &cobra.Command{
 	Use:   "sort",
 	Short: "sort k-mers in binary files to reduce file size",
 	Long: `sort k-mers in binary files to reduce file size
+
+Note:
+  1. use -m/--max-mem to limit memory usage, 
+	 although not precise due to GC of golang
+	 1). increase value of -j/--threads to accelerate first (splitting) stage.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
@@ -67,7 +74,9 @@ var sortCmd = &cobra.Command{
 			checkError(fmt.Errorf("parsing byte size: %s", err))
 		}
 		maxElem := maxMem >> 3 // uint64 == 8 bytes
-
+		if maxMem > 0 && maxElem < 1 {
+			maxElem = 1
+		}
 		m := make([]uint64, 0, mapInitSize)
 
 		outFile := outFile0
@@ -169,16 +178,16 @@ var sortCmd = &cobra.Command{
 							}()
 
 							if opt.Verbose {
-								log.Infof("[part %d] sorting %d k-mers", iTmpFile, len(m))
+								log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
 							}
 							sort.Sort(unikmer.CodeSlice(m))
 							if opt.Verbose {
-								log.Infof("[part %d] done sorting", iTmpFile)
+								log.Infof("[chunk %d] done sorting", iTmpFile)
 							}
 
 							dumpCodes2File(m, k, mode, outFile, opt)
 							if opt.Verbose {
-								log.Infof("[part %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
+								log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
 							}
 						}(m, iTmpFile, outFile1)
 
@@ -197,7 +206,6 @@ var sortCmd = &cobra.Command{
 			}
 		}
 
-		// remaining k-mers in memory
 		if hasTmpFile {
 			// dump remaining k-mers to file
 			if len(m) > 0 {
@@ -228,12 +236,112 @@ var sortCmd = &cobra.Command{
 				}(m, iTmpFile, outFile1)
 			}
 
+			// wait all k-mers being wrote to files
 			wg.Wait()
 
+			// merge sort
+
+			if opt.Verbose {
+				log.Infof("merging from %d chunk files", len(tmpFiles))
+			}
+
+			readers := make(map[int]*unikmer.Reader, len(tmpFiles))
+			fhs := make([]*os.File, len(tmpFiles))
+
+			for i, file := range tmpFiles {
+				infh, fh, _, err := inStream(file)
+				checkError(err)
+				fhs = append(fhs, fh)
+
+				reader, err := unikmer.NewReader(infh)
+				checkError(err)
+				readers[i] = reader
+			}
+			defer func() {
+				for _, fh := range fhs {
+					fh.Close()
+				}
+
+				for _, file := range tmpFiles {
+					err := os.Remove(file)
+					if err != nil {
+						checkError(fmt.Errorf("fail to remove intermediate file: %s", file))
+					}
+				}
+
+			}()
+
+			entries := make([]*codeEntry, 0, maxElem)
+			codes := codeEntryHeap{entries: &entries}
+			maxChunkElem := maxElem / (len(tmpFiles) + 1)
+			if maxChunkElem < 1 {
+				maxChunkElem = 1
+			}
+
+			fillBuffer := func() error {
+				var err error
+				var kcode unikmer.KmerCode
+				var reader *unikmer.Reader
+				for i := 0; i < len(readers); i++ {
+					reader = readers[i]
+					n := 0
+					for {
+						kcode, err = reader.Read()
+						if err != nil {
+							if err == io.EOF {
+								delete(readers, i)
+								break
+							}
+							checkError(fmt.Errorf("faild to fill bufer from file '%s': %s", tmpFiles[i], err))
+						}
+						n++
+						heap.Push(codes, &codeEntry{idx: i, code: kcode.Code})
+						if n >= maxChunkElem {
+							break
+						}
+					}
+				}
+
+				return nil
+			}
+
+			var e *codeEntry
+			var n int64
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
+				e = heap.Pop(codes).(*codeEntry)
+
+				writer.Write(unikmer.KmerCode{Code: e.code, K: k})
+				n++
+
+				reader = readers[e.idx]
+				if reader != nil {
+					kcode, err = reader.Read()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", tmpFiles[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{e.idx, kcode.Code})
+				}
+			}
+
+			checkError(writer.Flush())
+			if opt.Verbose {
+				log.Infof("%d k-mers saved", n)
+			}
 			return
 		}
 
 		// all k-mers are stored in memory
+
 		if opt.Verbose {
 			log.Infof("sorting %d k-mers", len(m))
 		}
@@ -310,4 +418,34 @@ func tmpFileName(tmpDir string, outFile0 string, i int) string {
 		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_%d", outFile0, i))
 	}
 	return outFile + extDataFile
+}
+
+type codeEntry struct {
+	idx  int // chunk file index
+	code uint64
+}
+
+type codeEntryHeap struct {
+	entries *[]*codeEntry
+}
+
+func (h codeEntryHeap) Len() int { return len(*(h.entries)) }
+
+func (h codeEntryHeap) Less(i, j int) bool {
+	return (*(h.entries))[i].code < (*(h.entries))[j].code
+}
+
+func (h codeEntryHeap) Swap(i, j int) {
+	(*(h.entries))[i], (*(h.entries))[j] = (*(h.entries))[j], (*(h.entries))[i]
+}
+
+func (h codeEntryHeap) Push(x interface{}) {
+	*(h.entries) = append(*(h.entries), x.(*codeEntry))
+}
+
+func (h codeEntryHeap) Pop() interface{} {
+	n := len(*(h.entries))
+	x := (*(h.entries))[n-1]
+	*(h.entries) = (*(h.entries))[:n-1]
+	return x
 }
