@@ -165,9 +165,19 @@ Note:
 						if !hasTmpFile {
 							tmpFiles = make([]string, 0, 10)
 							hasTmpFile = true
+
+							if isStdout(outFile0) {
+								tmpDir = filepath.Join(tmpDir, "stdout")
+							} else {
+								tmpDir = filepath.Join(tmpDir, filepath.Base(outFile0)+".tmp")
+							}
+							err = os.MkdirAll(tmpDir, 0755)
+							if err != nil {
+								checkError(fmt.Errorf("fail to create temp directory: %s", tmpDir))
+							}
 						}
 						iTmpFile++
-						outFile1 := tmpFileName(tmpDir, outFile0, iTmpFile)
+						outFile1 := tmpFileName(tmpDir, iTmpFile)
 						tmpFiles = append(tmpFiles, outFile1)
 
 						wg.Add(1)
@@ -211,7 +221,7 @@ Note:
 			// dump remaining k-mers to file
 			if len(m) > 0 {
 				iTmpFile++
-				outFile1 := tmpFileName(tmpDir, outFile0, iTmpFile)
+				outFile1 := tmpFileName(tmpDir, iTmpFile)
 				tmpFiles = append(tmpFiles, outFile1)
 
 				wg.Add(1)
@@ -271,6 +281,10 @@ Note:
 					}
 				}
 
+				err := os.Remove(tmpDir)
+				if err != nil {
+					checkError(fmt.Errorf("fail to remove temp directory: %s", tmpDir))
+				}
 			}()
 
 			entries := make([]*codeEntry, 0, maxElem)
@@ -438,14 +452,8 @@ func init() {
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 }
 
-func tmpFileName(tmpDir string, outFile0 string, i int) string {
-	var outFile string
-	if isStdout(outFile0) {
-		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", "stdout", i))
-	} else {
-		outFile = filepath.Join(tmpDir, fmt.Sprintf("%s_chunk_%d", filepath.Base(outFile0), i))
-	}
-	return outFile + extDataFile
+func tmpFileName(tmpDir string, i int) string {
+	return filepath.Join(tmpDir, fmt.Sprintf("chunk_%d", i)) + extDataFile
 }
 
 type codeEntry struct {
