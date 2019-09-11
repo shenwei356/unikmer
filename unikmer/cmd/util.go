@@ -24,6 +24,7 @@ import (
 	"compress/flate"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -330,4 +331,8 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 		writer.Write(unikmer.KmerCode{Code: code, K: k})
 	}
 	checkError(writer.Flush())
+}
+
+func chunFileName(outDir string, i int) string {
+	return filepath.Join(outDir, fmt.Sprintf("chunk_%d", i)) + extDataFile
 }

@@ -178,7 +178,7 @@ Tips:
 							}
 						}
 						iTmpFile++
-						outFile1 := tmpFileName(tmpDir, iTmpFile)
+						outFile1 := chunFileName(tmpDir, iTmpFile)
 						tmpFiles = append(tmpFiles, outFile1)
 
 						wg.Add(1)
@@ -222,7 +222,7 @@ Tips:
 			// dump remaining k-mers to file
 			if len(m) > 0 {
 				iTmpFile++
-				outFile1 := tmpFileName(tmpDir, iTmpFile)
+				outFile1 := chunFileName(tmpDir, iTmpFile)
 				tmpFiles = append(tmpFiles, outFile1)
 
 				wg.Add(1)
@@ -449,10 +449,6 @@ func init() {
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
-}
-
-func tmpFileName(tmpDir string, i int) string {
-	return filepath.Join(tmpDir, fmt.Sprintf("chunk_%d", i)) + extDataFile
 }
 
 type codeEntry struct {

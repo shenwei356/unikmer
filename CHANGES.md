@@ -1,5 +1,6 @@
 - v0.7.0
-    - new command `unikmer filter`: filter low-complexity k-mers
+    - new command `unikmer filter`: filter low-complexity k-mers.
+    - new command `unikmer split`: split k-mers into sorted chunk files.
     - `unikmer view`:
         - new option `-N/--show-code-only` for only showing encoded integers.
         - fix output error for `-q/--fastq`.
