@@ -107,6 +107,10 @@ var mergeCmd = &cobra.Command{
 			if opt.Verbose {
 				log.Infof("%d chunk files found in %d dir(s)", n, N)
 			}
+
+			if n == 0 {
+				return
+			}
 		}
 
 		if opt.Verbose {
@@ -119,7 +123,14 @@ var mergeCmd = &cobra.Command{
 		var k int = -1
 		var canonical bool
 		var mode uint32
+
+		_files := make([]string, 0, len(files))
 		for _, file := range files {
+			if isStdout(file) {
+				log.Warningf("skip stdin")
+				continue
+			}
+			_files = append(_files, file)
 			func() {
 				infh, r, _, err = inStream(file)
 				checkError(err)
@@ -155,6 +166,12 @@ var mergeCmd = &cobra.Command{
 			checkError(fmt.Errorf("please check chunk files: %d with different K, %d with different canonical flag, %d not sorted", nUnequalK, nNotConsC, nNotSorted))
 		}
 
+		files = _files
+
+		if len(files) == 0 {
+			log.Warningf("no valid chunk files given")
+			return
+		}
 		if opt.Verbose {
 			log.Infof("merging from %d chunk files", len(files))
 		}
