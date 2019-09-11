@@ -91,11 +91,11 @@ var mergeCmd = &cobra.Command{
 				for _, file := range list {
 					filename = file.Name()
 
-					if filename[0] == '.' || file.IsDir() || !reChunFile.MatchString(filepath.Base(filename)) {
+					if filename[0] == '.' || file.IsDir() || !reChunFile.MatchString(filename) {
 						continue
 					}
 
-					_files = append(_files, filename)
+					_files = append(_files, filepath.Join(dir, filename))
 					n++
 				}
 				if opt.Verbose {
@@ -156,7 +156,7 @@ var mergeCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Infof("merging from %d chunk file", len(files))
+			log.Infof("merging from %d chunk files", len(files))
 		}
 
 		// merge
