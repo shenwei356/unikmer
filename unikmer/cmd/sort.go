@@ -22,7 +22,6 @@ package cmd
 
 import (
 	"bufio"
-	"container/heap"
 	"fmt"
 	"io"
 	"os"
@@ -178,7 +177,7 @@ Tips:
 							}
 						}
 						iTmpFile++
-						outFile1 := chunFileName(tmpDir, iTmpFile)
+						outFile1 := chunkFileName(tmpDir, iTmpFile)
 						tmpFiles = append(tmpFiles, outFile1)
 
 						wg.Add(1)
@@ -222,7 +221,7 @@ Tips:
 			// dump remaining k-mers to file
 			if len(m) > 0 {
 				iTmpFile++
-				outFile1 := chunFileName(tmpDir, iTmpFile)
+				outFile1 := chunkFileName(tmpDir, iTmpFile)
 				tmpFiles = append(tmpFiles, outFile1)
 
 				wg.Add(1)
@@ -258,130 +257,28 @@ Tips:
 				log.Infof("merging from %d chunk files", len(tmpFiles))
 			}
 
-			readers := make(map[int]*unikmer.Reader, len(tmpFiles))
-			fhs := make([]*os.File, len(tmpFiles))
-
-			for i, file := range tmpFiles {
-				infh, fh, _, err := inStream(file)
-				checkError(err)
-				fhs = append(fhs, fh)
-
-				reader, err := unikmer.NewReader(infh)
-				checkError(err)
-				readers[i] = reader
-			}
-			defer func() {
-				for _, fh := range fhs {
-					fh.Close()
-				}
-
-				for _, file := range tmpFiles {
-					err := os.Remove(file)
-					if err != nil {
-						checkError(fmt.Errorf("fail to remove intermediate file: %s", file))
+			func() {
+				defer func() {
+					for _, file := range tmpFiles {
+						err := os.Remove(file)
+						if err != nil {
+							checkError(fmt.Errorf("fail to remove intermediate file: %s", file))
+						}
 					}
-				}
 
-				err := os.Remove(tmpDir)
-				if err != nil {
-					checkError(fmt.Errorf("fail to remove temp directory: %s", tmpDir))
+					err := os.Remove(tmpDir)
+					if err != nil {
+						checkError(fmt.Errorf("fail to remove temp directory: %s", tmpDir))
+					}
+				}()
+
+				n, _ := mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated)
+
+				if opt.Verbose {
+					log.Infof("%d k-mers saved to %s", n, outFile)
 				}
 			}()
 
-			entries := make([]*codeEntry, 0, maxElem)
-			codes := codeEntryHeap{entries: &entries}
-
-			// maxChunkElem := maxElem / (len(tmpFiles) + 1)
-			// if maxChunkElem < 1 {
-			// 	maxChunkElem = 1
-			// }
-			maxChunkElem := 1
-
-			fillBuffer := func() error {
-				var err error
-				var kcode unikmer.KmerCode
-				var reader *unikmer.Reader
-				for i := 0; i < len(readers); i++ {
-					reader = readers[i]
-					n := 0
-					for {
-						kcode, err = reader.Read()
-						if err != nil {
-							if err == io.EOF {
-								delete(readers, i)
-								break
-							}
-							checkError(fmt.Errorf("faild to fill bufer from file '%s': %s", tmpFiles[i], err))
-						}
-						n++
-						heap.Push(codes, &codeEntry{idx: i, code: kcode.Code})
-						if n >= maxChunkElem {
-							break
-						}
-					}
-				}
-
-				return nil
-			}
-
-			var e *codeEntry
-			var n int64
-			var last uint64 = ^uint64(0)
-			var code uint64
-			var count int
-
-			for {
-				if len(*(codes.entries)) == 0 {
-					checkError(fillBuffer())
-				}
-				if len(*(codes.entries)) == 0 {
-					break
-				}
-
-				e = heap.Pop(codes).(*codeEntry)
-				code = e.code
-
-				if unique {
-					if code != last {
-						last = code
-						n++
-						writer.Write(unikmer.KmerCode{Code: code, K: k})
-					}
-				} else if repeated {
-					if code == last {
-						count++
-					} else if count > 1 {
-						writer.Write(unikmer.KmerCode{Code: last, K: k})
-						n++
-						last = code
-						count = 1
-					} else {
-						last = code
-						count = 1
-					}
-				} else {
-					writer.Write(unikmer.KmerCode{Code: code, K: k})
-					n++
-				}
-
-				reader = readers[e.idx]
-				if reader != nil {
-					kcode, err = reader.Read()
-					if err != nil {
-						if err == io.EOF {
-							delete(readers, e.idx)
-							continue
-						}
-						checkError(fmt.Errorf("faild to read from file '%s': %s", tmpFiles[e.idx], err))
-					}
-					heap.Push(codes, &codeEntry{e.idx, kcode.Code})
-				}
-			}
-
-			checkError(writer.Flush())
-			if opt.Verbose {
-				log.Infof("%d k-mers saved", n)
-			}
 			return
 		}
 
@@ -449,34 +346,4 @@ func init() {
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
-}
-
-type codeEntry struct {
-	idx  int // chunk file index
-	code uint64
-}
-
-type codeEntryHeap struct {
-	entries *[]*codeEntry
-}
-
-func (h codeEntryHeap) Len() int { return len(*(h.entries)) }
-
-func (h codeEntryHeap) Less(i, j int) bool {
-	return (*(h.entries))[i].code < (*(h.entries))[j].code
-}
-
-func (h codeEntryHeap) Swap(i, j int) {
-	(*(h.entries))[i], (*(h.entries))[j] = (*(h.entries))[j], (*(h.entries))[i]
-}
-
-func (h codeEntryHeap) Push(x interface{}) {
-	*(h.entries) = append(*(h.entries), x.(*codeEntry))
-}
-
-func (h codeEntryHeap) Pop() interface{} {
-	n := len(*(h.entries))
-	x := (*(h.entries))[n-1]
-	*(h.entries) = (*(h.entries))[:n-1]
-	return x
 }

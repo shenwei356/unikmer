@@ -118,6 +118,7 @@ Attention:
 		var kcode, kcode2 unikmer.KmerCode
 		var kmer []byte
 		var ok bool
+		var n int64
 		for {
 			kcode, err = reader.Read()
 			if err != nil {
@@ -146,6 +147,9 @@ Attention:
 		}
 
 		checkError(writer.Flush())
+		if opt.Verbose {
+			log.Infof("%d k-mers saved to %s", n, outFile)
+		}
 	},
 }
 

@@ -158,7 +158,7 @@ var splitCmd = &cobra.Command{
 
 					if limitMem && len(m) >= maxElem {
 						iTmpFile++
-						outFile1 := chunFileName(outDir, iTmpFile)
+						outFile1 := chunkFileName(outDir, iTmpFile)
 
 						wg.Add(1)
 						tokens <- 1
@@ -201,7 +201,7 @@ var splitCmd = &cobra.Command{
 		// dump remaining k-mers to file
 		if len(m) > 0 {
 			iTmpFile++
-			outFile1 := chunFileName(outDir, iTmpFile)
+			outFile1 := chunkFileName(outDir, iTmpFile)
 
 			wg.Add(1)
 			tokens <- 1

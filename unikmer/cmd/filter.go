@@ -157,11 +157,10 @@ Attentions:
 			}
 		}
 
-		if n == 0 {
-			writer.Number = 0
-			checkError(writer.WriteHeader())
-		}
 		checkError(writer.Flush())
+		if opt.Verbose {
+			log.Infof("%d k-mers saved to %s", n, outFile)
+		}
 	},
 }
 

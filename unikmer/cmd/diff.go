@@ -182,7 +182,7 @@ Tips:
 
 				checkError(writer.Flush())
 				if opt.Verbose {
-					log.Infof("%d k-mers saved", len(m))
+					log.Infof("%d k-mers saved to %s", len(m), outFile)
 				}
 			}()
 
@@ -259,7 +259,7 @@ Tips:
 			checkError(writer.Flush())
 
 			if opt.Verbose {
-				log.Infof("%d k-mers saved", 0)
+				log.Infof("%d k-mers saved to %s", 0, outFile)
 			}
 			return
 		}
@@ -544,7 +544,7 @@ Tips:
 		}
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d k-mers saved", len(m0))
+			log.Infof("%d k-mers saved to %s", len(m0), outFile)
 		}
 	},
 }

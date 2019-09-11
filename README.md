@@ -87,13 +87,17 @@ without frequency information.
 
 1. Set operations
 
+        concat          concatenate multiple binary files without removing duplicates
         inter           intersection of multiple binary files
         union           union of multiple binary files
-        concat          concatenate multiple binary files without removing duplicates
         diff            set difference of multiple binary files
-        sample          sample k-mers from binary files
-        sort            sort k-mers in binary files to reduce file size
         filter          filter low-complexity k-mers
+
+        sort            sort k-mers in binary files to reduce file size
+        split           split k-mers into sorted chunk files
+        merge           merge from sorted chunk files
+
+        sample          sample k-mers from binary files
 
 1. Searching
 

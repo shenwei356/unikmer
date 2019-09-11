@@ -214,7 +214,7 @@ var countCmd = &cobra.Command{
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d unique k-mers saved", n)
+			log.Infof("%d unique k-mers saved to %s", n, outFile)
 		}
 	},
 }

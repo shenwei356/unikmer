@@ -166,7 +166,7 @@ Attentions:
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d k-mers saved", n)
+			log.Infof("%d k-mers saved to %s", n, outFile)
 		}
 	},
 }

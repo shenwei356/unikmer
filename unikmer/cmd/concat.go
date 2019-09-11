@@ -82,6 +82,7 @@ Attentions:
 		var k int = -1
 		var canonical bool
 		var flag int
+		var n int64
 		var nfiles = len(files)
 		for i, file := range files {
 			if opt.Verbose {
@@ -125,6 +126,7 @@ Attentions:
 					}
 
 					writer.Write(kcode) // not need to check err
+					n++
 				}
 
 				return flagContinue
@@ -138,6 +140,9 @@ Attentions:
 		}
 
 		checkError(writer.Flush())
+		if opt.Verbose {
+			log.Infof("%d k-mers saved to %s", n, outFile)
+		}
 	},
 }
 
