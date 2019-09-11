@@ -41,6 +41,9 @@ var unionCmd = &cobra.Command{
 Attentions:
   1. the 'canonical' flags of all files should be consistent.
 
+Tips:
+  1. for really huge number of k-mers, you can use 'unikmer sort -m 1G -u'.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)

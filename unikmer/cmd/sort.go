@@ -41,11 +41,11 @@ var sortCmd = &cobra.Command{
 	Short: "sort k-mers in binary files to reduce file size",
 	Long: `sort k-mers in binary files to reduce file size
 
-Note:
-  1. You can use -m/--chunk-size to limit memory usage, though which is not precise
-     and actually RSS is higher than -m * -j.
+Tips:
+  1. You can use '-m/--chunk-size' to limit memory usage, though which is
+     not precise and actually RSS is higher than '-m' * '-j'.
   2. Increasing value of -j/--threads can slighly accelerates splitting stage,
-     while memory occupation increases.
+     in cost of more memory occupation.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

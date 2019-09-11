@@ -38,7 +38,7 @@ var subsetCmd = &cobra.Command{
 	Long: `extract smaller k-mers from binary file
 
 Attention:
-  - It's faster than re-counting from sequence file but in cost of losing
+  1. It's faster than re-counting from sequence file but in cost of losing
     few ( <= (K-k)*2 ) k-mers in the ends of sequence and its reverse complement
     sequence.
 

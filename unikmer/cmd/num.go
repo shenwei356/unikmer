@@ -38,8 +38,9 @@ var numCmd = &cobra.Command{
 	Long: `quickly inspect number of k-mers in binary files
 
 Attention:
-  - This command is designed to quickly inspect the number of k-mers in binary file,
-  - For non-sorted file, it returns '-1'. You can use 'unikmer stats -a' for these files.
+  1. This command is designed to quickly inspect the number of k-mers in binary file,
+  2. For non-sorted file, it returns '-1'. You can use 'unikmer stats -a' for these files.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)

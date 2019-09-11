@@ -38,6 +38,10 @@ var interCmd = &cobra.Command{
 	Short: "intersection of multiple binary files",
 	Long: `intersection of multiple binary files
 
+Tips:
+  1. for comparing TWO files with really huge number of k-mers,
+     you can use 'unikmer sort -m 1G -u'.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
