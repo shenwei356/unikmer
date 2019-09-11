@@ -292,10 +292,7 @@ Tips:
 			writer.Number = int64(len(m))
 		}
 
-		if len(m) == 0 {
-			writer.Number = 0
-			checkError(writer.WriteHeader())
-		} else {
+		if len(m) > 0 {
 			if sortKmers {
 				codes := make([]uint64, len(m))
 				i := 0
@@ -320,6 +317,7 @@ Tips:
 				}
 			}
 		}
+
 		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d k-mers saved", len(m))

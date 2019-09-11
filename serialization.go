@@ -339,6 +339,10 @@ func (writer *Writer) Write(kcode KmerCode) (err error) {
 
 // Flush write the last k-mer
 func (writer *Writer) Flush() (err error) {
+	if !writer.wroteHeader {
+		writer.Number = 0
+		writer.WriteHeader()
+	}
 	if !writer.sorted || writer.prev == nil {
 		return nil
 	}

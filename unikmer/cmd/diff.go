@@ -254,10 +254,6 @@ Tips:
 			writer, err := unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 
-			if sortKmers {
-				writer.Number = 0
-			}
-
 			writer.Number = 0
 			checkError(writer.WriteHeader())
 			checkError(writer.Flush())
