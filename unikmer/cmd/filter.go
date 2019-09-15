@@ -35,7 +35,7 @@ import (
 var filterCmd = &cobra.Command{
 	Use:   "filter",
 	Short: "filter low-complexity k-mers",
-	Long: `filter low-complexity k-mers
+	Long: `filter low-complexity k-mers (experimental)
 
 Attentions:
   1. this command only detects single base repeat now.
@@ -64,8 +64,9 @@ Attentions:
 		checkFiles(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		repeatLen := getFlagNonNegativeInt(cmd, "repeat-len")
+		threshold := getFlagNonNegativeInt(cmd, "threshold")
 		invert := getFlagBool(cmd, "invert")
+		window := getFlagPositiveInt(cmd, "window")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -107,10 +108,9 @@ Attentions:
 
 				if k == -1 {
 					k = reader.K
-
-					if repeatLen >= k {
-						log.Warningf("value of -n/--repeat-len too big: %d", repeatLen)
-						repeatLen = k
+					if window > k {
+						log.Warningf("window size (%d) is bigger than k (%d)", window, k)
+						window = k
 					}
 
 					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
@@ -131,8 +131,8 @@ Attentions:
 					}
 
 					hit = false
-					if repeatLen > 0 {
-						hit = filterCode(kcode.Code, k, repeatLen)
+					if threshold > 0 {
+						hit = filterCode(kcode.Code, k, threshold, window)
 					}
 
 					if invert {
@@ -168,27 +168,50 @@ func init() {
 	RootCmd.AddCommand(filterCmd)
 
 	filterCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	filterCmd.Flags().IntP("repeat-len", "n", 8, `minimum length of single base repeat`)
+	filterCmd.Flags().IntP("threshold", "t", 14, `score threshold for filter`)
+	filterCmd.Flags().IntP("window", "w", 10, `window size for checking score`)
 	filterCmd.Flags().BoolP("invert", "v", false, `invert result, i.e., output low-complexity k-mers`)
 }
 
-func filterCode(code uint64, k int, minRepeatLen int) bool {
-	n := 0
+func filterCode(code uint64, k int, threshold int, window int) bool {
+	// code0 := code
+	// compute scores
 	var last, c uint64
 	last = 356
+	scores := make([]int, k)
 	for i := 0; i < k; i++ {
 		c = code & 3
-		if c == last {
-			n++
-			if n >= minRepeatLen {
-				return true
+		if i > 0 {
+			if c == last {
+				scores[i] = 2
+			} else {
+				scores[i] = -1
 			}
 		} else {
-			last = c
-			n = 1
+			scores[i] = 1
 		}
+		last = c
 		code >>= 2
 	}
-
+	// check score in sliding window
+	var s, pre int
+	iLast := k - window - 1
+	if iLast < 0 {
+		iLast = 0
+	}
+	for i := 0; i <= iLast; i++ {
+		if i == 0 {
+			for j := 0; j < window; j++ {
+				s += scores[j]
+			}
+		} else { // update score
+			s = s - pre + scores[i+window-1]
+		}
+		pre = scores[i]
+		// fmt.Printf("%s, %d, %d\n", unikmer.KmerCode{code0, k}, i, s)
+		if s >= threshold {
+			return true
+		}
+	}
 	return false
 }
