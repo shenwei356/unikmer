@@ -46,6 +46,11 @@ var mergeCmd = &cobra.Command{
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
+		outFile0 := getFlagString(cmd, "out-prefix")
+		unique := getFlagBool(cmd, "unique")
+		repeated := getFlagBool(cmd, "repeated")
+		maxOpenFiles := getFlagPositiveInt(cmd, "max-open-files")
+
 		var err error
 
 		var files []string
@@ -57,6 +62,7 @@ var mergeCmd = &cobra.Command{
 			files = getFileList(args)
 		}
 
+		// read files from directory
 		if getFlagBool(cmd, "is-dir") {
 			paternChunkFile := getFlagString(cmd, "pattern")
 			reChunFile, err := regexp.Compile(paternChunkFile)
@@ -113,6 +119,7 @@ var mergeCmd = &cobra.Command{
 			}
 		}
 
+		// checking files
 		if opt.Verbose {
 			log.Infof("checking chunk files")
 		}
@@ -178,19 +185,92 @@ var mergeCmd = &cobra.Command{
 
 		// merge
 
-		outFile0 := getFlagString(cmd, "out-prefix")
-		unique := getFlagBool(cmd, "unique")
-		repeated := getFlagBool(cmd, "repeated")
-
 		outFile := outFile0
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
 
-		n, _ := mergeChunksFile(opt, files, outFile, k, mode, unique, repeated)
+		if len(files) < maxOpenFiles {
+			n, _ := mergeChunksFile(opt, files, outFile, k, mode, unique, repeated)
+
+			if opt.Verbose {
+				log.Infof("%d k-mers saved to %s", n, outFile)
+			}
+			return
+		}
+
+		if opt.Verbose {
+			log.Infof("two-pass merge performing")
+		}
+
+		if maxOpenFiles > len(files)*len(files) {
+			log.Warningf("are you sure for merging from %d files?", len(files)*len(files))
+			log.Warningf("if the files are of small size, you may use 'unikmer sort -m' instead")
+		}
+
+		tmpDir := getFlagString(cmd, "tmp-dir")
+		if isStdout(outFile0) {
+			tmpDir = filepath.Join(tmpDir, "stdout.tmp")
+		} else {
+			tmpDir = filepath.Join(tmpDir, filepath.Base(outFile0)+".tmp")
+		}
+		err = os.MkdirAll(tmpDir, 0755)
+		if err != nil {
+			checkError(fmt.Errorf("fail to create temp directory: %s", tmpDir))
+		}
+
+		tmpFiles := make([]string, 0, 10)
+		iTmpFile := 0
+		_files = make([]string, 0, maxOpenFiles)
+		for _, file := range files {
+			_files = append(_files, file)
+			if len(_files) == maxOpenFiles {
+				iTmpFile++
+				outFile1 := chunkFileName(tmpDir, iTmpFile)
+
+				n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, false, false)
+				if opt.Verbose {
+					log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
+				}
+				tmpFiles = append(tmpFiles, outFile1)
+				_files = make([]string, 0, maxOpenFiles)
+			}
+		}
+		if len(_files) > 0 {
+			iTmpFile++
+			outFile1 := chunkFileName(tmpDir, iTmpFile)
+
+			n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, false, false)
+			if opt.Verbose {
+				log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
+			}
+			tmpFiles = append(tmpFiles, outFile1)
+		}
+
+		n, _ := mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated)
 
 		if opt.Verbose {
 			log.Infof("%d k-mers saved to %s", n, outFile)
+		}
+
+		// cleanning
+
+		if opt.Verbose {
+			log.Infof("removing %d intermediate files", len(tmpFiles))
+		}
+		for _, file := range tmpFiles {
+			err := os.Remove(file)
+			if err != nil {
+				checkError(fmt.Errorf("fail to remove intermediate file: %s", file))
+			}
+		}
+
+		if opt.Verbose {
+			log.Infof("removing tmp dir: %s", tmpDir)
+		}
+		err = os.Remove(tmpDir)
+		if err != nil {
+			checkError(fmt.Errorf("fail to remove temp directory: %s", tmpDir))
 		}
 	},
 }
@@ -205,4 +285,6 @@ func init() {
 	mergeCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	mergeCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 
+	mergeCmd.Flags().IntP("max-open-files", "M", 300, `max number of open files`)
+	mergeCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 }

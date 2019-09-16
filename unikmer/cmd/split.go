@@ -41,6 +41,12 @@ var splitCmd = &cobra.Command{
 	Short: "split k-mers into sorted chunk files",
 	Long: `split k-mers into sorted chunk files
 
+Tips:
+  1. You can use '-m/--chunk-size' to limit memory usage, though which is
+     not precise and actually RSS is higher than '-m' * '-j'.
+  2. Increasing value of -j/--threads can accelerates splitting stage,
+     in cost of more memory occupation.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
