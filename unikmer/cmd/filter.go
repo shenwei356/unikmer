@@ -93,6 +93,7 @@ Attentions:
 		var nfiles = len(files)
 		var hit bool
 		var n int64
+		var scores []int
 		for i, file := range files {
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
@@ -113,6 +114,8 @@ Attentions:
 						window = k
 					}
 
+					scores = make([]int, k)
+
 					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
 					checkError(err)
 				} else if k != reader.K {
@@ -130,10 +133,7 @@ Attentions:
 						checkError(err)
 					}
 
-					hit = false
-					if threshold > 0 {
-						hit = filterCode(kcode.Code, k, threshold, window)
-					}
+					hit = filterCode(kcode.Code, k, threshold, window, scores)
 
 					if invert {
 						if !hit {
@@ -173,12 +173,11 @@ func init() {
 	filterCmd.Flags().BoolP("invert", "v", false, `invert result, i.e., output low-complexity k-mers`)
 }
 
-func filterCode(code uint64, k int, threshold int, window int) bool {
+func filterCode(code uint64, k int, threshold int, window int, scores []int) bool {
 	// code0 := code
 	// compute scores
 	var last, c uint64
 	last = 356
-	scores := make([]int, k)
 	for i := 0; i < k; i++ {
 		c = code & 3
 		if i > 0 {
