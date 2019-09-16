@@ -73,6 +73,11 @@ without frequency information.
 
 ### Commands
 
+1. Information
+
+        stats           statistics of binary files
+        num             quickly inspect number of k-mers in binary files
+
 1. Counting
 
         count           count k-mers from FASTA/Q sequences
@@ -82,6 +87,7 @@ without frequency information.
 
         encode          encode plain k-mer text to integer
         decode          decode encode integer to k-mer text
+        
         view            read and output binary format to plain text
         dump            convert plain k-mer text to binary format
 
@@ -91,24 +97,23 @@ without frequency information.
         inter           intersection of multiple binary files
         union           union of multiple binary files
         diff            set difference of multiple binary files
-        filter          filter low-complexity k-mers
 
         sort            sort k-mers in binary files to reduce file size
         split           split k-mers into sorted chunk files
         merge           merge from sorted chunk files
 
+        filter          filter low-complexity k-mers
         sample          sample k-mers from binary files
 
 1. Searching
 
         grep            search k-mers from binary files
+        
         locate          locate k-mers in genome
         uniqs           mapping k-mers back to genome and find unique subsequences
 
 1. Misc
 
-        stats           statistics of binary files
-        num             quickly inspect number of k-mers in binary files
         genautocomplete generate shell autocompletion script
         help            Help about any command
         version         print version information and check for update
@@ -205,9 +210,8 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     # stats
     $ unikmer stats Ecoli-MG1655.fasta.gz.k23.*unik -a
     file                                    k  gzipped  compact  canonical  sorted     number
-    Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  true     true     true       true    4,546,632
-    Ecoli-MG1655.fasta.gz.k23.unik         23  true     true     true       🞩       4,546,632
-
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik  23  ✓        ✓        ✓          ✓       4,546,632
+    Ecoli-MG1655.fasta.gz.k23.unik         23  ✓        ✓        ✓          ✕       4,546,632
 
     # union
     $ time unikmer union Ecoli-MG1655.fasta.gz.k23.sorted.unik Ecoli-IAI39.fasta.gz.k23.sorted.unik -o union.k23 -c -s
