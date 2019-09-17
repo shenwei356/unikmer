@@ -81,14 +81,13 @@ var countCmd = &cobra.Command{
 		}()
 
 		var mode uint32
-		if opt.Compact {
+		if sortKmers {
+			mode |= unikmer.UNIK_SORTED
+		} else if opt.Compact {
 			mode |= unikmer.UNIK_COMPACT
 		}
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
-		}
-		if sortKmers {
-			mode |= unikmer.UNIK_SORTED
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)

@@ -117,14 +117,13 @@ Tips:
 						m2 = make([]uint64, 0, mapInitSize)
 					} else {
 						var mode uint32
-						if opt.Compact {
+						if sortKmers {
+							mode |= unikmer.UNIK_SORTED
+						} else if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
 						if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
 							mode |= unikmer.UNIK_CANONICAL
-						}
-						if sortKmers {
-							mode |= unikmer.UNIK_SORTED
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 						checkError(err)
@@ -152,9 +151,6 @@ Tips:
 
 					if sortKmers {
 						var mode uint32
-						if opt.Compact {
-							mode |= unikmer.UNIK_COMPACT
-						}
 						if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
 							mode |= unikmer.UNIK_CANONICAL
 						}
@@ -275,14 +271,13 @@ Tips:
 		}()
 
 		var mode uint32
-		if opt.Compact {
+		if sortKmers {
+			mode |= unikmer.UNIK_SORTED
+		} else if opt.Compact {
 			mode |= unikmer.UNIK_COMPACT
 		}
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
-		}
-		if sortKmers {
-			mode |= unikmer.UNIK_SORTED
 		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)

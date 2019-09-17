@@ -196,9 +196,6 @@ Tips:
 
 		if sortKmers {
 			var mode uint32
-			if opt.Compact {
-				mode |= unikmer.UNIK_COMPACT
-			}
 			if canonical {
 				mode |= unikmer.UNIK_CANONICAL
 			}

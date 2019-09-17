@@ -109,14 +109,13 @@ var dumpCmd = &cobra.Command{
 
 					if writer == nil {
 						var mode uint32
-						if opt.Compact {
+						if sortedKmers {
+							mode |= unikmer.UNIK_SORTED
+						} else if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
 						if canonical || canonicalOnly {
 							mode |= unikmer.UNIK_CANONICAL
-						}
-						if sortedKmers {
-							mode |= unikmer.UNIK_SORTED
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)
