@@ -110,13 +110,13 @@ var mergeCmd = &cobra.Command{
 			}
 			files = _files
 
-			if opt.Verbose {
+			if n == 0 {
+				log.Warningf("%d chunk files found in %d dir(s)", n, N)
+				return
+			} else if opt.Verbose {
 				log.Infof("%d chunk files found in %d dir(s)", n, N)
 			}
 
-			if n == 0 {
-				return
-			}
 		}
 
 		// checking files
