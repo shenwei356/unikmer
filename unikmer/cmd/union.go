@@ -43,6 +43,7 @@ Attentions:
 
 Tips:
   1. for really huge number of k-mers, you can use 'unikmer sort -m 1G -u'.
+  1. for large number of sorted .unik files, you can use 'unikmer merge'.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
