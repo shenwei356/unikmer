@@ -15,6 +15,8 @@
         - new option `-u/--unique` for removing duplicated k-mers.
         - new option `-d/--repeated` for only printing duplicate k-mers.
         - new option `-m/--chunk-size` for limiting maximum memory for sorting.
+    - `unikmer diff`:
+        - slightly improve speed for sorted files.
 - v0.6.2
     - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1

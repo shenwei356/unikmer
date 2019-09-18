@@ -200,22 +200,46 @@ Tips:
 		k = reader.K
 		canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 
-		for {
-			kcode, err = reader.Read()
-			if err != nil {
-				if err == io.EOF {
-					break
+		var minCode uint64 = ^uint64(0)
+		if reader.Flag&unikmer.UNIK_SORTED > 0 { // query is sorted
+			once := true
+			for {
+				kcode, err = reader.Read()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					checkError(err)
 				}
-				checkError(err)
-			}
 
-			m[kcode.Code] = struct{}{}
+				if once {
+					minCode = kcode.Code
+					once = false
+				}
+				m[kcode.Code] = struct{}{}
+			}
+		} else {
+			for {
+				kcode, err = reader.Read()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					checkError(err)
+				}
+
+				if kcode.Code < minCode {
+					minCode = kcode.Code
+				}
+				m[kcode.Code] = struct{}{}
+			}
 		}
 
 		r.Close()
 
 		if opt.Verbose {
 			log.Infof("%d k-mers loaded", len(m))
+			log.Infof("min code: %s (%d)", unikmer.KmerCode{Code: minCode, K: k}, minCode)
 		}
 
 		if len(m) == 0 {
@@ -344,6 +368,9 @@ Tips:
 				var reader *unikmer.Reader
 				var kcode unikmer.KmerCode
 				var ok bool
+				var sorted bool
+				var nSkip int
+				var checkSkip bool
 				m1 := maps[i]
 				for {
 					ifile, ok = <-chFile
@@ -376,6 +403,10 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 
+					// file is sorted, so we can skip codes that are small than minCode
+					sorted = reader.Flag&unikmer.UNIK_SORTED > 0
+					nSkip = 0
+					checkSkip = sorted
 					for {
 						kcode, err = reader.Read()
 						if err != nil {
@@ -386,6 +417,19 @@ Tips:
 						}
 
 						code = kcode.Code
+
+						if checkSkip {
+							if code < minCode {
+								nSkip++
+								continue
+							} else {
+								if opt.Verbose {
+									log.Infof("worker %02d: started processing file (%d/%d): leading %d k-mers skipped for comparison", i, ifile.i+1, nfiles, nSkip)
+								}
+								checkSkip = false
+							}
+						}
+
 						// delete seen kmer
 						if _, ok = m1[code]; ok { // slowest part
 							delete(m1, code)
