@@ -307,45 +307,51 @@ Tips:
 		maps := make(map[int]map[uint64]struct{}, threads)
 		maps[0] = m
 
-		// clone maps
-		if opt.Verbose {
-			log.Infof("cloning data for parallization")
-		}
-		var wg sync.WaitGroup
-		type iMap struct {
-			i int
-			m map[uint64]struct{}
-		}
-		ch := make(chan iMap, threads)
-		doneClone := make(chan int)
-		go func() {
-			for ptr := range ch {
-				maps[ptr.i] = ptr.m
+		if len(files) > 2 {
+			// clone maps
+			if opt.Verbose {
+				log.Infof("cloning data for parallization")
 			}
-			doneClone <- 1
-		}()
-		for i := 1; i < threads; i++ {
-			wg.Add(1)
-			go func(i int) {
-				m1 := make(map[uint64]struct{}, len(m))
-				for k := range m {
-					m1[k] = struct{}{}
+			var wg sync.WaitGroup
+			type iMap struct {
+				i int
+				m map[uint64]struct{}
+			}
+			ch := make(chan iMap, threads)
+			doneClone := make(chan int)
+			go func() {
+				for ptr := range ch {
+					maps[ptr.i] = ptr.m
 				}
-				ch <- iMap{i: i, m: m1}
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-		close(ch)
-		<-doneClone
-		if opt.Verbose {
-			log.Infof("done cloning data")
+				doneClone <- 1
+			}()
+			for i := 1; i < threads; i++ {
+				wg.Add(1)
+				go func(i int) {
+					m1 := make(map[uint64]struct{}, len(m))
+					for k := range m {
+						m1[k] = struct{}{}
+					}
+					ch <- iMap{i: i, m: m1}
+					wg.Done()
+				}(i)
+			}
+			wg.Wait()
+			close(ch)
+			<-doneClone
+			if opt.Verbose {
+				log.Infof("done cloning data")
+			}
 		}
 
 		// -----------------------------------------------------------------------
 		hasDiff := true
 		var wgWorkers sync.WaitGroup
-		for i := 0; i < opt.NumCPUs; i++ { // workers
+		nWorkers := opt.NumCPUs
+		if len(files) == 2 { // only need one worker
+			nWorkers = 1
+		}
+		for i := 0; i < nWorkers; i++ { // workers
 			wgWorkers.Add(1)
 
 			go func(i int) {
@@ -520,7 +526,7 @@ Tips:
 		// output
 
 		if opt.Verbose {
-			log.Infof("exporting Kmers")
+			log.Infof("exporting k-mers")
 		}
 
 		if !isStdout(outFile) {
