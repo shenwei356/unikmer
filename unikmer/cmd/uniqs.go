@@ -51,22 +51,22 @@ Attention:
 
 		var err error
 
-		var files []string
 		infileList := getFlagString(cmd, "infile-list")
+
+		files := getFileList(args, true)
 		if infileList != "" {
-			files, err = getListFromFile(infileList)
+			_files, err := getListFromFile(infileList, true)
 			checkError(err)
-		} else {
-			files = getFileList(args)
+			files = append(files, _files...)
 		}
 
-		checkFiles(extDataFile, files...)
+		checkFileSuffix(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular")
 
 		genomeFile := getFlagNonEmptyString(cmd, "genome")
-		checkFiles("", genomeFile)
+		checkFileSuffix("", genomeFile)
 
 		minLen := getFlagPositiveInt(cmd, "min-len")
 		mMapped := getFlagBool(cmd, "allow-muliple-mapped-kmer")

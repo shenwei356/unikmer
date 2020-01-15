@@ -47,20 +47,20 @@ var grepCmd = &cobra.Command{
 
 		var err error
 
-		var files []string
 		infileList := getFlagString(cmd, "infile-list")
+
+		files := getFileList(args, true)
 		if infileList != "" {
-			files, err = getListFromFile(infileList)
+			_files, err := getListFromFile(infileList, true)
 			checkError(err)
-		} else {
-			files = getFileList(args)
+			files = append(files, _files...)
 		}
 
 		if len(files) > 1 {
 			checkError(fmt.Errorf("no more than one file should be given"))
 		}
 
-		checkFiles(extDataFile, files...)
+		checkFileSuffix(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-file")
 		pattern := getFlagStringSlice(cmd, "query")

@@ -48,24 +48,6 @@ func isStdout(file string) bool {
 	return file == "-"
 }
 
-func getFileList(args []string) []string {
-	files := []string{}
-	if len(args) == 0 {
-		files = append(files, "-")
-	} else {
-		for _, file := range args {
-			if isStdin(file) {
-				continue
-			}
-			if _, err := os.Stat(file); os.IsNotExist(err) {
-				checkError(err)
-			}
-		}
-		files = args
-	}
-	return files
-}
-
 func getFlagInt(cmd *cobra.Command, flag string) int {
 	value, err := cmd.Flags().GetInt(flag)
 	checkError(err)
@@ -186,19 +168,47 @@ func getFlagStringSlice(cmd *cobra.Command, flag string) []string {
 	return value
 }
 
-func getListFromFile(file string) ([]string, error) {
+func getFileList(args []string, checkFile bool) []string {
+	files := []string{}
+	if len(args) == 0 {
+		files = append(files, "-")
+	} else {
+		for _, file := range args {
+			if isStdin(file) {
+				continue
+			}
+			if !checkFile {
+				continue
+			}
+			if _, err := os.Stat(file); os.IsNotExist(err) {
+				checkError(err)
+			}
+		}
+		files = args
+	}
+	return files
+}
+
+func getListFromFile(file string, checkFile bool) ([]string, error) {
 	fh, err := os.Open(file)
 	if err != nil {
-		return nil, fmt.Errorf("fail to read %s: %s", file, err)
+		return nil, fmt.Errorf("read files list from '%s': %s", file, err)
 	}
 
+	var _file string
 	lists := make([]string, 0, 1000)
 	scanner := bufio.NewScanner(fh)
 	for scanner.Scan() {
-		lists = append(lists, scanner.Text())
+		_file = scanner.Text()
+		if checkFile && !isStdin(_file) {
+			if _, err = os.Stat(_file); os.IsNotExist(err) {
+				return lists, fmt.Errorf("check file '%s': %s", file, err)
+			}
+		}
+		lists = append(lists, _file)
 	}
 	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("fail to read %s: %s", file, err)
+		return nil, fmt.Errorf("read files list from '%s': %s", file, err)
 	}
 
 	return lists, nil

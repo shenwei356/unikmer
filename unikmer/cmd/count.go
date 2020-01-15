@@ -46,15 +46,6 @@ var countCmd = &cobra.Command{
 
 		var err error
 
-		var files []string
-		infileList := getFlagString(cmd, "infile-list")
-		if infileList != "" {
-			files, err = getListFromFile(infileList)
-			checkError(err)
-		} else {
-			files = getFileList(args)
-		}
-
 		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular")
 		k := getFlagPositiveInt(cmd, "kmer-len")
@@ -62,7 +53,16 @@ var countCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
-		checkFiles("", files...)
+		infileList := getFlagString(cmd, "infile-list")
+
+		files := getFileList(args, true)
+		if infileList != "" {
+			_files, err := getListFromFile(infileList, true)
+			checkError(err)
+			files = append(files, _files...)
+		}
+
+		checkFileSuffix(extDataFile, files...)
 
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")

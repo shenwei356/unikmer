@@ -53,13 +53,13 @@ var mergeCmd = &cobra.Command{
 
 		var err error
 
-		var files []string
 		infileList := getFlagString(cmd, "infile-list")
+
+		files := getFileList(args, true)
 		if infileList != "" {
-			files, err = getListFromFile(infileList)
+			_files, err := getListFromFile(infileList, true)
 			checkError(err)
-		} else {
-			files = getFileList(args)
+			files = append(files, _files...)
 		}
 
 		// read files from directory

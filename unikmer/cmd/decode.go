@@ -44,23 +44,23 @@ var decodeCmd = &cobra.Command{
 
 		var err error
 
-		var files []string
-		infileList := getFlagString(cmd, "infile-list")
-		if infileList != "" {
-			files, err = getListFromFile(infileList)
-			checkError(err)
-		} else {
-			files = getFileList(args)
-		}
-
-		checkFiles("", files...)
-
 		outFile := getFlagString(cmd, "out-file")
 		all := getFlagBool(cmd, "all")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		if k > 32 {
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
+
+		infileList := getFlagString(cmd, "infile-list")
+
+		files := getFileList(args, true)
+		if infileList != "" {
+			_files, err := getListFromFile(infileList, true)
+			checkError(err)
+			files = append(files, _files...)
+		}
+
+		checkFileSuffix(extDataFile, files...)
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)

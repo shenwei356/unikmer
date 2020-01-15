@@ -57,16 +57,16 @@ Tips:
 
 		var err error
 
-		var files []string
 		infileList := getFlagString(cmd, "infile-list")
+
+		files := getFileList(args, true)
 		if infileList != "" {
-			files, err = getListFromFile(infileList)
+			_files, err := getListFromFile(infileList, true)
 			checkError(err)
-		} else {
-			files = getFileList(args)
+			files = append(files, _files...)
 		}
 
-		checkFiles(extDataFile, files...)
+		checkFileSuffix(extDataFile, files...)
 
 		outFile0 := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")

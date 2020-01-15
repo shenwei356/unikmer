@@ -1,3 +1,5 @@
+- v0.7.1
+    - do not ignore files from cli arugments when given flag `-i/--infile-list`.
 - v0.7.0
     - new command `unikmer filter`: filter low-complexity k-mers.
     - new command `unikmer split`: split k-mers into sorted chunk files.

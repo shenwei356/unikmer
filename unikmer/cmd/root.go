@@ -73,7 +73,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file (not recommended)")
 	RootCmd.PersistentFlags().IntP("compression-level", "L", flate.DefaultCompression, "compression level")
 	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write more compact binary file with little loss of speed")
-	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, files from cli arguments are ignored")
+	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, they are appended to files from cli arguments")
 }
 
 const helpSort = "sort k-mers, this significantly reduce file size. You can even disable gzip compression by flag -C/--no-compress. This flag overwrites global option -c/--compact"
