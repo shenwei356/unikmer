@@ -169,7 +169,7 @@ func getFlagStringSlice(cmd *cobra.Command, flag string) []string {
 }
 
 func getFileList(args []string, checkFile bool) []string {
-	files := []string{}
+	files := make([]string, 0, 1000)
 	if len(args) == 0 {
 		files = append(files, "-")
 	} else {
