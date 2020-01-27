@@ -52,7 +52,7 @@ var encodeCmd = &cobra.Command{
 			files = append(files, _files...)
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix("", files...)
 
 		outFile := getFlagString(cmd, "out-file")
 		all := getFlagBool(cmd, "all")

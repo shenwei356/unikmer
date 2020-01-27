@@ -60,7 +60,7 @@ var decodeCmd = &cobra.Command{
 			files = append(files, _files...)
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix("", files...)
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)

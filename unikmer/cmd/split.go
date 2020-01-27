@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"sync"
@@ -66,13 +67,14 @@ Tips:
 		checkFileSuffix(extDataFile, files...)
 
 		outDir := getFlagString(cmd, "out-dir")
+		force := getFlagBool(cmd, "force")
 
 		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
 		if err != nil {
 			checkError(fmt.Errorf("parsing byte size: %s", err))
 		}
 		if maxMem == 0 {
-			checkError(fmt.Errorf("non-zero chunk size needed"))
+			checkError(fmt.Errorf("non-zero chunk size needed for flag -m/--chunk-size"))
 		}
 		maxElem := maxMem >> 3 // uint64 == 8 bytes
 		if maxMem > 0 && maxElem < 1 {
@@ -80,13 +82,31 @@ Tips:
 		}
 		m := make([]uint64, 0, mapInitSize)
 
-		existed, err := pathutil.DirExists(outDir)
-		checkError(err)
-		if !existed {
-			err = os.MkdirAll(outDir, 0755)
-			if err != nil {
-				checkError(fmt.Errorf("fail to create out directory: %s", outDir))
+		if outDir == "" {
+			if isStdin(files[0]) {
+				outDir = "stdin.split"
+			} else {
+				outDir = files[0] + ".split"
 			}
+		}
+		pwd, _ := os.Getwd()
+		if outDir != "./" && outDir != "." && pwd != filepath.Clean(outDir) {
+			existed, err := pathutil.DirExists(outDir)
+			checkError(err)
+			if existed {
+				empty, err := pathutil.IsEmpty(outDir)
+				checkError(err)
+				if !empty {
+					if force {
+						checkError(os.RemoveAll(outDir))
+					} else {
+						checkError(fmt.Errorf("outDir not empty: %s, use -f (--force) to overwrite", outDir))
+					}
+				} else {
+					checkError(os.RemoveAll(outDir))
+				}
+			}
+			checkError(os.MkdirAll(outDir, 0777))
 		}
 
 		var infh *bufio.Reader
@@ -99,6 +119,7 @@ Tips:
 		var firstFile = true
 		var flag int
 		var nfiles = len(files)
+		var doNotNeedSorting = false // only for ONE sorted input file
 
 		var iTmpFile int
 		limitMem := maxElem > 0
@@ -116,6 +137,13 @@ Tips:
 			}
 			done <- 1
 		}()
+
+		var outFile2 string
+		var n int
+		var writer *unikmer.Writer
+		var outfh *bufio.Writer
+		var gw io.WriteCloser
+		var w *os.File
 
 		for i, file := range files {
 			if !firstFile && file == files[0] {
@@ -137,11 +165,24 @@ Tips:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					if nfiles == 1 && reader.Flag&unikmer.UNIK_SORTED > 0 {
+						doNotNeedSorting = true
+					}
 
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
 					mode |= unikmer.UNIK_SORTED
+
+					if doNotNeedSorting {
+						iTmpFile++
+						outFile2 = chunkFileName(outDir, iTmpFile)
+						outfh, gw, w, err = outStream(outFile2, opt.Compress, opt.CompressionLevel)
+						checkError(err)
+
+						writer, err = unikmer.NewWriter(outfh, k, mode)
+						checkError(err)
+					}
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
@@ -155,6 +196,36 @@ Tips:
 							break
 						}
 						checkError(err)
+					}
+
+					if doNotNeedSorting {
+						writer.Write(kcode)
+						n++
+
+						if limitMem && n >= maxElem {
+							if opt.Verbose {
+								log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, n, outFile2)
+							}
+							chN <- int64(n)
+
+							outfh.Flush()
+							if gw != nil {
+								gw.Close()
+							}
+							w.Close()
+
+							iTmpFile++
+							outFile2 = chunkFileName(outDir, iTmpFile)
+							outfh, gw, w, err = outStream(outFile2, opt.Compress, opt.CompressionLevel)
+							checkError(err)
+
+							writer, err = unikmer.NewWriter(outfh, k, mode)
+							checkError(err)
+
+							n = 0
+						}
+
+						continue
 					}
 
 					m = append(m, kcode.Code)
@@ -187,6 +258,7 @@ Tips:
 						}(m, iTmpFile, outFile1)
 
 						m = make([]uint64, 0, mapInitSize)
+
 					}
 
 				}
@@ -202,6 +274,20 @@ Tips:
 		}
 
 		// dump remaining k-mers to file
+
+		if n > 0 {
+			if opt.Verbose {
+				log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, n, outFile2)
+			}
+			chN <- int64(n)
+
+			outfh.Flush()
+			if gw != nil {
+				gw.Close()
+			}
+			w.Close()
+		}
+
 		if len(m) > 0 {
 			iTmpFile++
 			outFile1 := chunkFileName(outDir, iTmpFile)
@@ -214,12 +300,16 @@ Tips:
 					<-tokens
 				}()
 
-				if opt.Verbose {
-					log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
-				}
-				sort.Sort(unikmer.CodeSlice(m))
-				if opt.Verbose {
-					log.Infof("[chunk %d] done sorting", iTmpFile)
+				if !doNotNeedSorting {
+					if opt.Verbose {
+						log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
+					}
+					sort.Sort(unikmer.CodeSlice(m))
+					if opt.Verbose {
+						log.Infof("[chunk %d] done sorting", iTmpFile)
+					}
+				} else if opt.Verbose {
+					log.Infof("[chunk %d] skipping sorting for single sorted input file", iTmpFile)
 				}
 
 				dumpCodes2File(m, k, mode, outFile, opt)
@@ -244,6 +334,7 @@ Tips:
 func init() {
 	RootCmd.AddCommand(splitCmd)
 
-	splitCmd.Flags().StringP("out-dir", "o", "./", `output directory`)
+	splitCmd.Flags().StringP("out-dir", "O", "", `output directory`)
 	splitCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer split -h" for detail`)
+	splitCmd.Flags().BoolP("force", "f", false, `overwrite output directory`)
 }

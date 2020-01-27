@@ -120,7 +120,7 @@ func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikm
 }
 
 func chunkFileName(outDir string, i int) string {
-	return filepath.Join(outDir, fmt.Sprintf("chunk_%d", i)) + extDataFile
+	return filepath.Join(outDir, fmt.Sprintf("chunk_%03d", i)) + extDataFile
 }
 
 type codeEntry struct {

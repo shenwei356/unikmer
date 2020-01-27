@@ -62,7 +62,7 @@ var countCmd = &cobra.Command{
 			files = append(files, _files...)
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix("", files...)
 
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")
