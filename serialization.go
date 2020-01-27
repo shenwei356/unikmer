@@ -83,6 +83,9 @@ type Reader struct {
 	prev   *KmerCode
 	buf2   []byte
 	offset uint64
+
+	decodedVal [2]uint64
+	nDecoded   int
 }
 
 // NewReader returns a Reader.
@@ -231,6 +234,10 @@ type Writer struct {
 	prev   *KmerCode
 	buf2   []byte
 	offset uint64
+
+	buf3         []byte // for sorted mode
+	ctrlByte     byte
+	nEncodedByte int
 }
 
 // NewWriter creates a Writer.
@@ -253,6 +260,7 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 		writer.sorted = true
 		writer.buf2 = make([]byte, 16)
 	}
+	writer.buf3 = make([]byte, 32)
 	return writer, nil
 }
 
@@ -317,18 +325,33 @@ func (writer *Writer) Write(kcode KmerCode) (err error) {
 			return nil
 		}
 
-		ctrlByte, nEncodedByte := PutUint64s(writer.buf2, writer.prev.Code-writer.offset, kcode.Code-writer.prev.Code)
+		writer.ctrlByte, writer.nEncodedByte = PutUint64s(writer.buf2, writer.prev.Code-writer.offset, kcode.Code-writer.prev.Code)
 
 		writer.offset = kcode.Code
 		writer.prev = nil
 
-		err = binary.Write(writer.w, be, ctrlByte)
-		err = binary.Write(writer.w, be, writer.buf2[0:nEncodedByte])
+		// slower:
+		// err = binary.Write(writer.w, be, ctrlByte)
+		// err = binary.Write(writer.w, be, writer.buf2[0:nEncodedByte])
+
+		// faster
+		// buf := make([]byte, nEncodedByte+1)
+		// buf[0] = ctrlByte
+		// copy(buf[1:], writer.buf2[0:nEncodedByte])
+		// _, err = writer.w.Write(buf)
+
+		// much faster
+		writer.buf3[0] = writer.ctrlByte
+		copy(writer.buf3[1:writer.nEncodedByte+1], writer.buf2[0:writer.nEncodedByte])
+		_, err = writer.w.Write(writer.buf3[0 : writer.nEncodedByte+1])
 	} else if writer.compact {
+		// err = binary.Write(writer.w, be, writer.buf[8-writer.bufsize:])
 		be.PutUint64(writer.buf, kcode.Code)
-		err = binary.Write(writer.w, be, writer.buf[8-writer.bufsize:])
+		_, err = writer.w.Write(writer.buf[8-writer.bufsize:])
 	} else {
-		err = binary.Write(writer.w, be, kcode.Code)
+		// err = binary.Write(writer.w, be, kcode.Code)
+		be.PutUint64(writer.buf, kcode.Code)
+		_, err = writer.w.Write(writer.buf)
 	}
 
 	if err != nil {
