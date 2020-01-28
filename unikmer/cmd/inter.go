@@ -68,7 +68,6 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
 		var k int = -1
 		var canonical bool
 		var firstFile = true
@@ -131,7 +130,7 @@ Tips:
 
 					m := make(map[uint64]struct{}, mapInitSize)
 					for {
-						kcode, err = reader.Read()
+						code, err = reader.ReadCode()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -139,12 +138,12 @@ Tips:
 							checkError(err)
 						}
 
-						if _, ok = m[kcode.Code]; !ok {
-							m[kcode.Code] = struct{}{}
+						if _, ok = m[code]; !ok {
+							m[code] = struct{}{}
 							if sortKmers {
-								m2 = append(m2, kcode.Code)
+								m2 = append(m2, code)
 							} else {
-								writer.Write(kcode) // not need to check er
+								writer.WriteCode(code) // not need to check err
 							}
 						}
 					}
@@ -168,8 +167,8 @@ Tips:
 							log.Infof("done sorting")
 						}
 
-						for _, code := range m2 {
-							writer.Write(unikmer.KmerCode{Code: code, K: k})
+						for _, code = range m2 {
+							writer.WriteCode(code)
 						}
 					}
 
@@ -193,7 +192,7 @@ Tips:
 				}
 
 				for {
-					kcode, err = reader.Read()
+					code, err = reader.ReadCode()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -202,13 +201,13 @@ Tips:
 					}
 
 					if firstFile {
-						m[kcode.Code] = false
+						m[code] = false
 						continue
 					}
 
 					// mark seen kmer
-					if _, ok = m[kcode.Code]; ok {
-						m[kcode.Code] = true
+					if _, ok = m[code]; ok {
+						m[code] = true
 					}
 				}
 
@@ -291,7 +290,7 @@ Tips:
 			if sortKmers {
 				codes := make([]uint64, len(m))
 				i := 0
-				for code := range m {
+				for code = range m {
 					codes[i] = code
 					i++
 				}
@@ -302,13 +301,13 @@ Tips:
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}
-				for _, code := range codes {
-					writer.Write(unikmer.KmerCode{Code: code, K: k})
+				for _, code = range codes {
+					writer.WriteCode(code)
 				}
 			} else {
 				for code = range m {
 					// not need to check err
-					writer.Write(unikmer.KmerCode{Code: code, K: k})
+					writer.WriteCode(code)
 				}
 			}
 		}

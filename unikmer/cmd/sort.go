@@ -94,7 +94,7 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var code uint64
 		var k int = -1
 		var canonical bool
 		var mode uint32
@@ -142,7 +142,7 @@ Tips:
 				}
 
 				for {
-					kcode, err = reader.Read()
+					code, err = reader.ReadCode()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -150,7 +150,7 @@ Tips:
 						checkError(err)
 					}
 
-					m = append(m, kcode.Code)
+					m = append(m, code)
 
 					if limitMem && len(m) >= maxElem {
 						if !hasTmpFile {
@@ -346,7 +346,7 @@ Tips:
 				}
 				last = code
 				n++
-				writer.Write(unikmer.KmerCode{Code: code, K: k})
+				writer.WriteCode(code)
 			}
 		} else if repeated {
 			var last uint64 = ^uint64(0)
@@ -355,7 +355,7 @@ Tips:
 				if code == last {
 					count++
 				} else if count > 1 {
-					writer.Write(unikmer.KmerCode{Code: last, K: k})
+					writer.WriteCode(code)
 					n++
 					last = code
 					count = 1
@@ -365,13 +365,13 @@ Tips:
 				}
 			}
 			if count > 1 {
-				writer.Write(unikmer.KmerCode{Code: last, K: k})
+				writer.WriteCode(code)
 				n++
 			}
 		} else {
 			writer.Number = int64(len(m))
 			for _, code := range m {
-				writer.Write(unikmer.KmerCode{Code: code, K: k})
+				writer.WriteCode(code)
 			}
 			n = len(m)
 		}

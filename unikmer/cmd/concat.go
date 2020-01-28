@@ -78,7 +78,7 @@ Attentions:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var code uint64
 		var k int = -1
 		var canonical bool
 		var flag int
@@ -117,7 +117,7 @@ Attentions:
 				}
 
 				for {
-					kcode, err = reader.Read()
+					code, err = reader.ReadCode()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -125,7 +125,7 @@ Attentions:
 						checkError(err)
 					}
 
-					writer.Write(kcode) // not need to check err
+					writer.WriteCode(code) // not need to check err
 					n++
 				}
 

@@ -75,7 +75,7 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var code uint64
 		var k int = -1
 		var canonical bool
 		var ok bool
@@ -134,7 +134,7 @@ Tips:
 
 				m := make(map[uint64]struct{}, mapInitSize)
 				for {
-					kcode, err = reader.Read()
+					code, err = reader.ReadCode()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -142,12 +142,12 @@ Tips:
 						checkError(err)
 					}
 
-					if _, ok = m[kcode.Code]; !ok {
-						m[kcode.Code] = struct{}{}
+					if _, ok = m[code]; !ok {
+						m[code] = struct{}{}
 						if sortKmers {
-							m2 = append(m2, kcode.Code)
+							m2 = append(m2, code)
 						} else {
-							writer.Write(kcode) // not need to check er
+							writer.WriteCode(code) // not need to check er
 						}
 					}
 				}
@@ -171,8 +171,8 @@ Tips:
 						log.Infof("done sorting")
 					}
 
-					for _, code := range m2 {
-						writer.Write(unikmer.KmerCode{Code: code, K: k})
+					for _, code = range m2 {
+						writer.WriteCode(code)
 					}
 				}
 
@@ -204,7 +204,7 @@ Tips:
 		if reader.Flag&unikmer.UNIK_SORTED > 0 { // query is sorted
 			once := true
 			for {
-				kcode, err = reader.Read()
+				code, err = reader.ReadCode()
 				if err != nil {
 					if err == io.EOF {
 						break
@@ -213,14 +213,14 @@ Tips:
 				}
 
 				if once {
-					minCode = kcode.Code
+					minCode = code
 					once = false
 				}
-				m[kcode.Code] = struct{}{}
+				m[code] = struct{}{}
 			}
 		} else {
 			for {
-				kcode, err = reader.Read()
+				code, err = reader.ReadCode()
 				if err != nil {
 					if err == io.EOF {
 						break
@@ -228,10 +228,10 @@ Tips:
 					checkError(err)
 				}
 
-				if kcode.Code < minCode {
-					minCode = kcode.Code
+				if code < minCode {
+					minCode = code
 				}
-				m[kcode.Code] = struct{}{}
+				m[code] = struct{}{}
 			}
 		}
 
@@ -372,7 +372,6 @@ Tips:
 				var infh *bufio.Reader
 				var r *os.File
 				var reader *unikmer.Reader
-				var kcode unikmer.KmerCode
 				var ok bool
 				var sorted bool
 				var nSkip int
@@ -414,15 +413,13 @@ Tips:
 					nSkip = 0
 					checkSkip = sorted
 					for {
-						kcode, err = reader.Read()
+						code, err = reader.ReadCode()
 						if err != nil {
 							if err == io.EOF {
 								break
 							}
 							checkError(err)
 						}
-
-						code = kcode.Code
 
 						if checkSkip {
 							if code < minCode {
@@ -578,11 +575,11 @@ Tips:
 					log.Infof("done sorting")
 				}
 				for _, code := range codes {
-					writer.Write(unikmer.KmerCode{Code: code, K: k})
+					writer.WriteCode(code)
 				}
 			} else {
 				for code := range m0 {
-					writer.Write(unikmer.KmerCode{Code: code, K: k})
+					writer.WriteCode(code)
 				}
 			}
 		}

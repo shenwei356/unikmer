@@ -112,7 +112,7 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var code uint64
 		var k int = -1
 		var canonical bool
 		var mode uint32
@@ -190,7 +190,7 @@ Tips:
 				}
 
 				for {
-					kcode, err = reader.Read()
+					code, err = reader.ReadCode()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -199,7 +199,7 @@ Tips:
 					}
 
 					if doNotNeedSorting {
-						writer.Write(kcode)
+						writer.WriteCode(code)
 						n++
 
 						if limitMem && n >= maxElem {
@@ -228,7 +228,7 @@ Tips:
 						continue
 					}
 
-					m = append(m, kcode.Code)
+					m = append(m, code)
 
 					if limitMem && len(m) >= maxElem {
 						iTmpFile++

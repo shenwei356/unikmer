@@ -93,7 +93,7 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var code uint64
 		var k int = -1
 		var canonical bool
 		var firstFile = true
@@ -141,7 +141,7 @@ Tips:
 
 				if repeated {
 					for {
-						kcode, err = reader.Read()
+						code, err = reader.ReadCode()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -150,14 +150,14 @@ Tips:
 						}
 
 						// new kmers
-						if existed, ok = mb[kcode.Code]; !ok {
-							mb[kcode.Code] = false
+						if existed, ok = mb[code]; !ok {
+							mb[code] = false
 						} else {
 							if !existed {
-								mb[kcode.Code] = true // mark repeated
+								mb[code] = true // mark repeated
 								n++
 								if !sortKmers {
-									writer.Write(kcode) // not need to check err
+									writer.WriteCode(code) // not need to check err
 								}
 							}
 						}
@@ -167,7 +167,7 @@ Tips:
 				}
 
 				for {
-					kcode, err = reader.Read()
+					code, err = reader.ReadCode()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -176,11 +176,11 @@ Tips:
 					}
 
 					// new kmers
-					if _, ok = m[kcode.Code]; !ok {
-						m[kcode.Code] = struct{}{}
+					if _, ok = m[code]; !ok {
+						m[code] = struct{}{}
 						n++
 						if !sortKmers {
-							writer.Write(kcode) // not need to check err
+							writer.WriteCode(code) // not need to check err
 						}
 					}
 				}
@@ -230,7 +230,7 @@ Tips:
 				log.Infof("done sorting")
 			}
 			for _, code := range codes {
-				writer.Write(unikmer.KmerCode{Code: code, K: k})
+				writer.WriteCode(code)
 			}
 		}
 
