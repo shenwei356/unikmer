@@ -275,17 +275,23 @@ Tips:
 
 		// dump remaining k-mers to file
 
-		if n > 0 {
-			if opt.Verbose {
-				log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, n, outFile2)
-			}
-			chN <- int64(n)
+		if doNotNeedSorting {
 
 			outfh.Flush()
 			if gw != nil {
 				gw.Close()
 			}
 			w.Close()
+
+			if n > 0 {
+				if opt.Verbose {
+					log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, n, outFile2)
+				}
+				chN <- int64(n)
+			} else {
+				os.Remove(outFile2)
+				iTmpFile--
+			}
 		}
 
 		if len(m) > 0 {
