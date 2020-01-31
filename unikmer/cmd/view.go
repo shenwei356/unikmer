@@ -45,14 +45,7 @@ var viewCmd = &cobra.Command{
 
 		var err error
 
-		infileList := getFlagString(cmd, "infile-list")
-
-		files := getFileList(args, true)
-		if infileList != "" {
-			_files, err := getListFromFile(infileList, true)
-			checkError(err)
-			files = append(files, _files...)
-		}
+		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
 
 		checkFileSuffix(extDataFile, files...)
 

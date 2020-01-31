@@ -42,16 +42,7 @@ var dumpCmd = &cobra.Command{
 
 		var err error
 
-		infileList := getFlagString(cmd, "infile-list")
-
-		files := getFileList(args, true)
-		if infileList != "" {
-			_files, err := getListFromFile(infileList, true)
-			checkError(err)
-			files = append(files, _files...)
-		}
-
-		checkFileSuffix(extDataFile, files...)
+		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")

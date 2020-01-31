@@ -51,16 +51,7 @@ var decodeCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
-		infileList := getFlagString(cmd, "infile-list")
-
-		files := getFileList(args, true)
-		if infileList != "" {
-			_files, err := getListFromFile(infileList, true)
-			checkError(err)
-			files = append(files, _files...)
-		}
-
-		checkFileSuffix("", files...)
+		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
