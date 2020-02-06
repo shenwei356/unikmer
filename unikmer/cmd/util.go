@@ -213,24 +213,3 @@ func ParseByteSize(val string) (int, error) {
 	}
 	return int(size * float64(u)), nil
 }
-
-func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options) {
-	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
-	checkError(err)
-	defer func() {
-		outfh.Flush()
-		if gw != nil {
-			gw.Close()
-		}
-		w.Close()
-	}()
-
-	writer, err := unikmer.NewWriter(outfh, k, mode)
-	checkError(err)
-
-	writer.Number = int64(len(m))
-	for _, code := range m {
-		writer.Write(unikmer.KmerCode{Code: code, K: k})
-	}
-	checkError(writer.Flush())
-}

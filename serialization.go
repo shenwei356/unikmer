@@ -281,22 +281,26 @@ func (writer *Writer) WriteHeader() (err error) {
 		return nil
 	}
 	w := writer.w
-	// write magic number
+
+	// 8 bytes
 	err = binary.Write(w, be, Magic)
 	if err != nil {
 		return err
 	}
 
+	// 4 bytes
 	err = binary.Write(w, be, [4]uint8{writer.MainVersion, MinorVersion, uint8(writer.K), 0})
 	if err != nil {
 		return err
 	}
 
+	// 4 bytes
 	err = binary.Write(w, be, writer.Flag)
 	if err != nil {
 		return err
 	}
 
+	// 8 bytes
 	err = binary.Write(w, be, writer.Number)
 	if err != nil {
 		return err

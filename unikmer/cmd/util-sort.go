@@ -26,34 +26,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/shenwei356/unikmer"
 )
 
-func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikmer.Header, int, error) {
-	// in
-	infh, r, _, err := inStream(file)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer r.Close()
-
-	var reader *unikmer.Reader
-	reader, err = unikmer.NewReader(infh)
-	if err != nil {
-		return nil, 0, err
-	}
-	k := reader.K
-
-	// out
-	if !isStdout(outFile) {
-		outFile += extDataFile
-	}
+func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
 	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
-	if err != nil {
-		return nil, 0, err
-	}
+	checkError(err)
 	defer func() {
 		outfh.Flush()
 		if gw != nil {
@@ -62,61 +41,43 @@ func sortUnikFile(opt Options, unique bool, file string, outFile string) (*unikm
 		w.Close()
 	}()
 
-	// mode
-	var mode uint32
-	if opt.Compact {
-		mode |= unikmer.UNIK_COMPACT
-	}
-	if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
-		mode |= unikmer.UNIK_CANONICAL
-	}
-	mode |= unikmer.UNIK_SORTED
+	writer, err := unikmer.NewWriter(outfh, k, mode)
+	checkError(err)
 
-	var writer *unikmer.Writer
-	writer, err = unikmer.NewWriter(outfh, k, mode)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// read
-	m := make([]uint64, 0, mapInitSize)
-	var kcode unikmer.KmerCode
-	for {
-		kcode, err = reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				break
+	var n int64
+	var last = ^uint64(0)
+	var count int
+	// log.Warningf("%d", m)
+	for _, code := range m {
+		if unique {
+			if code != last {
+				writer.WriteCode(code)
+				n++
+				last = code
 			}
-			if err != nil {
-				return nil, 0, err
-			}
-		}
-
-		m = append(m, kcode.Code)
-	}
-
-	// sort
-	sort.Sort(unikmer.CodeSlice(m))
-
-	var n int
-	if unique {
-		var last = ^uint64(0)
-		for _, code := range m {
+		} else if repeated {
+			// log.Warningf("last: %d, code: %d, count: %d", last, code, count)
 			if code == last {
-				continue
+				if count == 1 { // write once
+					writer.WriteCode(code)
+					n++
+					count++
+				}
+			} else {
+				writer.WriteCode(code)
+				n++
+
+				last = code
+				count = 1
 			}
-			last = code
+		} else {
+			writer.WriteCode(code)
 			n++
-			writer.Write(unikmer.KmerCode{Code: code, K: k})
 		}
-	} else {
-		for _, code := range m {
-			writer.Write(unikmer.KmerCode{Code: code, K: k})
-		}
-		n = len(m)
 	}
 
-	return &reader.Header, n, nil
+	checkError(writer.Flush())
+	return n
 }
 
 func chunkFileName(outDir string, i int) string {
@@ -153,7 +114,7 @@ func (h codeEntryHeap) Pop() interface{} {
 	return x
 }
 
-func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode uint32, unique bool, repeated bool) (int64, string) {
+func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode uint32, unique bool, repeated bool, finalRound bool) (int64, string) {
 	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 	checkError(err)
 	defer func() {
@@ -189,16 +150,15 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 		}
 	}()
 
-	entries := make([]*codeEntry, 0, len(files))
-	codes := codeEntryHeap{entries: &entries}
+	maxChunkElem := 2
 
-	maxChunkElem := 1
+	entries := make([]*codeEntry, 0, len(files)*maxChunkElem)
+	codes := codeEntryHeap{entries: &entries}
 
 	fillBuffer := func() error {
 		var err error
 		var kcode unikmer.KmerCode
-		var reader *unikmer.Reader
-		for i := 0; i < len(readers); i++ {
+		for i, reader := range readers {
 			reader = readers[i]
 			n := 0
 			for {
@@ -240,24 +200,28 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 
 		if unique {
 			if code != last {
-				last = code
+				writer.WriteCode(code)
 				n++
-				writer.Write(unikmer.KmerCode{Code: code, K: k})
+				last = code
 			}
 		} else if repeated {
 			if code == last {
-				count++
-			} else if count > 1 {
-				writer.Write(unikmer.KmerCode{Code: last, K: k})
-				n++
-				last = code
-				count = 1
+				if count == 1 { // write another copy
+					writer.WriteCode(code)
+					n++
+					count++
+				}
 			} else {
+				if !finalRound {
+					writer.WriteCode(code)
+					n++
+				}
+
 				last = code
 				count = 1
 			}
 		} else {
-			writer.Write(unikmer.KmerCode{Code: code, K: k})
+			writer.WriteCode(code)
 			n++
 		}
 

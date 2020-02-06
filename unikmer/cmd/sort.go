@@ -31,6 +31,7 @@ import (
 	"sync"
 
 	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 )
 
@@ -66,6 +67,12 @@ Tips:
 		repeated := getFlagBool(cmd, "repeated")
 		tmpDir := getFlagString(cmd, "tmp-dir")
 		maxOpenFiles := getFlagPositiveInt(cmd, "max-open-files")
+		keepTmpDir := getFlagBool(cmd, "keep-tmp-dir")
+		force := getFlagBool(cmd, "force")
+
+		if unique && repeated {
+			checkError(fmt.Errorf("flag -u/--unique overides -d/--repeated, don't provide both"))
+		}
 
 		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
 		if err != nil {
@@ -81,6 +88,29 @@ Tips:
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
+
+		if isStdout(outFile0) {
+			tmpDir = filepath.Join(tmpDir, "stdout.tmp")
+		} else {
+			tmpDir = filepath.Join(tmpDir, filepath.Base(outFile0)+".tmp")
+		}
+
+		existed, err := pathutil.DirExists(tmpDir)
+		checkError(err)
+		if existed {
+			empty, err := pathutil.IsEmpty(tmpDir)
+			checkError(err)
+			if !empty {
+				if force {
+					checkError(os.RemoveAll(tmpDir))
+				} else {
+					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use -f (--force) to overwrite", tmpDir))
+				}
+			} else {
+				checkError(os.RemoveAll(tmpDir))
+			}
+		}
+		checkError(os.MkdirAll(tmpDir, 0777))
 
 		var writer *unikmer.Writer
 
@@ -147,18 +177,13 @@ Tips:
 
 					if limitMem && len(m) >= maxElem {
 						if !hasTmpFile {
+							if opt.Verbose {
+								log.Info()
+								log.Infof("======= Stage 1: spliting k-mers into chunks =======")
+							}
+
 							tmpFiles = make([]string, 0, 10)
 							hasTmpFile = true
-
-							if isStdout(outFile0) {
-								tmpDir = filepath.Join(tmpDir, "stdout.tmp")
-							} else {
-								tmpDir = filepath.Join(tmpDir, filepath.Base(outFile0)+".tmp")
-							}
-							err = os.MkdirAll(tmpDir, 0755)
-							if err != nil {
-								checkError(fmt.Errorf("fail to create temp directory: %s", tmpDir))
-							}
 						}
 						iTmpFile++
 						outFile1 := chunkFileName(tmpDir, iTmpFile)
@@ -180,9 +205,9 @@ Tips:
 								log.Infof("[chunk %d] done sorting", iTmpFile)
 							}
 
-							dumpCodes2File(m, k, mode, outFile, opt)
+							_n := dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 							if opt.Verbose {
-								log.Infof("[chunk %d] %d k-mers saved to tmp file: %s", iTmpFile, len(m), outFile)
+								log.Infof("[chunk %d] %d k-mers saved to tmp file: %s", iTmpFile, _n, outFile)
 							}
 						}(m, iTmpFile, outFile1)
 
@@ -224,9 +249,9 @@ Tips:
 						log.Infof("[chunk %d] done sorting", iTmpFile)
 					}
 
-					dumpCodes2File(m, k, mode, outFile, opt)
+					_n := dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 					if opt.Verbose {
-						log.Infof("[chunk %d] %d k-mers saved to tmp file: %s", iTmpFile, len(m), outFile)
+						log.Infof("[chunk %d] %d k-mers saved to tmp file: %s", iTmpFile, _n, outFile)
 					}
 				}(m, iTmpFile, outFile1)
 			}
@@ -237,9 +262,6 @@ Tips:
 			// merge sort
 
 			// this implemention was heavily inspired by https://github.com/oxtoacart/emsort/blob/master/emsort.go
-			if opt.Verbose {
-				log.Infof("merging from %d chunk files", len(tmpFiles))
-			}
 
 			files = make([]string, len(tmpFiles))
 			copy(files, tmpFiles)
@@ -248,10 +270,15 @@ Tips:
 			var n int64
 			var _files []string
 			if len(files) < maxOpenFiles {
-				n, _ = mergeChunksFile(opt, files, outFile, k, mode, unique, repeated)
+				if opt.Verbose {
+					log.Info()
+					log.Infof("======= Stage 2: merging from %d chunks =======", len(files))
+				}
+				n, _ = mergeChunksFile(opt, files, outFile, k, mode, unique, repeated, true)
 			} else {
 				if opt.Verbose {
-					log.Infof("two-pass merge performing")
+					log.Info()
+					log.Infof("======= Stage 2: merging from %d chunks (round: 1/2) =======", len(files))
 				}
 
 				_files = make([]string, 0, maxOpenFiles)
@@ -261,7 +288,10 @@ Tips:
 						iTmpFile++
 						outFile1 := chunkFileName(tmpDir, iTmpFile)
 
-						n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, false, false)
+						if opt.Verbose {
+							log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
+						}
+						n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
 						if opt.Verbose {
 							log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 						}
@@ -273,20 +303,30 @@ Tips:
 					iTmpFile++
 					outFile1 := chunkFileName(tmpDir, iTmpFile)
 
-					n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, false, false)
+					if opt.Verbose {
+						log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
+					}
+					n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
 					if opt.Verbose {
 						log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 					}
 					tmpFiles = append(tmpFiles, outFile1)
 				}
-
-				n, _ = mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated)
+				if opt.Verbose {
+					log.Info()
+					log.Infof("======= Stage 3: merging from %d chunks (round: 2/2) =======", len(tmpFiles))
+				}
+				n, _ = mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated, true)
 			}
 			if opt.Verbose {
 				log.Infof("%d k-mers saved to %s", n, outFile)
 			}
 
 			// cleanning
+
+			if keepTmpDir {
+				return
+			}
 
 			if opt.Verbose {
 				log.Infof("removing %d intermediate files", len(tmpFiles)+len(files))
@@ -302,7 +342,7 @@ Tips:
 			}
 			err = os.Remove(tmpDir)
 			if err != nil {
-				checkError(fmt.Errorf("fail to remove temp directory: %s", tmpDir))
+				checkError(fmt.Errorf("fail to remove temp directory, please manually delete it: %s", tmpDir))
 			}
 
 			return
@@ -346,20 +386,15 @@ Tips:
 			var count int
 			for _, code := range m {
 				if code == last {
+					if count == 1 { // write once
+						writer.WriteCode(code)
+						n++
+					}
 					count++
-				} else if count > 1 {
-					writer.WriteCode(code)
-					n++
-					last = code
-					count = 1
 				} else {
 					last = code
 					count = 1
 				}
-			}
-			if count > 1 {
-				writer.WriteCode(code)
-				n++
 			}
 		} else {
 			writer.Number = int64(len(m))
@@ -384,5 +419,7 @@ func init() {
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
-	sortCmd.Flags().IntP("max-open-files", "M", 300, `max number of open files`)
+	sortCmd.Flags().IntP("max-open-files", "M", 100, `max number of open files`)
+	sortCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
+	sortCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
 }

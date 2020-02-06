@@ -61,6 +61,8 @@ Tips:
 
 		outDir := getFlagString(cmd, "out-dir")
 		force := getFlagBool(cmd, "force")
+		unique := getFlagBool(cmd, "unique")
+		repeated := getFlagBool(cmd, "repeated")
 
 		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
 		if err != nil {
@@ -243,9 +245,9 @@ Tips:
 								log.Infof("[chunk %d] done sorting", iTmpFile)
 							}
 
-							dumpCodes2File(m, k, mode, outFile, opt)
+							_n := dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 							if opt.Verbose {
-								log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
+								log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, _n, outFile)
 							}
 							chN <- int64(len(m))
 						}(m, iTmpFile, outFile1)
@@ -311,9 +313,9 @@ Tips:
 					log.Infof("[chunk %d] skipping sorting for single sorted input file", iTmpFile)
 				}
 
-				dumpCodes2File(m, k, mode, outFile, opt)
+				_n := dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 				if opt.Verbose {
-					log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, len(m), outFile)
+					log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, _n, outFile)
 				}
 				chN <- int64(len(m))
 			}(m, iTmpFile, outFile1)
@@ -336,4 +338,6 @@ func init() {
 	splitCmd.Flags().StringP("out-dir", "O", "", `output directory`)
 	splitCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer split -h" for detail`)
 	splitCmd.Flags().BoolP("force", "f", false, `overwrite output directory`)
+	splitCmd.Flags().BoolP("unique", "u", false, `split for further removing duplicated k-mers`)
+	splitCmd.Flags().BoolP("repeated", "d", false, `split for further printing duplicate k-mers`)
 }
