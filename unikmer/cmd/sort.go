@@ -419,7 +419,7 @@ func init() {
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
-	sortCmd.Flags().IntP("max-open-files", "M", 100, `max number of open files`)
+	sortCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)
 	sortCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
 	sortCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
 }

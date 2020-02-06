@@ -313,7 +313,7 @@ func init() {
 	mergeCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	mergeCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 
-	mergeCmd.Flags().IntP("max-open-files", "M", 300, `max number of open files`)
+	mergeCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)
 	mergeCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 	mergeCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
 	mergeCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
