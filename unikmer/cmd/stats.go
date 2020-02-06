@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -64,6 +65,7 @@ Tips:
 		skipErr := getFlagBool(cmd, "skip-err")
 		sTrue := getFlagString(cmd, "symbol-true")
 		sFalse := getFlagString(cmd, "symbol-false")
+		basename := getFlagBool(cmd, "basename")
 		if sTrue == sFalse {
 			checkError(fmt.Errorf("values of -/--symbol-true and -F/--symbol--false should be different"))
 		}
@@ -263,6 +265,9 @@ Tips:
 						return
 					default:
 					}
+					if basename {
+						file = filepath.Base(file)
+					}
 					ch <- statInfo{file: file, err: err, id: id}
 					return
 				}
@@ -275,6 +280,10 @@ Tips:
 					case <-cancel:
 						return
 					default:
+					}
+
+					if basename {
+						file = filepath.Base(file)
 					}
 					ch <- statInfo{file: file, err: err, id: id}
 					return
@@ -297,6 +306,9 @@ Tips:
 							n++
 						}
 					}
+				}
+				if basename {
+					file = filepath.Base(file)
 				}
 				ch <- statInfo{
 					file:      file,
@@ -396,6 +408,7 @@ func init() {
 	statCmd.Flags().BoolP("skip-err", "e", false, "skip error, only show warning message")
 	statCmd.Flags().StringP("symbol-true", "T", "✓", "smybol for true")
 	statCmd.Flags().StringP("symbol-false", "F", "✕", "smybol for false")
+	statCmd.Flags().BoolP("basename", "b", false, "only output basename of files")
 }
 
 func boolStr(sTrue, sFalse string, v bool) string {
