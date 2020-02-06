@@ -5,6 +5,7 @@
     - `unikmer sort/split/merge`: safer forcing deletion of existed outdir, and better log
     - `unikmer split`: performance improvement for single sorted input file.
     - `unikmer sort`: performance improvement for `-m`.
+    - `unikmer grep`: rewrite.
 - v0.7.0
     - new command `unikmer filter`: filter low-complexity k-mers.
     - new command `unikmer split`: split k-mers into sorted chunk files.
