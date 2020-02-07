@@ -97,6 +97,7 @@ without frequency information.
         inter           intersection of multiple binary files
         union           union of multiple binary files
         diff            set difference of multiple binary files
+        grep            search k-mers from binary files
 
         sort            sort k-mers in binary files to reduce file size
         split           split k-mers into sorted chunk files
@@ -107,8 +108,6 @@ without frequency information.
 
 1. Searching
 
-        grep            search k-mers from binary files
-        
         locate          locate k-mers in genome
         uniqs           mapping k-mers back to genome and find unique subsequences
 

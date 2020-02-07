@@ -25,11 +25,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"sync"
 
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +42,13 @@ var grepCmd = &cobra.Command{
 	Use:   "grep",
 	Short: "search k-mers from binary files",
 	Long: `search k-mers from binary files
+
+Attentions:
+  1. canonical k-mers are used and outputed
+
+Tips:
+  1. Increase value of '-j' for better performance when dealing with
+     lots of files, especially on SDD.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -48,125 +59,285 @@ var grepCmd = &cobra.Command{
 
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
 
-		if len(files) > 1 {
-			checkError(fmt.Errorf("no more than one file should be given"))
-		}
-
 		checkFileSuffix(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-file")
-		pattern := getFlagStringSlice(cmd, "query")
-		queryFile := getFlagString(cmd, "query-file")
+		queries := getFlagStringSlice(cmd, "query")
+		queryFiles := getFlagStringSlice(cmd, "query-file")
+		queryUnikFiles := getFlagStringSlice(cmd, "query-unik-file")
+
 		invertMatch := getFlagBool(cmd, "invert-match")
 		degenerate := getFlagBool(cmd, "degenerate")
-		canonicalSensitive := getFlagBool(cmd, "canonical")
-		// all := getFlagBool(cmd, "all")
 
-		if len(pattern) == 0 && queryFile == "" {
-			checkError(fmt.Errorf("one of flags -q (--query) and -f (--query-file) needed"))
+		mOutputs := getFlagBool(cmd, "multiple-outfiles")
+		outdir := getFlagString(cmd, "out-dir")
+		outSuffix := getFlagString(cmd, "out-suffix")
+		force := getFlagBool(cmd, "force")
+
+		sortKmers := getFlagBool(cmd, "sort")
+		unique := getFlagBool(cmd, "unique")
+		repeated := getFlagBool(cmd, "repeated")
+
+		if (unique || repeated) && !sortKmers {
+			log.Infof("flag -s/--sort is switched on when given -u/--unique or -d/--repeated")
+			sortKmers = true
+		}
+
+		if len(queries) == 0 && len(queryFiles) == 0 && len(queryUnikFiles) == 0 {
+			checkError(fmt.Errorf("one of flags -q/--query, -f/--query-file and -F/--query-unik-file needed"))
+		}
+
+		if mOutputs && outFile != "" && !isStdin(outFile) {
+			log.Warningf("flag -o/--out-file ignored when given -m/--multiple-outfiles")
 		}
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		k := -1
-		queryList := make([]string, 0, 1000)
-		for _, query := range pattern {
+
+		// load k-mers from cli
+		queryList := make([]string, 0, 1000) // for plain k-mer text from -q and -f.
+		for _, query := range queries {
 			if query == "" {
 				continue
 			}
 			if k == -1 {
 				k = len(query)
-			}
-			if len(query) != k {
+			} else if len(query) != k {
 				checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
 			}
 			queryList = append(queryList, query)
 		}
-		if queryFile != "" {
-			if opt.Verbose {
-				log.Infof("load queries from file: %s", queryFile)
-			}
+		// load k-mers from file
+		if len(queryFiles) != 0 {
 			var brdr *breader.BufferedReader
-			brdr, err = breader.NewDefaultBufferedReader(queryFile)
-			checkError(err)
 			var data interface{}
 			var query string
-			for chunk := range brdr.Ch {
-				checkError(chunk.Err)
-				for _, data = range chunk.Data {
-					query = data.(string)
-					if k == -1 {
-						k = len(query)
+			for _, queryFile := range queryFiles {
+				if opt.Verbose {
+					log.Infof("loading queries from file: %s", queryFile)
+				}
+				brdr, err = breader.NewDefaultBufferedReader(queryFile)
+				checkError(err)
+				for chunk := range brdr.Ch {
+					checkError(chunk.Err)
+					for _, data = range chunk.Data {
+						query = data.(string)
+						if k == -1 {
+							k = len(query)
+						} else if len(query) != k {
+							checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
+						}
+						queryList = append(queryList, query)
 					}
-					if len(query) != k {
-						checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
-
-					}
-					queryList = append(queryList, query)
 				}
 			}
 		}
 
+		// encode k-mers
 		var kcode unikmer.KmerCode
 		var mer []byte
-
-		var queries [][]byte
+		var _queries [][]byte
 		var q []byte
 		for _, query := range queryList {
 			if degenerate {
-				queries, err = extendDegenerateSeq([]byte(query))
+				_queries, err = extendDegenerateSeq([]byte(query))
 				if err != nil {
 					checkError(fmt.Errorf("fail to extend degenerate sequence '%s': %s", query, err))
 				}
 			} else {
-				queries = [][]byte{[]byte(query)}
+				_queries = [][]byte{[]byte(query)}
 			}
 
-			for _, q = range queries {
+			for _, q = range _queries {
 				kcode, err = unikmer.NewKmerCode(q)
 				if err != nil {
 					checkError(fmt.Errorf("fail to encode query '%s': %s", mer, err))
 				}
-				m[kcode.Code] = struct{}{}
+				m[kcode.Canonical().Code] = struct{}{}
+			}
+		}
+
+		var infh *bufio.Reader
+		var r *os.File
+		var reader *unikmer.Reader
+		var flag int
+
+		// load k-mers from .unik files
+		if len(queryUnikFiles) != 0 {
+			for _, file := range queryUnikFiles {
+				if opt.Verbose {
+					log.Infof("loading queries from .unik file: %s", file)
+				}
+
+				flag = func() int {
+					infh, r, _, err = inStream(file)
+					checkError(err)
+					defer r.Close()
+
+					reader, err = unikmer.NewReader(infh)
+					checkError(err)
+
+					if k == -1 {
+						k = reader.K
+					} else if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+
+					if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+						for {
+							kcode, err = reader.Read()
+							if err != nil {
+								if err == io.EOF {
+									break
+								}
+								checkError(err)
+							}
+
+							m[kcode.Code] = struct{}{}
+						}
+					} else {
+						for {
+							kcode, err = reader.Read()
+							if err != nil {
+								if err == io.EOF {
+									break
+								}
+								checkError(err)
+							}
+
+							m[kcode.Canonical().Code] = struct{}{}
+						}
+					}
+
+					return flagContinue
+				}()
+
+				if flag == flagReturn {
+					return
+				} else if flag == flagBreak {
+					break
+				}
 			}
 		}
 
 		if opt.Verbose {
 			log.Infof("%d queries loaded", len(m))
-			if canonicalSensitive {
-				log.Infof("will check reverse complement sequence of canonical k-mers")
+			log.Info()
+		}
+
+		////////////////////////////////////////////////////////////////////////////////
+
+		var outfh *bufio.Writer
+		var gw io.WriteCloser
+		var w *os.File
+		var writer *unikmer.Writer
+
+		if !isStdout(outFile) {
+			outFile += extDataFile
+		}
+		if !mOutputs {
+			// the global writer
+			outfh, gw, w, err = outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
+			checkError(err)
+			defer func() {
+				outfh.Flush()
+				if gw != nil {
+					gw.Close()
+				}
+				w.Close()
+			}()
+
+			var mode uint32
+
+			mode |= unikmer.UNIK_CANONICAL // forcing using canonical
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			} else if opt.Compact {
+				mode |= unikmer.UNIK_COMPACT
+			}
+			writer, err = unikmer.NewWriter(outfh, k, mode)
+			checkError(err)
+		} else {
+			if outdir == "" {
+				checkError(fmt.Errorf("out dir (flag -O/--out-dir) should not be empty"))
+			}
+			for _, file := range files {
+				if isStdin(file) {
+					checkError(fmt.Errorf("stdin detected, should not use -m/--mutliple-outfiles"))
+				}
+			}
+
+			pwd, _ := os.Getwd()
+			if outdir != "./" && outdir != "." && pwd != filepath.Clean(outdir) {
+				existed, err := pathutil.DirExists(outdir)
+				checkError(err)
+				if existed {
+					empty, err := pathutil.IsEmpty(outdir)
+					checkError(err)
+					if !empty {
+						if force {
+							checkError(os.RemoveAll(outdir))
+						} else {
+							log.Warningf("outdir not empty: %s, use -f (--force) to overwrite", outdir)
+						}
+					}
+				} else {
+					checkError(os.MkdirAll(outdir, 0777))
+				}
 			}
 		}
 
-		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
-		checkError(err)
-		defer func() {
-			outfh.Flush()
-			if gw != nil {
-				gw.Close()
+		threads := opt.NumCPUs
+		var wg sync.WaitGroup
+		tokens := make(chan int, threads)
+
+		var codes []uint64
+		if sortKmers {
+			codes = make([]uint64, 0, mapInitSize)
+		}
+
+		// read k-mers from goroutines
+		var ns int
+		done := make(chan int)
+		chCodes := make(chan uint64, threads)
+		go func() {
+			if sortKmers {
+				for code := range chCodes {
+					codes = append(codes, code)
+				}
+			} else {
+				for code := range chCodes {
+					writer.WriteCode(code)
+					ns++
+				}
 			}
-			w.Close()
+			done <- 1
 		}()
 
-		var n int64
-		var infh *bufio.Reader
-		var r *os.File
-		var reader *unikmer.Reader
-		var canonical bool
-		var firstFile = true
-		var flag int
 		var nfiles = len(files)
-		var ok, hit bool
 		for i, file := range files {
-			if !firstFile && file == files[0] {
-				continue
-			}
+			tokens <- 1
+			wg.Add(1)
 
-			if opt.Verbose {
-				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
-			}
+			go func(i int, file string) {
+				defer func() {
+					<-tokens
+					wg.Done()
+				}()
 
-			flag = func() int {
+				var infh *bufio.Reader
+				var r *os.File
+				var reader *unikmer.Reader
+
+				var n int
+				var canonical bool
+				var ok, hit bool
+
+				if opt.Verbose {
+					log.Infof("[file %d/%d] processing: %s", i+1, nfiles, file)
+				}
+
 				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
@@ -175,13 +346,43 @@ var grepCmd = &cobra.Command{
 				checkError(err)
 
 				if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
 				}
 				canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
-				if opt.Verbose {
-					log.Infof("file (%d/%d): %s: canonical: %v", i+1, nfiles, file, canonical)
+
+				var _writer *unikmer.Writer
+				var _codes []uint64
+				var _outFile string
+
+				if mOutputs {
+					// write to it's own output file
+					_outFile = filepath.Join(outdir, filepath.Base(file)+outSuffix+extDataFile)
+					outfh, gw, w, err := outStream(_outFile, true, opt.CompressionLevel)
+					checkError(err)
+					defer func() {
+						outfh.Flush()
+						if gw != nil {
+							gw.Close()
+						}
+						w.Close()
+					}()
+
+					var mode uint32
+					mode |= unikmer.UNIK_CANONICAL
+					if sortKmers {
+						mode |= unikmer.UNIK_SORTED
+					} else if opt.Compact {
+						mode |= unikmer.UNIK_COMPACT
+					}
+					_writer, err = unikmer.NewWriter(outfh, k, mode)
+					checkError(err)
+
+					if sortKmers {
+						_codes = make([]uint64, 0, mapInitSize)
+					}
 				}
 
+				var kcode unikmer.KmerCode
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -191,11 +392,11 @@ var grepCmd = &cobra.Command{
 						checkError(err)
 					}
 
-					_, ok = m[kcode.Code]
-
-					if canonicalSensitive && canonical && !ok {
-						_, ok = m[kcode.RevComp().Code]
+					if !canonical {
+						kcode = kcode.Canonical()
 					}
+
+					_, ok = m[kcode.Code]
 
 					if !invertMatch {
 						hit = ok
@@ -204,26 +405,128 @@ var grepCmd = &cobra.Command{
 					}
 
 					if hit {
-						outfh.WriteString(kcode.String() + "\n")
-						outfh.Flush()
-						n++
+						if mOutputs {
+							if sortKmers {
+								_codes = append(_codes, kcode.Code)
+							} else {
+								_writer.WriteCode(kcode.Code)
+								n++
+							}
+						} else {
+							chCodes <- kcode.Code
+						}
 					}
 				}
 
-				return flagContinue
-			}()
+				if !mOutputs {
+					return
+				}
 
-			if flag == flagReturn {
-				return
-			} else if flag == flagBreak {
-				break
+				if sortKmers {
+					if opt.Verbose {
+						log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codes))
+					}
+					sort.Sort(unikmer.CodeSlice(_codes))
+
+					if opt.Verbose {
+						log.Infof("[file %d/%d] done sorting", i+1, nfiles)
+					}
+
+					if unique {
+						var last uint64 = ^uint64(0)
+						for _, code := range _codes {
+							if code == last {
+								continue
+							}
+							last = code
+							n++
+							_writer.WriteCode(code)
+						}
+					} else if repeated {
+						var last uint64 = ^uint64(0)
+						var count int
+						for _, code := range _codes {
+							if code == last {
+								if count == 1 { // write once
+									_writer.WriteCode(code)
+									n++
+								}
+								count++
+							} else {
+								last = code
+								count = 1
+							}
+						}
+					} else {
+						_writer.Number = int64(len(_codes))
+						for _, code := range _codes {
+							_writer.WriteCode(code)
+						}
+						n = len(_codes)
+					}
+				}
+
+				checkError(_writer.Flush())
+				if opt.Verbose {
+					log.Infof("[file %d/%d] %d k-mers saved to %s", i+1, nfiles, n, _outFile)
+				}
+
+			}(i, file)
+		}
+
+		wg.Wait()
+		close(chCodes)
+		<-done
+
+		if !mOutputs {
+			if sortKmers {
+				if opt.Verbose {
+					log.Infof("sorting %d k-mers", len(codes))
+				}
+				sort.Sort(unikmer.CodeSlice(codes))
+				if opt.Verbose {
+					log.Infof("done sorting")
+				}
+
+				if unique {
+					var last uint64 = ^uint64(0)
+					for _, code := range codes {
+						if code == last {
+							continue
+						}
+						last = code
+						ns++
+						writer.WriteCode(code)
+					}
+				} else if repeated {
+					var last uint64 = ^uint64(0)
+					var count int
+					for _, code := range codes {
+						if code == last {
+							if count == 1 { // write once
+								writer.WriteCode(code)
+								ns++
+							}
+							count++
+						} else {
+							last = code
+							count = 1
+						}
+					}
+				} else {
+					writer.Number = int64(len(codes))
+					for _, code := range codes {
+						writer.WriteCode(code)
+					}
+					ns = len(codes)
+				}
+			}
+
+			checkError(writer.Flush())
+			if opt.Verbose {
+				log.Infof("%d k-mers saved to %s", ns, outFile)
 			}
 		}
-
-		if opt.Verbose {
-			log.Infof("%d k-mer(s) found", n)
-		}
-
 	},
 }
 
@@ -233,9 +536,21 @@ func init() {
 	grepCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 
 	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query k-mers (multiple values delimted by comma supported)`)
-	grepCmd.Flags().StringP("query-file", "f", "", "query file (one k-mer per line)")
-	grepCmd.Flags().BoolP("degenerate", "d", false, "query k-mers contains degenerate base")
+	grepCmd.Flags().StringSliceP("query-file", "f", []string{""}, "query file (one k-mer per line)")
+	grepCmd.Flags().StringSliceP("query-unik-file", "F", []string{""}, "query file in .unik format")
+
+	grepCmd.Flags().BoolP("degenerate", "D", false, "query k-mers contains degenerate base")
 	grepCmd.Flags().BoolP("invert-match", "v", false, "invert the sense of matching, to select non-matching records")
-	grepCmd.Flags().BoolP("canonical", "K", false, "check reverse complement sequence of canonical k-mers")
-	// grepCmd.Flags().BoolP("all", "a", false, "show more information: extra column of matched k-mers")
+
+	grepCmd.Flags().BoolP("multiple-outfiles", "m", false, "write results into separated files for multiple input files")
+	grepCmd.Flags().StringP("out-dir", "O", "unikmer-grep", "output directory")
+	grepCmd.Flags().StringP("out-suffix", "S", grepDefaultOutSuffix, "output suffix")
+	grepCmd.Flags().BoolP("force", "", false, "overwrite output directory")
+
+	grepCmd.Flags().BoolP("sort", "s", false, helpSort)
+	grepCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
+	grepCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
+
 }
+
+var grepDefaultOutSuffix = ".grep"

@@ -45,8 +45,11 @@ var splitCmd = &cobra.Command{
 Tips:
   1. You can use '-m/--chunk-size' to limit memory usage, though which is
      not precise and actually RSS is higher than '-m' * '-j'.
+     Maximum number of k-mers in chunks is '-m'/8, actual file size
+     depends on k-mers and file save mode (sorted/compact/normal).
   2. Increasing value of -j/--threads can accelerates splitting stage,
      in cost of more memory occupation.
+  3. For sorted input files, the memory usage is very low and speed is fast.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
