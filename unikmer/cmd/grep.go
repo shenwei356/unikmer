@@ -407,17 +407,19 @@ Tips:
 						hit = !ok
 					}
 
-					if hit {
-						if mOutputs {
-							if sortKmers {
-								_codes = append(_codes, kcode.Code)
-							} else {
-								_writer.WriteCode(kcode.Code)
-								n++
-							}
+					if !hit {
+						continue
+					}
+
+					if mOutputs {
+						if sortKmers {
+							_codes = append(_codes, kcode.Code)
 						} else {
-							chCodes <- kcode.Code
+							_writer.WriteCode(kcode.Code)
+							n++
 						}
+					} else {
+						chCodes <- kcode.Code
 					}
 				}
 
