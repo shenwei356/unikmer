@@ -110,7 +110,6 @@ var dumpCmd = &cobra.Command{
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)
-						defer checkError(writer.Flush())
 					}
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
@@ -131,11 +130,11 @@ var dumpCmd = &cobra.Command{
 					if unique {
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
-							checkError(writer.Write(kcode))
+							writer.WriteCode(kcode.Code)
 							n++
 						}
 					} else {
-						checkError(writer.Write(kcode))
+						writer.WriteCode(kcode.Code)
 						n++
 					}
 				}
@@ -144,7 +143,7 @@ var dumpCmd = &cobra.Command{
 
 		checkError(writer.Flush())
 		if opt.Verbose {
-			log.Infof("%d unique k-mers found", n)
+			log.Infof("%d unique k-mers saved to %s", n, outFile)
 		}
 	},
 }

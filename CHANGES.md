@@ -1,4 +1,4 @@
-- v0.7.1
+- v0.8.0
     - `unikmer`:
          - do not ignore files from cli arugments when given flag `-i/--infile-list`.
          - improve performance of binary file reading and writing.
@@ -6,6 +6,7 @@
     - `unikmer split`: performance improvement for single sorted input file.
     - `unikmer sort`: performance improvement for `-m`.
     - `unikmer grep`: rewrite.
+    - `unikmer dump`: fix number information in output file.
 - v0.7.0
     - new command `unikmer filter`: filter low-complexity k-mers.
     - new command `unikmer split`: split k-mers into sorted chunk files.

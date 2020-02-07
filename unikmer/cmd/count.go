@@ -177,7 +177,7 @@ var countCmd = &cobra.Command{
 							if sortKmers {
 								m2 = append(m2, kcode.Code)
 							} else {
-								checkError(writer.Write(kcode))
+								writer.WriteCode(kcode.Code)
 								n++
 							}
 						}
@@ -198,7 +198,7 @@ var countCmd = &cobra.Command{
 			writer.Number = n
 
 			for _, code := range m2 {
-				writer.Write(unikmer.KmerCode{Code: code, K: k})
+				writer.WriteCode(code)
 			}
 		}
 

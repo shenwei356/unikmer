@@ -124,7 +124,7 @@ Attentions:
 						j++
 						if (j-start)%window == 0 || j == start {
 							n++
-							writer.Write(kcode) // not need to check err
+							writer.WriteCode(kcode.Code) // not need to check err
 						}
 					}
 
@@ -139,14 +139,11 @@ Attentions:
 						}
 
 						n++
-						writer.Write(kcode) // not need to check err
+						writer.WriteCode(kcode.Code) // not need to check err
 					}
 
 				}
 
-				if n == 0 { // no KmerCode
-					checkError(writer.WriteHeader())
-				}
 				return flagContinue
 			}()
 

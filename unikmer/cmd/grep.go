@@ -28,7 +28,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/shenwei356/breader"
@@ -61,7 +60,7 @@ Tips:
 
 		checkFileSuffix(extDataFile, files...)
 
-		outFile := getFlagString(cmd, "out-file")
+		outFile := getFlagString(cmd, "out-prefix")
 		queries := getFlagStringSlice(cmd, "query")
 		queryFiles := getFlagStringSlice(cmd, "query-file")
 		queryUnikFiles := getFlagStringSlice(cmd, "query-unik-file")
@@ -87,8 +86,8 @@ Tips:
 			checkError(fmt.Errorf("one of flags -q/--query, -f/--query-file and -F/--query-unik-file needed"))
 		}
 
-		if mOutputs && outFile != "" && !isStdin(outFile) {
-			log.Warningf("flag -o/--out-file ignored when given -m/--multiple-outfiles")
+		if mOutputs && !isStdin(outFile) {
+			log.Warningf("flag -o/--out-prefix ignored when given -m/--multiple-outfiles")
 		}
 
 		m := make(map[uint64]struct{}, mapInitSize)
@@ -96,7 +95,7 @@ Tips:
 		k := -1
 
 		// load k-mers from cli
-		queryList := make([]string, 0, 1000) // for plain k-mer text from -q and -f.
+		queryList := make([]string, 0, mapInitSize) // for plain k-mer text from -q and -f.
 		for _, query := range queries {
 			if query == "" {
 				continue
@@ -108,6 +107,7 @@ Tips:
 			}
 			queryList = append(queryList, query)
 		}
+
 		// load k-mers from file
 		if len(queryFiles) != 0 {
 			var brdr *breader.BufferedReader
@@ -233,12 +233,12 @@ Tips:
 		var w *os.File
 		var writer *unikmer.Writer
 
-		if !isStdout(outFile) {
-			outFile += extDataFile
-		}
 		if !mOutputs {
+			if !isStdout(outFile) {
+				outFile += extDataFile
+			}
 			// the global writer
-			outfh, gw, w, err = outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
+			outfh, gw, w, err = outStream(outFile, opt.Compress, opt.CompressionLevel)
 			checkError(err)
 			defer func() {
 				outfh.Flush()
@@ -357,7 +357,7 @@ Tips:
 				if mOutputs {
 					// write to it's own output file
 					_outFile = filepath.Join(outdir, filepath.Base(file)+outSuffix+extDataFile)
-					outfh, gw, w, err := outStream(_outFile, true, opt.CompressionLevel)
+					outfh, gw, w, err := outStream(_outFile, opt.Compress, opt.CompressionLevel)
 					checkError(err)
 					defer func() {
 						outfh.Flush()
@@ -521,11 +521,11 @@ Tips:
 					ns = len(codes)
 				}
 			}
+		}
 
-			checkError(writer.Flush())
-			if opt.Verbose {
-				log.Infof("%d k-mers saved to %s", ns, outFile)
-			}
+		checkError(writer.Flush())
+		if opt.Verbose {
+			log.Infof("%d k-mers saved to %s", ns, outFile)
 		}
 	},
 }
@@ -533,7 +533,7 @@ Tips:
 func init() {
 	RootCmd.AddCommand(grepCmd)
 
-	grepCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
+	grepCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 
 	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query k-mers (multiple values delimted by comma supported)`)
 	grepCmd.Flags().StringSliceP("query-file", "f", []string{""}, "query file (one k-mer per line)")

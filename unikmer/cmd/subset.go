@@ -135,7 +135,7 @@ Attention:
 
 			if _, ok = m[kcode2.Code]; !ok {
 				m[kcode2.Code] = struct{}{}
-				checkError(writer.Write(kcode2))
+				writer.WriteCode(kcode2.Code)
 			}
 		}
 

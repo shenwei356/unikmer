@@ -146,9 +146,6 @@ var mergeCmd = &cobra.Command{
 					k = reader.K
 					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 
-					if opt.Compact {
-						mode |= unikmer.UNIK_COMPACT
-					}
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
