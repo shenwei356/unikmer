@@ -30,7 +30,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mapInitSize = 100000
+var mapInitSize = 1 << 20 // 1M
 
 const (
 	flagContinue = iota

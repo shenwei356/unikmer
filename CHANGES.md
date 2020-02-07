@@ -2,11 +2,12 @@
     - `unikmer`:
          - do not ignore files from cli arugments when given flag `-i/--infile-list`.
          - improve performance of binary file reading and writing.
-    - `unikmer sort/split/merge`: safer forcing deletion of existed outdir, and better log
+    - `unikmer sort/split/merge`: safer forcing deletion of existed outdir, and better log.
     - `unikmer split`: performance improvement for single sorted input file.
-    - `unikmer sort`: performance improvement for `-m`.
-    - `unikmer grep`: rewrite.
+    - `unikmer sort`: performance improvement for using `-m/--chunk-size`.
+    - `unikmer grep`: rewrite, support loading queries from .unik files.
     - `unikmer dump`: fix number information in output file.
+    - `unikmer concat`: new flag `-s/--sorted`.
 - v0.7.0
     - new command `unikmer filter`: filter low-complexity k-mers.
     - new command `unikmer split`: split k-mers into sorted chunk files.

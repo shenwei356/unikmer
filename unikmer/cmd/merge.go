@@ -41,6 +41,9 @@ var mergeCmd = &cobra.Command{
 	Short: "merge from sorted chunk files",
 	Long: `merge from sorted chunk files
 
+Tips:
+  1. If you don't need to compute unique or repeated k-mers, 
+     use 'unikmer concat -s', which is faster.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)

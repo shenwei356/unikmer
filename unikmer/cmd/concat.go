@@ -52,6 +52,7 @@ Attentions:
 		checkFileSuffix(extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		sortedKmers := getFlagBool(cmd, "sorted")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -95,7 +96,9 @@ Attentions:
 					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
 
 					var mode uint32
-					if opt.Compact {
+					if sortedKmers {
+						mode |= unikmer.UNIK_SORTED
+					} else if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
 					if canonical {
@@ -143,4 +146,5 @@ func init() {
 	RootCmd.AddCommand(concatCmd)
 
 	concatCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	concatCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
 }

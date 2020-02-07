@@ -109,13 +109,15 @@ Tips:
 		}
 
 		// load k-mers from file
+		var nfiles int
 		if len(queryFiles) != 0 {
+			nfiles = len(queryFiles)
 			var brdr *breader.BufferedReader
 			var data interface{}
 			var query string
-			for _, queryFile := range queryFiles {
+			for i, queryFile := range queryFiles {
 				if opt.Verbose {
-					log.Infof("loading queries from file: %s", queryFile)
+					log.Infof("loading queries from k-mer file [%d/%d]: %s", i+1, nfiles, queryFile)
 				}
 				brdr, err = breader.NewDefaultBufferedReader(queryFile)
 				checkError(err)
@@ -165,9 +167,10 @@ Tips:
 
 		// load k-mers from .unik files
 		if len(queryUnikFiles) != 0 {
-			for _, file := range queryUnikFiles {
+			nfiles = len(files)
+			for i, file := range queryUnikFiles {
 				if opt.Verbose {
-					log.Infof("loading queries from .unik file: %s", file)
+					log.Infof("loading queries from .unik file [%d/%d]: %s", i+1, nfiles, file)
 				}
 
 				flag = func() int {
@@ -315,7 +318,7 @@ Tips:
 			done <- 1
 		}()
 
-		var nfiles = len(files)
+		nfiles = len(files)
 		for i, file := range files {
 			tokens <- 1
 			wg.Add(1)
@@ -478,51 +481,52 @@ Tips:
 		close(chCodes)
 		<-done
 
-		if !mOutputs {
-			if sortKmers {
-				if opt.Verbose {
-					log.Infof("sorting %d k-mers", len(codes))
-				}
-				sort.Sort(unikmer.CodeSlice(codes))
-				if opt.Verbose {
-					log.Infof("done sorting")
-				}
-
-				if unique {
-					var last uint64 = ^uint64(0)
-					for _, code := range codes {
-						if code == last {
-							continue
-						}
-						last = code
-						ns++
-						writer.WriteCode(code)
-					}
-				} else if repeated {
-					var last uint64 = ^uint64(0)
-					var count int
-					for _, code := range codes {
-						if code == last {
-							if count == 1 { // write once
-								writer.WriteCode(code)
-								ns++
-							}
-							count++
-						} else {
-							last = code
-							count = 1
-						}
-					}
-				} else {
-					writer.Number = int64(len(codes))
-					for _, code := range codes {
-						writer.WriteCode(code)
-					}
-					ns = len(codes)
-				}
-			}
+		if mOutputs {
+			return
 		}
 
+		if sortKmers {
+			if opt.Verbose {
+				log.Infof("sorting %d k-mers", len(codes))
+			}
+			sort.Sort(unikmer.CodeSlice(codes))
+			if opt.Verbose {
+				log.Infof("done sorting")
+			}
+
+			if unique {
+				var last uint64 = ^uint64(0)
+				for _, code := range codes {
+					if code == last {
+						continue
+					}
+					last = code
+					ns++
+					writer.WriteCode(code)
+				}
+			} else if repeated {
+				var last uint64 = ^uint64(0)
+				var count int
+				for _, code := range codes {
+					if code == last {
+						if count == 1 { // write once
+							writer.WriteCode(code)
+							ns++
+						}
+						count++
+					} else {
+						last = code
+						count = 1
+					}
+				}
+			} else {
+				writer.Number = int64(len(codes))
+				for _, code := range codes {
+					writer.WriteCode(code)
+				}
+				ns = len(codes)
+			}
+		}
 		checkError(writer.Flush())
 		if opt.Verbose {
 			log.Infof("%d k-mers saved to %s", ns, outFile)
