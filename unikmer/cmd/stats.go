@@ -94,6 +94,7 @@ Tips:
 				colnames = append(colnames, []string{"number"}...)
 			}
 			outfh.WriteString(strings.Join(colnames, "\t") + "\n")
+			outfh.Flush()
 		}
 
 		ch := make(chan statInfo, opt.NumCPUs)
@@ -141,6 +142,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.sorted),
 								info.number))
 						}
+						outfh.Flush()
 					}
 					id++
 				} else { // check bufferd result
@@ -167,6 +169,7 @@ Tips:
 										boolStr(sTrue, sFalse, info.sorted),
 										info1.number))
 								}
+								outfh.Flush()
 							}
 
 							delete(buf, info1.id)
@@ -210,6 +213,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.sorted),
 								info.number))
 						}
+						outfh.Flush()
 					}
 				}
 			}

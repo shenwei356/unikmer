@@ -24,6 +24,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -54,6 +55,7 @@ Attention:
 
 		outFile := getFlagString(cmd, "out-file")
 		showFile := getFlagBool(cmd, "file-name")
+		basename := getFlagBool(cmd, "basename")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -79,11 +81,15 @@ Attention:
 				checkError(err)
 
 				if showFile {
-					outfh.WriteString(fmt.Sprintf("%d\t%s\n", reader.Number, file))
+					if basename {
+						outfh.WriteString(fmt.Sprintf("%d\t%s\n", reader.Number, filepath.Base(file)))
+					} else {
+						outfh.WriteString(fmt.Sprintf("%d\t%s\n", reader.Number, file))
+					}
 				} else {
 					outfh.WriteString(fmt.Sprintf("%d\n", reader.Number))
 				}
-
+				outfh.Flush()
 			}()
 		}
 	},
@@ -94,4 +100,5 @@ func init() {
 
 	numCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	numCmd.Flags().BoolP("file-name", "n", false, `show file name`)
+	numCmd.Flags().BoolP("basename", "b", false, "only output basename of files")
 }
