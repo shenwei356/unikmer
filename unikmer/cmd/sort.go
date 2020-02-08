@@ -85,6 +85,8 @@ Tips:
 		if maxMem > 0 && maxElem < 1 {
 			maxElem = 1
 		}
+		limitMem := maxElem > 0
+
 		m := make([]uint64, 0, mapInitSize)
 
 		outFile := outFile0
@@ -92,28 +94,30 @@ Tips:
 			outFile += extDataFile
 		}
 
-		if isStdout(outFile0) {
-			tmpDir = filepath.Join(tmpDir, "stdout.tmp")
-		} else {
-			tmpDir = filepath.Join(tmpDir, filepath.Base(outFile0)+".tmp")
-		}
-
-		existed, err := pathutil.DirExists(tmpDir)
-		checkError(err)
-		if existed {
-			empty, err := pathutil.IsEmpty(tmpDir)
-			checkError(err)
-			if !empty {
-				if force {
-					checkError(os.RemoveAll(tmpDir))
-				} else {
-					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use -f (--force) to overwrite", tmpDir))
-				}
+		if limitMem {
+			if isStdout(outFile0) {
+				tmpDir = filepath.Join(tmpDir, "stdout.tmp")
 			} else {
-				checkError(os.RemoveAll(tmpDir))
+				tmpDir = filepath.Join(tmpDir, filepath.Base(outFile0)+".tmp")
 			}
+
+			existed, err := pathutil.DirExists(tmpDir)
+			checkError(err)
+			if existed {
+				empty, err := pathutil.IsEmpty(tmpDir)
+				checkError(err)
+				if !empty {
+					if force {
+						checkError(os.RemoveAll(tmpDir))
+					} else {
+						checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use -f (--force) to overwrite", tmpDir))
+					}
+				} else {
+					checkError(os.RemoveAll(tmpDir))
+				}
+			}
+			checkError(os.MkdirAll(tmpDir, 0777))
 		}
-		checkError(os.MkdirAll(tmpDir, 0777))
 
 		var writer *unikmer.Writer
 
@@ -131,7 +135,6 @@ Tips:
 		var tmpFiles []string
 		var iTmpFile int
 		var hasTmpFile bool
-		limitMem := maxElem > 0
 
 		var wg sync.WaitGroup
 		tokens := make(chan int, opt.NumCPUs)
