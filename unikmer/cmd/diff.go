@@ -277,6 +277,10 @@ Tips:
 		}
 		// -----------------------------------------------------------------------
 
+		if threads > len(files)-1 {
+			threads = len(files) - 1
+		}
+
 		done := make(chan int)
 
 		toStop := make(chan int, threads+2)
@@ -338,13 +342,11 @@ Tips:
 		}
 
 		// -----------------------------------------------------------------------
+		log.Infof("%d workers in position", threads)
+
 		hasDiff := true
 		var wgWorkers sync.WaitGroup
-		nWorkers := opt.NumCPUs
-		if len(files) == 2 { // only need one worker
-			nWorkers = 1
-		}
-		for i := 0; i < nWorkers; i++ { // workers
+		for i := 0; i < threads; i++ { // workers
 			wgWorkers.Add(1)
 
 			go func(i int) {

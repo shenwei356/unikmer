@@ -1,7 +1,7 @@
 # unikmer
 
 unikmer (unique-kmer) is a golang package and a command-line toolkit for
-manipulating unique small [k-mers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
+manipulating small [k-mers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
 without frequency information.
 
 K-mers (k <= 32) are encoded into `uint64`, stored in builtin `map` of golang in RAM,
@@ -29,7 +29,7 @@ and serialized in binary format.
 [![GoDoc](https://godoc.org/github.com/shenwei356/unikmer?status.svg)](https://godoc.org/github.com/shenwei356/unikmer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
-The unikmer package provides basic manipulations of unique small K-mers 
+The unikmer package provides basic manipulations of small K-mers
 (without frequency information) and also provides serialization methods.
 
 ### Installation
@@ -56,7 +56,7 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 ## The toolkit
 
 `unikmer` is a command-line toolkit providing functions including counting,
-format convertion, set operations and searching on unique small k-mers (k <= 32)
+format convertion, set operations and searching on small k-mers (k <= 32)
 without frequency information.
 
 ### Installation

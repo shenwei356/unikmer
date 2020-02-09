@@ -36,7 +36,7 @@ var RootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
 
 A command-line toolkit providing functions including counting, format
-convertion, set operations and searching on unique small k-mers (k <= 32)
+convertion, set operations and searching on small k-mers (k <= 32)
 without frequency information.
 
 K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang

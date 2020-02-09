@@ -1,6 +1,6 @@
 - v0.8.0
     - `unikmer`:
-         - do not ignore files from cli arugments when given flag `-i/--infile-list`.
+         - new option `-i/--infile-list`, if given, files in the list file are appended to files from cli arguments.
          - improve performance of binary file reading and writing.
     - `unikmer sort/split/merge`: safer forcing deletion of existed outdir, and better log.
     - `unikmer split`: performance improvement for single sorted input file.
