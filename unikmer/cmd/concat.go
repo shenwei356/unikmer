@@ -83,8 +83,10 @@ Attentions:
 		var r *os.File
 		var reader *unikmer.Reader
 		var code uint64
+		var taxid uint32
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var flag int
 		var n int64
 		var nfiles = len(files)
@@ -104,6 +106,7 @@ Attentions:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hasTaxid = reader.HasTaxidInfo()
 
 					var mode uint32
 					if sortedKmers {
@@ -114,25 +117,49 @@ Attentions:
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
+					if hasTaxid {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.IsCanonical()) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					}
 				}
 
-				for {
-					code, err = reader.ReadCode()
-					if err != nil {
-						if err == io.EOF {
-							break
+				if hasTaxid {
+					for {
+						code, taxid, err = reader.ReadCodeWithTaxid()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
 						}
-						checkError(err)
-					}
 
-					writer.WriteCode(code) // not need to check err
-					n++
+						checkError(writer.WriteCodeWithTaxid(code, taxid))
+						n++
+					}
+				} else {
+					for {
+						code, err = reader.ReadCode()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						writer.WriteCode(code) // not need to check err
+						n++
+					}
 				}
 
 				return flagContinue

@@ -139,7 +139,7 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.gzipped),
@@ -150,7 +150,7 @@ Tips:
 								info.globalTaxid,
 							))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.gzipped),
@@ -172,7 +172,7 @@ Tips:
 								statInfos = append(statInfos, info1)
 							} else {
 								if !all {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\n",
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 										info.file,
 										info.k,
 										boolStr(sTrue, sFalse, info.gzipped),
@@ -183,7 +183,7 @@ Tips:
 										info.globalTaxid,
 									))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\t%d\n",
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
 										info.file,
 										info.k,
 										boolStr(sTrue, sFalse, info.gzipped),
@@ -222,7 +222,7 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.gzipped),
@@ -233,7 +233,7 @@ Tips:
 								info.globalTaxid,
 							))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.gzipped),

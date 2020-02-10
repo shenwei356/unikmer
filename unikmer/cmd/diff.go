@@ -81,6 +81,7 @@ Tips:
 		var code uint64
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var ok bool
 		var nfiles = len(files)
 
@@ -131,6 +132,9 @@ Tips:
 					if reader.IsCanonical() {
 						mode |= unikmer.UNIK_CANONICAL
 					}
+					if reader.IsIncludeTaxid() {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
 					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 					checkError(err)
 				}
@@ -159,6 +163,9 @@ Tips:
 					var mode uint32
 					if reader.IsCanonical() {
 						mode |= unikmer.UNIK_CANONICAL
+					}
+					if reader.IsIncludeTaxid() {
+						mode |= unikmer.UNIK_INCLUDETAXID
 					}
 					mode |= unikmer.UNIK_SORTED
 					writer, err = unikmer.NewWriter(outfh, reader.K, mode)
@@ -202,6 +209,7 @@ Tips:
 
 		k = reader.K
 		canonical = reader.IsCanonical()
+		hasTaxid = reader.HasTaxidInfo()
 
 		var minCode uint64 = ^uint64(0)
 		if reader.Flag&unikmer.UNIK_SORTED > 0 { // query is sorted
@@ -271,6 +279,9 @@ Tips:
 			}
 			if canonical {
 				mode |= unikmer.UNIK_CANONICAL
+			}
+			if hasTaxid {
+				mode |= unikmer.UNIK_INCLUDETAXID
 			}
 
 			writer, err := unikmer.NewWriter(outfh, k, mode)
@@ -408,9 +419,11 @@ Tips:
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 					}
-
-					if (reader.IsCanonical()) != canonical {
+					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
 					}
 
 					// file is sorted, so we can skip codes that are small than minCode
@@ -552,6 +565,9 @@ Tips:
 		}
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
+		}
+		if hasTaxid {
+			mode |= unikmer.UNIK_INCLUDETAXID
 		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)

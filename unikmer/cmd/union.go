@@ -99,6 +99,7 @@ Tips:
 		var code uint64
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var firstFile = true
 		var existed, ok bool
 		var n int64
@@ -124,6 +125,7 @@ Tips:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hasTaxid = reader.HasTaxidInfo()
 
 					if !sortKmers {
 						var mode uint32
@@ -136,10 +138,16 @@ Tips:
 						writer, err = unikmer.NewWriter(outfh, k, mode)
 						checkError(err)
 					}
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.IsCanonical()) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					}
 				}
 
 				if repeated {
@@ -202,6 +210,9 @@ Tips:
 			var mode uint32
 			if canonical {
 				mode |= unikmer.UNIK_CANONICAL
+			}
+			if hasTaxid {
+				mode |= unikmer.UNIK_INCLUDETAXID
 			}
 			mode |= unikmer.UNIK_SORTED
 			writer, err = unikmer.NewWriter(outfh, k, mode)

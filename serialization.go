@@ -152,6 +152,11 @@ func (reader *Reader) HasGlobalTaxid() bool {
 	return reader.globalTaxid > 0
 }
 
+// HasTaxidInfo means the binary file contains global taxid or taxids for all k-mers
+func (reader *Reader) HasTaxidInfo() bool {
+	return reader.IsIncludeTaxid() || reader.HasGlobalTaxid()
+}
+
 // GetGlobalTaxid returns the global taxid
 func (reader *Reader) GetGlobalTaxid() uint32 {
 	return reader.globalTaxid

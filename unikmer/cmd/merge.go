@@ -138,6 +138,7 @@ Tips:
 		var nUnequalK, nNotConsC, nNotSorted int
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var mode uint32
 
 		_files := make([]string, 0, len(files))
@@ -158,21 +159,24 @@ Tips:
 				if k == -1 { // first file
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hasTaxid = reader.HasTaxidInfo()
 
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
 					mode |= unikmer.UNIK_SORTED
-				} else if k != reader.K {
-					log.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k)
-					nUnequalK++
-				} else if (reader.IsCanonical()) != canonical {
-					log.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`)
-					nNotConsC++
-				} else if reader.Flag&unikmer.UNIK_SORTED == 0 { // not sorted
-					log.Errorf("chunk file not sorted: %s", file)
-					nNotSorted++
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					}
 				}
+
 			}()
 		}
 		if nNotSorted > 0 || nUnequalK > 0 || nNotConsC > 0 {

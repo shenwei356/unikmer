@@ -73,6 +73,7 @@ Tips:
 		var reader *unikmer.Reader
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var firstFile = true
 		var hasInter = true
 		var code uint64
@@ -98,6 +99,8 @@ Tips:
 					checkError(err)
 
 					k = reader.K
+					canonical = reader.IsCanonical()
+					hasTaxid = reader.HasTaxidInfo()
 
 					if !isStdout(outFile) {
 						outFile += extDataFile
@@ -124,8 +127,11 @@ Tips:
 						} else if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
-						if reader.IsCanonical() {
+						if canonical {
 							mode |= unikmer.UNIK_CANONICAL
+						}
+						if hasTaxid {
+							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 						checkError(err)
@@ -153,8 +159,11 @@ Tips:
 
 					if sortKmers {
 						var mode uint32
-						if reader.IsCanonical() {
+						if canonical {
 							mode |= unikmer.UNIK_CANONICAL
+						}
+						if hasTaxid {
+							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						mode |= unikmer.UNIK_SORTED
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
@@ -188,10 +197,17 @@ Tips:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.IsCanonical()) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					hasTaxid = reader.HasTaxidInfo()
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					}
 				}
 
 				for {
@@ -280,6 +296,9 @@ Tips:
 		}
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
+		}
+		if hasTaxid {
+			mode |= unikmer.UNIK_INCLUDETAXID
 		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)
