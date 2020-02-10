@@ -165,7 +165,7 @@ var dumpCmd = &cobra.Command{
 							mode |= unikmer.UNIK_CANONICAL
 						}
 						if includeTaxid {
-							mode |= unikmer.UNIK_WITHTAXID
+							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)

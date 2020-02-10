@@ -197,7 +197,7 @@ Tips:
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 					}
 
-					if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+					if reader.IsCanonical() {
 						for {
 							kcode, err = reader.Read()
 							if err != nil {
@@ -361,7 +361,7 @@ Tips:
 				if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
 				}
-				canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+				canonical = reader.IsCanonical()
 
 				var _writer *unikmer.Writer
 				var _codes []uint64

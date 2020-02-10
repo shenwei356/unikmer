@@ -51,8 +51,8 @@ var ErrDescTooLong = errors.New("unikmer: description too long, 128 bytes at mos
 // ErrCallOrder means calling order error
 var ErrCallOrder = errors.New("unikmer: WriteTaxid() should be called after WriteCode()")
 
-// ErrCallWriteCode means flag UNIK_WITHTAXID is off, but you call WriteCode
-var ErrCallWriteCode = errors.New("unikmer: can not call WriteCode() when flag UNIK_WITHTAXID is off")
+// ErrCallWriteCode means flag UNIK_INCLUDETAXID is off, but you call WriteCode
+var ErrCallWriteCode = errors.New("unikmer: can not call WriteCode() when flag UNIK_INCLUDETAXID is off")
 
 var be = binary.BigEndian
 
@@ -78,8 +78,8 @@ const (
 	UNIK_CANONICAL
 	// UNIK_SORTED means k-mers are sorted
 	UNIK_SORTED // when sorted, the serialization structure is very different
-	// UNIK_WITHTAXID means a k-mer are followed it's LCA taxid
-	UNIK_WITHTAXID
+	// UNIK_INCLUDETAXID means a k-mer are followed it's LCA taxid
+	UNIK_INCLUDETAXID
 )
 
 func (h Header) String() string {
@@ -119,6 +119,26 @@ func NewReader(r io.Reader) (reader *Reader, err error) {
 		return nil, err
 	}
 	return reader, nil
+}
+
+// IsSorted tells if the k-mers in file sorted
+func (reader *Reader) IsSorted() bool {
+	return reader.Flag&UNIK_SORTED > 0
+}
+
+// IsCanonical tells if the only canonical k-mers stored
+func (reader *Reader) IsCanonical() bool {
+	return reader.Flag&UNIK_CANONICAL > 0
+}
+
+// IsCompact tells if the k-mers are stored in a compact format
+func (reader *Reader) IsCompact() bool {
+	return reader.Flag&UNIK_COMPACT > 0
+}
+
+// IsIncludeTaxid tells if every k-mer is followed by its taxid
+func (reader *Reader) IsIncludeTaxid() bool {
+	return reader.Flag&UNIK_INCLUDETAXID > 0
 }
 
 func (reader *Reader) readHeader() (err error) {
@@ -163,15 +183,15 @@ func (reader *Reader) readHeader() (err error) {
 
 	reader.buf = make([]byte, 8)
 
-	if reader.Flag&UNIK_COMPACT > 0 {
+	if reader.IsCompact() {
 		reader.compact = true
 		reader.bufsize = int((reader.K + 3) / 4)
 	}
-	if reader.Flag&UNIK_SORTED > 0 {
+	if reader.IsSorted() {
 		reader.sorted = true
 		reader.buf2 = make([]byte, 17)
 	}
-	if reader.Flag&UNIK_WITHTAXID > 0 {
+	if reader.IsIncludeTaxid() {
 		reader.hasTaxid = true
 		reader.bufTaxid = make([]byte, 4)
 	}
@@ -224,6 +244,29 @@ func (reader *Reader) Read() (KmerCode, error) {
 	return KmerCode{Code: code, K: reader.K}, err
 }
 
+// ReadWithTaxid reads a KmerCode, also return taxid if having.
+func (reader *Reader) ReadWithTaxid() (KmerCode, uint32, error) {
+	code, taxid, err := reader.ReadCodeWithTaxid()
+	return KmerCode{Code: code, K: reader.K}, taxid, err
+}
+
+// ReadCodeWithTaxid reads a code, also return taxid if having.
+func (reader *Reader) ReadCodeWithTaxid() (code uint64, taxid uint32, err error) {
+	code, err = reader.ReadCode()
+	if err != nil {
+		return 0, 0, err
+	}
+	if reader.IsIncludeTaxid() {
+		taxid, err = reader.ReadTaxid()
+		if err != nil {
+			return 0, 0, err
+		}
+	} else {
+		taxid = reader.Taxid
+	}
+	return code, taxid, err
+}
+
 // ReadTaxid reads on taxid
 func (reader *Reader) ReadTaxid() (uint32, error) {
 	if !reader.justReadACode {
@@ -263,7 +306,6 @@ func (reader *Reader) ReadTaxid() (uint32, error) {
 
 	reader.justReadACode = true
 	return be.Uint32(reader.bufTaxid), nil
-	return 0, nil
 }
 
 // ReadCode reads one code.
@@ -387,7 +429,7 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 		writer.buf2 = make([]byte, 16)
 		writer.buf3 = make([]byte, 32)
 	}
-	if writer.Flag&UNIK_WITHTAXID > 0 {
+	if writer.Flag&UNIK_INCLUDETAXID > 0 {
 		writer.hasTaxid = true
 		writer.bufTaxid = make([]byte, 4)
 		writer.taxidByteLen = int(byteLength(uint64(writer.MaxTaxid)))

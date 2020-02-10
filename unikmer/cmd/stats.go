@@ -352,7 +352,7 @@ Tips:
 					compact:      reader.Flag&unikmer.UNIK_COMPACT > 0,
 					canonical:    reader.Flag&unikmer.UNIK_CANONICAL > 0,
 					sorted:       reader.Flag&unikmer.UNIK_SORTED > 0,
-					includeTaxid: reader.Flag&unikmer.UNIK_WITHTAXID > 0,
+					includeTaxid: reader.Flag&unikmer.UNIK_INCLUDETAXID > 0,
 					taxid:        reader.Taxid,
 					number:       n,
 

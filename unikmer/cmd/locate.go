@@ -101,7 +101,7 @@ Attention:
 
 				if k == -1 {
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")
@@ -111,7 +111,7 @@ Attention:
 					}
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+				} else if (reader.IsCanonical()) != canonical {
 					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 			}()

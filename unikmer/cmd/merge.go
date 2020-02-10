@@ -157,7 +157,7 @@ Tips:
 
 				if k == -1 { // first file
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
 
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
@@ -166,7 +166,7 @@ Tips:
 				} else if k != reader.K {
 					log.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k)
 					nUnequalK++
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+				} else if (reader.IsCanonical()) != canonical {
 					log.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`)
 					nNotConsC++
 				} else if reader.Flag&unikmer.UNIK_SORTED == 0 { // not sorted

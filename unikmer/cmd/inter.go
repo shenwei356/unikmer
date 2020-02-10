@@ -124,7 +124,7 @@ Tips:
 						} else if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
-						if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+						if reader.IsCanonical() {
 							mode |= unikmer.UNIK_CANONICAL
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
@@ -153,7 +153,7 @@ Tips:
 
 					if sortKmers {
 						var mode uint32
-						if reader.Flag&unikmer.UNIK_CANONICAL > 0 {
+						if reader.IsCanonical() {
 							mode |= unikmer.UNIK_CANONICAL
 						}
 						mode |= unikmer.UNIK_SORTED
@@ -187,10 +187,10 @@ Tips:
 
 				if k == -1 {
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
+				} else if (reader.IsCanonical()) != canonical {
 					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 				}
 

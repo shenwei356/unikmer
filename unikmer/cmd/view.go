@@ -80,7 +80,6 @@ var viewCmd = &cobra.Command{
 		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
-		var includeTaxid bool
 		var taxid uint32
 
 		var quality string
@@ -97,24 +96,13 @@ var viewCmd = &cobra.Command{
 					quality = strings.Repeat("g", reader.K)
 				}
 
-				includeTaxid = reader.Flag&unikmer.UNIK_WITHTAXID > 0
-
 				for {
-					kcode, err = reader.Read()
+					kcode, taxid, err = reader.ReadWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
 						}
 						checkError(err)
-					}
-					if includeTaxid {
-						taxid, err = reader.ReadTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(err)
-						}
 					}
 
 					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
@@ -127,11 +115,7 @@ var viewCmd = &cobra.Command{
 					} else if showCode {
 						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
 					} else if showTaxid {
-						if includeTaxid {
-							outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), taxid))
-						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), reader.Taxid))
-						}
+						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), taxid))
 					} else {
 						outfh.WriteString(kcode.String() + "\n")
 					}
