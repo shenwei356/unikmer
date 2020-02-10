@@ -68,6 +68,8 @@ var countCmd = &cobra.Command{
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")
 
+		taxid := getFlagUint32(cmd, "taxid")
+
 		if !isStdout(outFile) {
 			outFile += extDataFile
 		}
@@ -92,6 +94,11 @@ var countCmd = &cobra.Command{
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
+
+		if taxid > 0 {
+			writer.Taxid = taxid
+		}
+
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		var m2 []uint64
@@ -227,4 +234,5 @@ func init() {
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	countCmd.Flags().BoolP("sort", "s", false, helpSort)
+	countCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
 }

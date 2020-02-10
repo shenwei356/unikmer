@@ -64,6 +64,7 @@ var viewCmd = &cobra.Command{
 		outFasta := getFlagBool(cmd, "fasta")
 		outFastq := getFlagBool(cmd, "fastq")
 		showCodeOnly := getFlagBool(cmd, "show-code-only")
+		showTaxid := getFlagBool(cmd, "show-taxid")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -79,6 +80,8 @@ var viewCmd = &cobra.Command{
 		var r *os.File
 		var reader *unikmer.Reader
 		var kcode unikmer.KmerCode
+		var includeTaxid bool
+		var taxid uint32
 
 		var quality string
 		for _, file := range files {
@@ -94,6 +97,8 @@ var viewCmd = &cobra.Command{
 					quality = strings.Repeat("g", reader.K)
 				}
 
+				includeTaxid = reader.Flag&unikmer.UNIK_WITHTAXID > 0
+
 				for {
 					kcode, err = reader.Read()
 					if err != nil {
@@ -101,6 +106,15 @@ var viewCmd = &cobra.Command{
 							break
 						}
 						checkError(err)
+					}
+					if includeTaxid {
+						taxid, err = reader.ReadTaxid()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
 					}
 
 					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
@@ -112,6 +126,12 @@ var viewCmd = &cobra.Command{
 						outfh.WriteString(fmt.Sprintf("%d\n", kcode.Code))
 					} else if showCode {
 						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
+					} else if showTaxid {
+						if includeTaxid {
+							outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), taxid))
+						} else {
+							outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), reader.Taxid))
+						}
 					} else {
 						outfh.WriteString(kcode.String() + "\n")
 					}
@@ -130,4 +150,5 @@ func init() {
 	viewCmd.Flags().BoolP("show-code-only", "N", false, `only show encoded integers, faster than cutting from result of -n/--show-cde`)
 	viewCmd.Flags().BoolP("fasta", "a", false, `output in FASTA format, with encoded integer as FASTA header`)
 	viewCmd.Flags().BoolP("fastq", "q", false, `output in FASTQ format, with encoded integer as FASTQ header`)
+	viewCmd.Flags().BoolP("show-taxid", "t", false, "show taxid")
 }

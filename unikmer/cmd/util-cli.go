@@ -55,6 +55,12 @@ func getFlagInt(cmd *cobra.Command, flag string) int {
 	return value
 }
 
+func getFlagUint32(cmd *cobra.Command, flag string) uint32 {
+	value, err := cmd.Flags().GetUint32(flag)
+	checkError(err)
+	return value
+}
+
 func getFlagPositiveInt(cmd *cobra.Command, flag string) int {
 	value, err := cmd.Flags().GetInt(flag)
 	checkError(err)

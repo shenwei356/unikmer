@@ -23,6 +23,8 @@ package cmd
 import (
 	"fmt"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
@@ -59,6 +61,7 @@ var dumpCmd = &cobra.Command{
 		canonical := getFlagBool(cmd, "canonical")
 		canonicalOnly := getFlagBool(cmd, "canonical-only")
 		sortedKmers := getFlagBool(cmd, "sorted")
+		taxid := getFlagUint32(cmd, "taxid")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -90,6 +93,13 @@ var dumpCmd = &cobra.Command{
 		var ok bool
 		var n int64
 
+		var includeTaxid bool
+		var items []string
+		var tmp uint64
+		var _taxid uint32
+		var once bool = true
+		hasGlobalTaxid := taxid > 0
+
 		for _, file := range files {
 			reader, err = breader.NewDefaultBufferedReader(file)
 			checkError(err)
@@ -102,10 +112,46 @@ var dumpCmd = &cobra.Command{
 
 					if l == 0 {
 						continue
-					} else if k == -1 {
-						k = l
-					} else if l != k {
+					}
+
+					if k == -1 {
+						if strings.Index(line, "\t") > 0 {
+							includeTaxid = true
+							if hasGlobalTaxid {
+								log.Warningf("since input has more than one column, global taxid is ignored")
+							}
+						} else if hasGlobalTaxid {
+							_taxid = taxid
+							k = l
+						} else {
+							k = l
+						}
+					} else if !includeTaxid && l != k {
 						checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
+					}
+
+					if includeTaxid {
+						items = strings.Split(line, "\t")
+						if len(items) < 2 {
+							checkError(fmt.Errorf("inconsistant two column tabular format"))
+						}
+						line = items[0]
+						l = len(line)
+
+						if once {
+							k = len(line)
+							once = false
+						} else {
+							if l != k {
+								checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
+							}
+						}
+
+						tmp, err = strconv.ParseUint(items[1], 10, 32)
+						if err != nil {
+							checkError(fmt.Errorf("2nd column (taxid) should be positive integer"))
+						}
+						_taxid = uint32(tmp)
 					}
 
 					if writer == nil {
@@ -118,8 +164,14 @@ var dumpCmd = &cobra.Command{
 						if canonical || canonicalOnly {
 							mode |= unikmer.UNIK_CANONICAL
 						}
+						if includeTaxid {
+							mode |= unikmer.UNIK_WITHTAXID
+						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(err)
+						if !includeTaxid && hasGlobalTaxid {
+							writer.Taxid = taxid
+						}
 					}
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
@@ -141,10 +193,16 @@ var dumpCmd = &cobra.Command{
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
 							writer.WriteCode(kcode.Code)
+							if includeTaxid {
+								writer.WriteTaxid(_taxid)
+							}
 							n++
 						}
 					} else {
 						writer.WriteCode(kcode.Code)
+						if includeTaxid {
+							writer.WriteTaxid(_taxid)
+						}
 						n++
 					}
 				}
@@ -166,4 +224,5 @@ func init() {
 	dumpCmd.Flags().BoolP("canonical", "K", false, "save the canonical k-mers")
 	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This option overides -K/--canonical")
 	dumpCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
+	dumpCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
 }
