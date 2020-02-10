@@ -28,7 +28,7 @@ import (
 )
 
 // MainVersion is the main version number.
-const MainVersion uint8 = 2
+const MainVersion uint8 = 3
 
 // MinorVersion is the minor version number.
 const MinorVersion uint8 = 0
@@ -45,7 +45,19 @@ var ErrBrokenFile = errors.New("unikmer: broken file")
 // ErrKMismatch means K size mismatch.
 var ErrKMismatch = errors.New("unikmer: K mismatch")
 
+// ErrDescTooLong means lenght of description two long
+var ErrDescTooLong = errors.New("unikmer: description too long, 128 bytes at most")
+
+// ErrCallOrder means calling order error
+var ErrCallOrder = errors.New("unikmer: WriteTaxid() should be called after WriteCode()")
+
+// ErrCallWriteCode means flag UNIK_WITHTAXID is off, but you call WriteCode
+var ErrCallWriteCode = errors.New("unikmer: can not call WriteCode() when flag UNIK_WITHTAXID is off")
+
 var be = binary.BigEndian
+
+var descMaxLen = 128
+var conservedDataLen = 32
 
 // Header contains metadata
 type Header struct {
@@ -53,16 +65,21 @@ type Header struct {
 	MinorVersion uint8
 	K            int
 	Flag         uint32
-	Number       int64 // -1 for unknown
+	Number       int64  // -1 for unknown
+	Taxid        uint32 // univeral taxid, 0 for no record
+	MaxTaxid     uint32
+	Description  []byte // let's limit it to 128 Bytes
 }
 
 const (
-	// UNIK_COMPACT means Kmers are serialized in fix-length (n = int((K + 3) / 4) ) of byte array.
+	// UNIK_COMPACT means k-mers are serialized in fix-length (n = int((K + 3) / 4) ) of byte array.
 	UNIK_COMPACT = 1 << iota
-	// UNIK_CANONICAL means only canonical Kmers kept.
+	// UNIK_CANONICAL means only canonical k-mers kept.
 	UNIK_CANONICAL
-	// UNIK_SORTED means Kmers are sorted
+	// UNIK_SORTED means k-mers are sorted
 	UNIK_SORTED // when sorted, the serialization structure is very different
+	// UNIK_WITHTAXID means a k-mer are followed it's LCA taxid
+	UNIK_WITHTAXID
 )
 
 func (h Header) String() string {
@@ -85,6 +102,13 @@ type Reader struct {
 	prev    uint64
 	buf2    []byte
 	offset  uint64
+
+	hasTaxid      bool
+	bufTaxid      []byte
+	taxidByteLen  int
+	prevTaxid     uint32 // buffered taxid
+	hasPrevTaxid  bool
+	justReadACode bool
 }
 
 // NewReader returns a Reader.
@@ -147,11 +171,50 @@ func (reader *Reader) readHeader() (err error) {
 		reader.sorted = true
 		reader.buf2 = make([]byte, 17)
 	}
+	if reader.Flag&UNIK_WITHTAXID > 0 {
+		reader.hasTaxid = true
+		reader.bufTaxid = make([]byte, 4)
+	}
 
+	// number
 	err = binary.Read(r, be, &reader.Number)
 	if err != nil {
 		return err
 	}
+
+	// taxid
+	err = binary.Read(r, be, &reader.Taxid)
+	if err != nil {
+		return err
+	}
+
+	// taxid byte length
+	var taxidByteLen uint8
+	err = binary.Read(r, be, &taxidByteLen)
+	if err != nil {
+		return err
+	}
+	reader.taxidByteLen = int(taxidByteLen)
+
+	// lenght of description
+	var lenDesc uint8
+	err = binary.Read(r, be, &lenDesc)
+	if err != nil {
+		return err
+	}
+	desc := make([]byte, descMaxLen)
+	err = binary.Read(r, be, &desc)
+	if err != nil {
+		return err
+	}
+	reader.Description = desc[0:int(lenDesc)]
+
+	reserved := make([]byte, conservedDataLen)
+	err = binary.Read(r, be, &reserved)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -159,6 +222,48 @@ func (reader *Reader) readHeader() (err error) {
 func (reader *Reader) Read() (KmerCode, error) {
 	code, err := reader.ReadCode()
 	return KmerCode{Code: code, K: reader.K}, err
+}
+
+// ReadTaxid reads on taxid
+func (reader *Reader) ReadTaxid() (uint32, error) {
+	if !reader.justReadACode {
+		return 0, ErrCallOrder
+	}
+	var err error
+
+	if reader.sorted {
+		if reader.hasPrevTaxid {
+			c := reader.prevTaxid
+			reader.hasPrevTaxid = false
+			reader.justReadACode = true
+			return c, nil
+		}
+
+		var taxid uint32
+		_, err = io.ReadFull(reader.r, reader.bufTaxid[0:reader.taxidByteLen])
+		if err != nil {
+			return 0, err
+		}
+		taxid = be.Uint32(reader.bufTaxid)
+		_, err = io.ReadFull(reader.r, reader.bufTaxid[0:reader.taxidByteLen])
+		if err != nil {
+			return 0, err
+		}
+		reader.prevTaxid = be.Uint32(reader.bufTaxid)
+		reader.hasPrevTaxid = true
+		return taxid, nil
+	} else if reader.compact {
+		_, err = io.ReadFull(reader.r, reader.bufTaxid[4-reader.taxidByteLen:])
+	} else {
+		_, err = io.ReadFull(reader.r, reader.bufTaxid)
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	reader.justReadACode = true
+	return be.Uint32(reader.bufTaxid), nil
+	return 0, nil
 }
 
 // ReadCode reads one code.
@@ -169,6 +274,7 @@ func (reader *Reader) ReadCode() (uint64, error) {
 			c := reader.prev
 			// reader.prev = 0
 			reader.hasPrev = false
+			reader.justReadACode = true
 			return c, nil
 		}
 
@@ -225,6 +331,7 @@ func (reader *Reader) ReadCode() (uint64, error) {
 		return 0, err
 	}
 
+	reader.justReadACode = true
 	return be.Uint64(reader.buf), nil
 }
 
@@ -249,6 +356,14 @@ type Writer struct {
 	buf3         []byte
 	ctrlByte     byte
 	nEncodedByte int
+
+	// for taxid
+	hasTaxid         bool
+	bufTaxid         []byte
+	justWrittenACode bool
+	taxidByteLen     int
+	prevTaxid        uint32 // buffered taxid
+	hasPrevTaxid     bool
 }
 
 // NewWriter creates a Writer.
@@ -270,8 +385,14 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 	if writer.Flag&UNIK_SORTED > 0 {
 		writer.sorted = true
 		writer.buf2 = make([]byte, 16)
+		writer.buf3 = make([]byte, 32)
 	}
-	writer.buf3 = make([]byte, 32)
+	if writer.Flag&UNIK_WITHTAXID > 0 {
+		writer.hasTaxid = true
+		writer.bufTaxid = make([]byte, 4)
+		writer.taxidByteLen = int(byteLength(uint64(writer.MaxTaxid)))
+	}
+
 	return writer, nil
 }
 
@@ -282,29 +403,68 @@ func (writer *Writer) WriteHeader() (err error) {
 	}
 	w := writer.w
 
-	// 8 bytes
+	// 8 bytes magic number
 	err = binary.Write(w, be, Magic)
 	if err != nil {
 		return err
 	}
 
-	// 4 bytes
+	// 4 bytes meta info
 	err = binary.Write(w, be, [4]uint8{writer.MainVersion, MinorVersion, uint8(writer.K), 0})
 	if err != nil {
 		return err
 	}
 
-	// 4 bytes
+	// 4 bytes flags
 	err = binary.Write(w, be, writer.Flag)
 	if err != nil {
 		return err
 	}
 
-	// 8 bytes
+	// 8 bytes number
 	err = binary.Write(w, be, writer.Number)
 	if err != nil {
 		return err
 	}
+
+	// 4 bytes taxid
+	err = binary.Write(w, be, writer.Taxid)
+	if err != nil {
+		return err
+	}
+
+	// 1 byte taxid bytes len
+	err = binary.Write(w, be, uint8(writer.taxidByteLen))
+	if err != nil {
+		return err
+	}
+
+	// description length (1 byte) and data (128 bytes)
+	lenDesc := len(writer.Description)
+	if lenDesc > descMaxLen {
+		return ErrDescTooLong
+	}
+	err = binary.Write(w, be, uint8(lenDesc))
+	if err != nil {
+		return err
+	}
+	s := make([]byte, descMaxLen)
+	if lenDesc > 0 {
+		copy(s[0:lenDesc], writer.Description)
+	}
+	err = binary.Write(w, be, s)
+	if err != nil {
+		return err
+	}
+
+	// reserved 32 bytes
+	reserved := make([]byte, conservedDataLen)
+	err = binary.Write(w, be, reserved)
+	if err != nil {
+		return err
+	}
+
+	// header has 192 bytes
 
 	writer.wroteHeader = true
 	return nil
@@ -319,12 +479,73 @@ func (writer *Writer) WriteKmer(mer []byte) error {
 	return writer.Write(kcode)
 }
 
+// WriteKmerWithTaxid writes one k-mer and its taxid
+func (writer *Writer) WriteKmerWithTaxid(mer []byte, taxid uint32) error {
+	err := writer.WriteKmer(mer)
+	if err != nil {
+		return nil
+	}
+	return writer.WriteTaxid(taxid)
+}
+
 // Write writes one KmerCode.
 func (writer *Writer) Write(kcode KmerCode) (err error) {
 	if writer.K != kcode.K {
 		return ErrKMismatch
 	}
 	return writer.WriteCode(kcode.Code)
+}
+
+// WriteWithTaxid writes one KmerCode and its taxid.
+func (writer *Writer) WriteWithTaxid(kcode KmerCode, taxid uint32) (err error) {
+	err = writer.Write(kcode)
+	if err != nil {
+		return nil
+	}
+	return writer.WriteTaxid(taxid)
+}
+
+// WriteCodeWithTaxid writes a code and its taxid.
+func (writer *Writer) WriteCodeWithTaxid(code uint64, taxid uint32) (err error) {
+	err = writer.WriteCode(code)
+	if err != nil {
+		return nil
+	}
+	return writer.WriteTaxid(taxid)
+}
+
+// WriteTaxid appends taxid to the code
+func (writer *Writer) WriteTaxid(taxid uint32) (err error) {
+	if !writer.hasTaxid {
+		return ErrCallWriteCode
+	}
+	if !writer.justWrittenACode {
+		return ErrCallOrder
+	}
+
+	if writer.sorted {
+		if !writer.hasPrevTaxid { // write it later
+			writer.prevTaxid = taxid
+			writer.hasPrevTaxid = true
+			writer.justWrittenACode = false
+			return nil
+		}
+		be.PutUint32(writer.bufTaxid, writer.prevTaxid)
+		_, err = writer.w.Write(writer.bufTaxid[4-writer.taxidByteLen:])
+
+		be.PutUint32(writer.bufTaxid, taxid)
+		_, err = writer.w.Write(writer.bufTaxid[4-writer.taxidByteLen:])
+		writer.hasPrevTaxid = false
+	} else if writer.compact {
+		be.PutUint32(writer.bufTaxid, taxid)
+		_, err = writer.w.Write(writer.bufTaxid[4-writer.taxidByteLen:])
+	} else {
+		be.PutUint32(writer.bufTaxid, taxid)
+		_, err = writer.w.Write(writer.bufTaxid)
+	}
+
+	writer.justWrittenACode = false
+	return nil
 }
 
 // WriteCode writes one code
@@ -342,6 +563,7 @@ func (writer *Writer) WriteCode(code uint64) (err error) {
 		if !writer.hasPrev { // write it later
 			writer.prev = code
 			writer.hasPrev = true
+			writer.justWrittenACode = true
 			return nil
 		}
 
@@ -365,6 +587,7 @@ func (writer *Writer) WriteCode(code uint64) (err error) {
 	if err != nil {
 		return err
 	}
+	writer.justWrittenACode = true
 	return nil
 }
 
@@ -383,7 +606,14 @@ func (writer *Writer) Flush() (err error) {
 	if err != nil {
 		return err
 	}
+	if writer.hasTaxid && writer.hasPrevTaxid {
+		err = binary.Write(writer.w, be, writer.prevTaxid)
+		if err != nil {
+			return err
+		}
+	}
+
 	writer.hasPrev = false
-	// writer.prev = 0
+	writer.hasPrev = false
 	return nil
 }

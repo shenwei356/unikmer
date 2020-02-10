@@ -39,6 +39,7 @@ type Taxonomy struct {
 	cacheLCA bool
 	lcaCache map[uint64]uint32 // cache of lca
 
+	maxTaxid uint32
 }
 
 // ErrIllegalColumnIndex means column index is 0 or negative.
@@ -93,6 +94,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 
 	var tax taxon
 	var data interface{}
+	var maxTaxid uint32
 	for chunk := range reader.Ch {
 		if chunk.Err != nil {
 			return nil, fmt.Errorf("unikmer: %w", err)
@@ -101,13 +103,22 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 			tax = data.(taxon)
 
 			nodes[tax.Taxid] = tax.Parent
+
 			if tax.Taxid == tax.Parent {
 				root = tax.Taxid
+			}
+			if tax.Taxid > maxTaxid {
+				maxTaxid = tax.Taxid
 			}
 		}
 	}
 
-	return &Taxonomy{file: file, nodes: nodes, rootNode: root}, nil
+	return &Taxonomy{file: file, nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
+}
+
+// MaxTaxid returns maximum taxid
+func (t *Taxonomy) MaxTaxid() uint32 {
+	return t.maxTaxid
 }
 
 // CacheLCA tells to cache every LCA query result
