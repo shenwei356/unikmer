@@ -168,9 +168,10 @@ var dumpCmd = &cobra.Command{
 							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
+						checkError(writer.SetMaxTaxid(opt.MaxTaxid))
 						checkError(err)
 						if !includeTaxid && hasGlobalTaxid {
-							writer.Taxid = taxid
+							checkError(writer.SetGlobalTaxid(taxid))
 						}
 					}
 

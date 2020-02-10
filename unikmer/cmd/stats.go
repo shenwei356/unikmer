@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -146,7 +147,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.canonical),
 								boolStr(sTrue, sFalse, info.sorted),
 								boolStr(sTrue, sFalse, info.includeTaxid),
-								info.taxid,
+								info.globalTaxid,
 							))
 						} else {
 							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\t%d\n",
@@ -157,7 +158,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.canonical),
 								boolStr(sTrue, sFalse, info.sorted),
 								boolStr(sTrue, sFalse, info.includeTaxid),
-								info.taxid,
+								info.globalTaxid,
 								info.number,
 							))
 						}
@@ -179,7 +180,7 @@ Tips:
 										boolStr(sTrue, sFalse, info.canonical),
 										boolStr(sTrue, sFalse, info.sorted),
 										boolStr(sTrue, sFalse, info.includeTaxid),
-										info.taxid,
+										info.globalTaxid,
 									))
 								} else {
 									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\t%d\n",
@@ -190,7 +191,7 @@ Tips:
 										boolStr(sTrue, sFalse, info.canonical),
 										boolStr(sTrue, sFalse, info.sorted),
 										boolStr(sTrue, sFalse, info.includeTaxid),
-										info.taxid,
+										info.globalTaxid,
 										info.number,
 									))
 								}
@@ -229,7 +230,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.canonical),
 								boolStr(sTrue, sFalse, info.sorted),
 								boolStr(sTrue, sFalse, info.includeTaxid),
-								info.taxid,
+								info.globalTaxid,
 							))
 						} else {
 							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%d\t%d\n",
@@ -240,7 +241,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.canonical),
 								boolStr(sTrue, sFalse, info.sorted),
 								boolStr(sTrue, sFalse, info.includeTaxid),
-								info.taxid,
+								info.globalTaxid,
 								info.number,
 							))
 						}
@@ -292,6 +293,7 @@ Tips:
 				var reader *unikmer.Reader
 				var gzipped bool
 				var n int64
+				var globalTaxid string
 
 				infh, r, gzipped, err = inStream(file)
 				if err != nil {
@@ -345,15 +347,20 @@ Tips:
 				if basename {
 					file = filepath.Base(file)
 				}
+				if reader.GetGlobalTaxid() > 0 {
+					globalTaxid = strconv.FormatUint(uint64(reader.GetGlobalTaxid()), 10)
+				} else {
+					globalTaxid = ""
+				}
 				ch <- statInfo{
 					file:         file,
 					k:            reader.K,
 					gzipped:      gzipped,
-					compact:      reader.Flag&unikmer.UNIK_COMPACT > 0,
-					canonical:    reader.Flag&unikmer.UNIK_CANONICAL > 0,
-					sorted:       reader.Flag&unikmer.UNIK_SORTED > 0,
-					includeTaxid: reader.Flag&unikmer.UNIK_INCLUDETAXID > 0,
-					taxid:        reader.Taxid,
+					compact:      reader.IsCompact(),
+					canonical:    reader.IsCanonical(),
+					sorted:       reader.IsSorted(),
+					includeTaxid: reader.IsIncludeTaxid(),
+					globalTaxid:  globalTaxid,
 					number:       n,
 
 					err: nil,
@@ -409,7 +416,7 @@ Tips:
 					boolStr(sTrue, sFalse, info.canonical),
 					boolStr(sTrue, sFalse, info.sorted),
 					boolStr(sTrue, sFalse, info.includeTaxid),
-					info.taxid,
+					info.globalTaxid,
 				)
 			} else {
 				tbl.AddRow(
@@ -419,7 +426,7 @@ Tips:
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
 					boolStr(sTrue, sFalse, info.sorted),
-					info.taxid,
+					info.globalTaxid,
 					humanize.Comma(info.number),
 				)
 			}
@@ -436,7 +443,7 @@ type statInfo struct {
 	canonical    bool
 	sorted       bool
 	includeTaxid bool
-	taxid        uint32
+	globalTaxid  string
 	number       int64
 
 	err error

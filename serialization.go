@@ -48,11 +48,17 @@ var ErrKMismatch = errors.New("unikmer: K mismatch")
 // ErrDescTooLong means lenght of description two long
 var ErrDescTooLong = errors.New("unikmer: description too long, 128 bytes at most")
 
-// ErrCallOrder means calling order error
-var ErrCallOrder = errors.New("unikmer: WriteTaxid() should be called after WriteCode()")
+// ErrCallOrder means WriteTaxid/ReadTaxid should be called after WriteCode/ReadCode
+var ErrCallOrder = errors.New("unikmer: WriteTaxid/ReadTaxid should be called after WriteCode/ReadCode")
+
+// ErrCallLate means SetMaxTaxid/SetGlobalTaxid should be called before writing KmerCode/code/taxid
+var ErrCallLate = errors.New("unikmer: SetMaxTaxid/SetGlobalTaxid should be called before writing KmerCode/code/taxid")
 
 // ErrCallWriteCode means flag UNIK_INCLUDETAXID is off, but you call WriteCode
 var ErrCallWriteCode = errors.New("unikmer: can not call WriteCode() when flag UNIK_INCLUDETAXID is off")
+
+// ErrInvalidTaxid means zero given for a taxid
+var ErrInvalidTaxid = errors.New("unikmer: invalid taxid, 0 not allowed")
 
 var be = binary.BigEndian
 
@@ -66,8 +72,8 @@ type Header struct {
 	K            int
 	Flag         uint32
 	Number       int64  // -1 for unknown
-	Taxid        uint32 // univeral taxid, 0 for no record
-	MaxTaxid     uint32
+	globalTaxid  uint32 // univeral taxid, 0 for no record
+	maxTaxid     uint32
 	Description  []byte // let's limit it to 128 Bytes
 }
 
@@ -141,6 +147,16 @@ func (reader *Reader) IsIncludeTaxid() bool {
 	return reader.Flag&UNIK_INCLUDETAXID > 0
 }
 
+// HasGlobalTaxid means the file has a global taxid
+func (reader *Reader) HasGlobalTaxid() bool {
+	return reader.globalTaxid > 0
+}
+
+// GetGlobalTaxid returns the global taxid
+func (reader *Reader) GetGlobalTaxid() uint32 {
+	return reader.globalTaxid
+}
+
 func (reader *Reader) readHeader() (err error) {
 	// check Magic number
 	var m [8]byte
@@ -203,7 +219,7 @@ func (reader *Reader) readHeader() (err error) {
 	}
 
 	// taxid
-	err = binary.Read(r, be, &reader.Taxid)
+	err = binary.Read(r, be, &reader.globalTaxid)
 	if err != nil {
 		return err
 	}
@@ -262,7 +278,7 @@ func (reader *Reader) ReadCodeWithTaxid() (code uint64, taxid uint32, err error)
 			return 0, 0, err
 		}
 	} else {
-		taxid = reader.Taxid
+		taxid = reader.globalTaxid
 	}
 	return code, taxid, err
 }
@@ -432,7 +448,6 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 	if writer.Flag&UNIK_INCLUDETAXID > 0 {
 		writer.hasTaxid = true
 		writer.bufTaxid = make([]byte, 4)
-		writer.taxidByteLen = int(byteLength(uint64(writer.MaxTaxid)))
 	}
 
 	return writer, nil
@@ -470,12 +485,17 @@ func (writer *Writer) WriteHeader() (err error) {
 	}
 
 	// 4 bytes taxid
-	err = binary.Write(w, be, writer.Taxid)
+	err = binary.Write(w, be, writer.globalTaxid)
 	if err != nil {
 		return err
 	}
 
 	// 1 byte taxid bytes len
+	if writer.maxTaxid <= 0 {
+		writer.taxidByteLen = 4
+	} else {
+		writer.taxidByteLen = int(byteLength(uint64(writer.maxTaxid)))
+	}
 	err = binary.Write(w, be, uint8(writer.taxidByteLen))
 	if err != nil {
 		return err
@@ -509,6 +529,24 @@ func (writer *Writer) WriteHeader() (err error) {
 	// header has 192 bytes
 
 	writer.wroteHeader = true
+	return nil
+}
+
+// SetGlobalTaxid sets the global taxid
+func (writer *Writer) SetGlobalTaxid(taxid uint32) error {
+	if writer.wroteHeader {
+		return ErrCallLate
+	}
+	writer.globalTaxid = taxid
+	return nil
+}
+
+// SetMaxTaxid set the maxtaxid
+func (writer *Writer) SetMaxTaxid(taxid uint32) error {
+	if writer.wroteHeader {
+		return ErrCallLate
+	}
+	writer.maxTaxid = taxid
 	return nil
 }
 

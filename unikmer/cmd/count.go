@@ -94,9 +94,9 @@ var countCmd = &cobra.Command{
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
-
+		checkError(writer.SetMaxTaxid(opt.MaxTaxid))
 		if taxid > 0 {
-			writer.Taxid = taxid
+			checkError(writer.SetGlobalTaxid(taxid))
 		}
 
 		m := make(map[uint64]struct{}, mapInitSize)

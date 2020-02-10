@@ -45,6 +45,7 @@ type Options struct {
 	Compress         bool
 	Compact          bool
 	CompressionLevel int
+	MaxTaxid         uint32
 }
 
 func getOptions(cmd *cobra.Command) *Options {
@@ -58,6 +59,7 @@ func getOptions(cmd *cobra.Command) *Options {
 		Compress:         !getFlagBool(cmd, "no-compress"),
 		Compact:          getFlagBool(cmd, "compact"),
 		CompressionLevel: level,
+		MaxTaxid:         getFlagUint32(cmd, "max-taxid"),
 	}
 }
 

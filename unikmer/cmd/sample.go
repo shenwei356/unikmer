@@ -116,6 +116,7 @@ Attentions:
 					canonical = reader.IsCanonical()
 					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
 					checkError(err)
+					checkError(writer.SetMaxTaxid(opt.MaxTaxid))
 				} else if k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 				} else if reader.IsCanonical() != canonical {
