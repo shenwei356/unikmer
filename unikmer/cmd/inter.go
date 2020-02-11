@@ -100,7 +100,7 @@ Tips:
 
 					k = reader.K
 					canonical = reader.IsCanonical()
-					hasTaxid = reader.HasTaxidInfo()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					if !isStdout(outFile) {
 						outFile += extDataFile
@@ -197,7 +197,7 @@ Tips:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
-					hasTaxid = reader.HasTaxidInfo()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 				} else {
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
@@ -205,7 +205,7 @@ Tips:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if reader.HasTaxidInfo() != hasTaxid {
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
 					}
 				}

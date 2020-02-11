@@ -54,8 +54,8 @@ var ErrCallOrder = errors.New("unikmer: WriteTaxid/ReadTaxid should be called af
 // ErrCallLate means SetMaxTaxid/SetGlobalTaxid should be called before writing KmerCode/code/taxid
 var ErrCallLate = errors.New("unikmer: SetMaxTaxid/SetGlobalTaxid should be called before writing KmerCode/code/taxid")
 
-// ErrCallWriteCode means flag UNIK_INCLUDETAXID is off, but you call WriteCode
-var ErrCallWriteCode = errors.New("unikmer: can not call WriteCode() when flag UNIK_INCLUDETAXID is off")
+// ErrCallReadWriteTaxid means flag UNIK_INCLUDETAXID is off, but you call ReadTaxid/WriteTaxid
+var ErrCallReadWriteTaxid = errors.New("unikmer: can not call ReadTaxid/WriteTaxid when flag UNIK_INCLUDETAXID is off")
 
 // ErrInvalidTaxid means zero given for a taxid
 var ErrInvalidTaxid = errors.New("unikmer: invalid taxid, 0 not allowed")
@@ -109,12 +109,13 @@ type Reader struct {
 	buf2    []byte
 	offset  uint64
 
-	hasTaxid      bool
+	includeTaxid  bool
 	bufTaxid      []byte
 	taxidByteLen  int
 	prevTaxid     uint32 // buffered taxid
 	hasPrevTaxid  bool
 	justReadACode bool
+	lastRecord    bool
 }
 
 // NewReader returns a Reader.
@@ -213,7 +214,7 @@ func (reader *Reader) readHeader() (err error) {
 		reader.buf2 = make([]byte, 17)
 	}
 	if reader.IsIncludeTaxid() {
-		reader.hasTaxid = true
+		reader.includeTaxid = true
 		reader.bufTaxid = make([]byte, 4)
 	}
 
@@ -289,30 +290,44 @@ func (reader *Reader) ReadCodeWithTaxid() (code uint64, taxid uint32, err error)
 }
 
 // ReadTaxid reads on taxid
-func (reader *Reader) ReadTaxid() (uint32, error) {
+func (reader *Reader) ReadTaxid() (taxid uint32, err error) {
+	if !reader.includeTaxid {
+		return 0, ErrCallReadWriteTaxid
+	}
+
 	if !reader.justReadACode {
 		return 0, ErrCallOrder
 	}
-	var err error
 
 	if reader.sorted {
+		if reader.lastRecord {
+			_, err = io.ReadFull(reader.r, reader.bufTaxid[0:4])
+			if err != nil {
+				return 0, err
+			}
+			reader.hasPrevTaxid = false
+			reader.justReadACode = false
+			return be.Uint32(reader.bufTaxid[0:4]), nil
+		}
+
 		if reader.hasPrevTaxid {
 			c := reader.prevTaxid
 			reader.hasPrevTaxid = false
-			reader.justReadACode = true
+			reader.justReadACode = false
 			return c, nil
 		}
 
-		var taxid uint32
 		_, err = io.ReadFull(reader.r, reader.bufTaxid[0:reader.taxidByteLen])
 		if err != nil {
 			return 0, err
 		}
 		taxid = be.Uint32(reader.bufTaxid)
+
 		_, err = io.ReadFull(reader.r, reader.bufTaxid[0:reader.taxidByteLen])
 		if err != nil {
 			return 0, err
 		}
+
 		reader.prevTaxid = be.Uint32(reader.bufTaxid)
 		reader.hasPrevTaxid = true
 		return taxid, nil
@@ -325,7 +340,7 @@ func (reader *Reader) ReadTaxid() (uint32, error) {
 		return 0, err
 	}
 
-	reader.justReadACode = true
+	reader.justReadACode = false
 	return be.Uint32(reader.bufTaxid), nil
 }
 
@@ -357,6 +372,8 @@ func (reader *Reader) ReadCode() (uint64, error) {
 			if err != nil {
 				return 0, err
 			}
+			reader.lastRecord = true
+			reader.justReadACode = true
 			return be.Uint64(buf2[0:8]), nil
 		}
 
@@ -384,6 +401,7 @@ func (reader *Reader) ReadCode() (uint64, error) {
 
 		reader.offset = code + decodedVals[1]
 
+		reader.justReadACode = true
 		return code, nil
 	} else if reader.compact {
 		_, err = io.ReadFull(reader.r, reader.buf[8-reader.bufsize:])
@@ -421,7 +439,7 @@ type Writer struct {
 	nEncodedByte int
 
 	// for taxid
-	hasTaxid         bool
+	includeTaxid     bool
 	bufTaxid         []byte
 	justWrittenACode bool
 	taxidByteLen     int
@@ -451,7 +469,7 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 		writer.buf3 = make([]byte, 32)
 	}
 	if writer.Flag&UNIK_INCLUDETAXID > 0 {
-		writer.hasTaxid = true
+		writer.includeTaxid = true
 		writer.bufTaxid = make([]byte, 4)
 	}
 
@@ -582,6 +600,7 @@ func (writer *Writer) Write(kcode KmerCode) (err error) {
 }
 
 // WriteWithTaxid writes one KmerCode and its taxid.
+// If UNIK_INCLUDETAXID is off, taxid will not be written.
 func (writer *Writer) WriteWithTaxid(kcode KmerCode, taxid uint32) (err error) {
 	err = writer.Write(kcode)
 	if err != nil {
@@ -591,9 +610,13 @@ func (writer *Writer) WriteWithTaxid(kcode KmerCode, taxid uint32) (err error) {
 }
 
 // WriteCodeWithTaxid writes a code and its taxid.
+// If UNIK_INCLUDETAXID is off, taxid will not be written.
 func (writer *Writer) WriteCodeWithTaxid(code uint64, taxid uint32) (err error) {
 	err = writer.WriteCode(code)
 	if err != nil {
+		return nil
+	}
+	if !writer.includeTaxid { // if no taxid, just return.
 		return nil
 	}
 	return writer.WriteTaxid(taxid)
@@ -601,9 +624,10 @@ func (writer *Writer) WriteCodeWithTaxid(code uint64, taxid uint32) (err error) 
 
 // WriteTaxid appends taxid to the code
 func (writer *Writer) WriteTaxid(taxid uint32) (err error) {
-	if !writer.hasTaxid {
-		return ErrCallWriteCode
+	if !writer.includeTaxid {
+		return ErrCallReadWriteTaxid
 	}
+
 	if !writer.justWrittenACode {
 		return ErrCallOrder
 	}
@@ -685,13 +709,17 @@ func (writer *Writer) Flush() (err error) {
 	if !writer.sorted || !writer.hasPrev {
 		return nil
 	}
+
 	// write last k-mer
 	err = binary.Write(writer.w, be, uint8(128))
-	err = binary.Write(writer.w, be, writer.prev)
 	if err != nil {
 		return err
 	}
-	if writer.hasTaxid && writer.hasPrevTaxid {
+	err = binary.Write(writer.w, be, writer.prev) // last code
+	if err != nil {
+		return err
+	}
+	if writer.includeTaxid && writer.hasPrevTaxid { // last taxid
 		err = binary.Write(writer.w, be, writer.prevTaxid)
 		if err != nil {
 			return err
@@ -699,6 +727,6 @@ func (writer *Writer) Flush() (err error) {
 	}
 
 	writer.hasPrev = false
-	writer.hasPrev = false
+	writer.hasPrevTaxid = false
 	return nil
 }

@@ -209,7 +209,7 @@ Tips:
 
 		k = reader.K
 		canonical = reader.IsCanonical()
-		hasTaxid = reader.HasTaxidInfo()
+		hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 		var minCode uint64 = ^uint64(0)
 		if reader.Flag&unikmer.UNIK_SORTED > 0 { // query is sorted
@@ -422,7 +422,7 @@ Tips:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if reader.HasTaxidInfo() != hasTaxid {
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
 					}
 

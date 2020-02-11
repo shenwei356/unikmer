@@ -199,7 +199,7 @@ Tips:
 
 					if reader.IsCanonical() {
 						for {
-							kcode, err = reader.Read()
+							kcode, _, err = reader.ReadWithTaxid()
 							if err != nil {
 								if err == io.EOF {
 									break
@@ -211,7 +211,7 @@ Tips:
 						}
 					} else {
 						for {
-							kcode, err = reader.Read()
+							kcode, _, err = reader.ReadWithTaxid()
 							if err != nil {
 								if err == io.EOF {
 									break
@@ -245,32 +245,10 @@ Tips:
 		var gw io.WriteCloser
 		var w *os.File
 		var writer *unikmer.Writer
+		var hasTaxid bool
 
 		if !mOutputs {
-			if !isStdout(outFile) {
-				outFile += extDataFile
-			}
-			// the global writer
-			outfh, gw, w, err = outStream(outFile, opt.Compress, opt.CompressionLevel)
-			checkError(err)
-			defer func() {
-				outfh.Flush()
-				if gw != nil {
-					gw.Close()
-				}
-				w.Close()
-			}()
-
-			var mode uint32
-
-			mode |= unikmer.UNIK_CANONICAL // forcing using canonical
-			if sortKmers {
-				mode |= unikmer.UNIK_SORTED
-			} else if opt.Compact {
-				mode |= unikmer.UNIK_COMPACT
-			}
-			writer, err = unikmer.NewWriter(outfh, k, mode)
-			checkError(err)
+			// set global writer later
 		} else {
 			if outdir == "" {
 				checkError(fmt.Errorf("out dir (flag -O/--out-dir) should not be empty"))
@@ -306,27 +284,24 @@ Tips:
 		tokens := make(chan int, threads)
 
 		var codes []uint64
+		var codesTaxids []unikmer.CodeTaxid
 		if sortKmers {
 			codes = make([]uint64, 0, mapInitSize)
+			codesTaxids = make([]unikmer.CodeTaxid, 0, mapInitSize)
 		}
 
 		// read k-mers from goroutines
 		var ns int
-		done := make(chan int)
-		chCodes := make(chan uint64, threads)
-		go func() {
-			if sortKmers {
-				for code := range chCodes {
-					codes = append(codes, code)
-				}
-			} else {
-				for code := range chCodes {
-					writer.WriteCode(code)
-					ns++
-				}
-			}
-			done <- 1
-		}()
+		var done chan int
+		var chCodes chan uint64
+		var chCodesTaxids chan unikmer.CodeTaxid
+		var once sync.Once
+
+		if !mOutputs {
+			done = make(chan int)
+			chCodes = make(chan uint64, threads)
+			chCodesTaxids = make(chan unikmer.CodeTaxid, threads)
+		}
 
 		nfiles = len(files)
 		for i, file := range files {
@@ -345,6 +320,8 @@ Tips:
 
 				var n int
 				var canonical bool
+				var _hasGlobalTaxid bool
+				var _isIncludeTaxid bool
 				var ok, hit bool
 
 				if opt.Verbose {
@@ -362,22 +339,79 @@ Tips:
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
 				}
 				canonical = reader.IsCanonical()
+				_hasGlobalTaxid = reader.HasGlobalTaxid()
+				_isIncludeTaxid = reader.IsIncludeTaxid()
+
+				if !mOutputs { // set global writer
+					once.Do(func() {
+						hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
+
+						if !isStdout(outFile) {
+							outFile += extDataFile
+						}
+						// the global writer
+						outfh, gw, w, err = outStream(outFile, opt.Compress, opt.CompressionLevel)
+						checkError(err)
+
+						var mode uint32
+
+						mode |= unikmer.UNIK_CANONICAL // forcing using canonical
+						if sortKmers {
+							mode |= unikmer.UNIK_SORTED
+						} else if opt.Compact {
+							mode |= unikmer.UNIK_COMPACT
+						}
+						if hasTaxid {
+							mode |= unikmer.UNIK_INCLUDETAXID
+						}
+						writer, err = unikmer.NewWriter(outfh, k, mode)
+						checkError(err)
+
+						go func() {
+							if hasTaxid {
+								for codeT := range chCodesTaxids {
+									if sortKmers {
+										codesTaxids = append(codesTaxids, codeT)
+									} else {
+										checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+										ns++
+									}
+								}
+							} else {
+								for code := range chCodes {
+									if sortKmers {
+										codes = append(codes, code)
+									} else {
+										checkError(writer.WriteCode(code))
+										ns++
+									}
+								}
+							}
+							done <- 1
+						}()
+					})
+
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					}
+				}
 
 				var _writer *unikmer.Writer
 				var _codes []uint64
+				var _codesTaxids []unikmer.CodeTaxid
 				var _outFile string
 
 				if mOutputs {
 					// write to it's own output file
 					_outFile = filepath.Join(outdir, filepath.Base(file)+outSuffix+extDataFile)
-					outfh, gw, w, err := outStream(_outFile, opt.Compress, opt.CompressionLevel)
-					checkError(err)
+					_outfh, _gw, _w, _err := outStream(_outFile, opt.Compress, opt.CompressionLevel)
+					checkError(_err)
 					defer func() {
-						outfh.Flush()
-						if gw != nil {
-							gw.Close()
+						_outfh.Flush()
+						if _gw != nil {
+							_gw.Close()
 						}
-						w.Close()
+						_w.Close()
 					}()
 
 					var mode uint32
@@ -387,17 +421,31 @@ Tips:
 					} else if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
-					_writer, err = unikmer.NewWriter(outfh, k, mode)
+					if _isIncludeTaxid {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
+					_writer, err = unikmer.NewWriter(_outfh, k, mode)
 					checkError(err)
+					if _hasGlobalTaxid {
+						checkError(_writer.SetGlobalTaxid(reader.GetGlobalTaxid()))
+					}
 
 					if sortKmers {
-						_codes = make([]uint64, 0, mapInitSize)
+						if _isIncludeTaxid {
+							_codesTaxids = make([]unikmer.CodeTaxid, 0, mapInitSize)
+						} else if _hasGlobalTaxid {
+							_codes = make([]uint64, 0, mapInitSize)
+						} else {
+							_codes = make([]uint64, 0, mapInitSize)
+						}
 					}
+					checkError(_writer.Flush())
 				}
 
 				var kcode unikmer.KmerCode
+				var taxid uint32
 				for {
-					kcode, err = reader.Read()
+					kcode, taxid, err = reader.ReadWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -423,13 +471,21 @@ Tips:
 
 					if mOutputs {
 						if sortKmers {
-							_codes = append(_codes, kcode.Code)
+							if _isIncludeTaxid {
+								_codesTaxids = append(_codesTaxids, unikmer.CodeTaxid{Code: kcode.Code, Taxid: taxid})
+							} else {
+								_codes = append(_codes, kcode.Code)
+							}
 						} else {
-							_writer.WriteCode(kcode.Code)
+							checkError(_writer.WriteCodeWithTaxid(kcode.Code, taxid))
 							n++
 						}
 					} else {
-						chCodes <- kcode.Code
+						if hasTaxid {
+							chCodesTaxids <- unikmer.CodeTaxid{Code: kcode.Code, Taxid: taxid}
+						} else {
+							chCodes <- kcode.Code
+						}
 					}
 				}
 
@@ -438,46 +494,89 @@ Tips:
 				}
 
 				if sortKmers {
-					if opt.Verbose {
-						log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codes))
+
+					if _isIncludeTaxid {
+						if opt.Verbose {
+							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codesTaxids))
+						}
+						sort.Sort(unikmer.CodeTaxidSlice(_codesTaxids))
+					} else {
+						if opt.Verbose {
+							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codes))
+						}
+						sort.Sort(unikmer.CodeSlice(_codes))
 					}
-					sort.Sort(unikmer.CodeSlice(_codes))
 
 					if opt.Verbose {
 						log.Infof("[file %d/%d] done sorting", i+1, nfiles)
 					}
 
-					if unique {
-						var last uint64 = ^uint64(0)
-						for _, code := range _codes {
-							if code == last {
-								continue
-							}
-							last = code
-							n++
-							_writer.WriteCode(code)
-						}
-					} else if repeated {
-						var last uint64 = ^uint64(0)
-						var count int
-						for _, code := range _codes {
-							if code == last {
-								if count == 1 { // write once
-									_writer.WriteCode(code)
-									n++
+					if _isIncludeTaxid {
+						if unique {
+							var last uint64 = ^uint64(0)
+							for _, codeT := range _codesTaxids {
+								if codeT.Code == last {
+									continue
 								}
-								count++
-							} else {
-								last = code
-								count = 1
+								last = codeT.Code
+								n++
+								_writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 							}
+						} else if repeated {
+							var last uint64 = ^uint64(0)
+							var count int
+							for _, codeT := range _codesTaxids {
+								if codeT.Code == last {
+									if count == 1 { // write once
+										_writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+										n++
+									}
+									count++
+								} else {
+									last = codeT.Code
+									count = 1
+								}
+							}
+						} else {
+							_writer.Number = int64(len(_codesTaxids))
+							for _, codeT := range _codesTaxids {
+								_writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+							}
+							n = len(_codesTaxids)
 						}
 					} else {
-						_writer.Number = int64(len(_codes))
-						for _, code := range _codes {
-							_writer.WriteCode(code)
+						if unique {
+							var last uint64 = ^uint64(0)
+							for _, code := range _codes {
+								if code == last {
+									continue
+								}
+								last = code
+								checkError(_writer.WriteCode(code))
+								n++
+							}
+						} else if repeated {
+							var last uint64 = ^uint64(0)
+							var count int
+							for _, code := range _codes {
+								if code == last {
+									if count == 1 { // write once
+										checkError(_writer.WriteCode(code))
+										n++
+									}
+									count++
+								} else {
+									last = code
+									count = 1
+								}
+							}
+						} else {
+							_writer.Number = int64(len(_codes))
+							for _, code := range _codes {
+								checkError(_writer.WriteCode(code))
+							}
+							n = len(_codes)
 						}
-						n = len(_codes)
 					}
 				}
 
@@ -490,56 +589,109 @@ Tips:
 		}
 
 		wg.Wait()
-		close(chCodes)
-		<-done
+
+		if !mOutputs {
+			close(chCodes)
+			close(chCodesTaxids)
+			<-done
+		}
 
 		if mOutputs {
 			return
 		}
 
 		if sortKmers {
-			if opt.Verbose {
-				log.Infof("sorting %d k-mers", len(codes))
+			if hasTaxid {
+				if opt.Verbose {
+					log.Infof("sorting %d k-mers", len(codesTaxids))
+				}
+				sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+			} else {
+				if opt.Verbose {
+					log.Infof("sorting %d k-mers", len(codes))
+				}
+				sort.Sort(unikmer.CodeSlice(codes))
 			}
-			sort.Sort(unikmer.CodeSlice(codes))
 			if opt.Verbose {
 				log.Infof("done sorting")
 			}
 
-			if unique {
-				var last uint64 = ^uint64(0)
-				for _, code := range codes {
-					if code == last {
-						continue
-					}
-					last = code
-					ns++
-					writer.WriteCode(code)
-				}
-			} else if repeated {
-				var last uint64 = ^uint64(0)
-				var count int
-				for _, code := range codes {
-					if code == last {
-						if count == 1 { // write once
-							writer.WriteCode(code)
-							ns++
+			if hasTaxid {
+				if unique {
+					var last uint64 = ^uint64(0)
+					for _, codeT := range codesTaxids {
+						if codeT.Code == last {
+							continue
 						}
-						count++
-					} else {
-						last = code
-						count = 1
+						last = codeT.Code
+						checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+						ns++
 					}
+				} else if repeated {
+					var last uint64 = ^uint64(0)
+					var count int
+					for _, codeT := range codesTaxids {
+						if codeT.Code == last {
+							if count == 1 { // write once
+								checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+								ns++
+							}
+							count++
+						} else {
+							last = codeT.Code
+							count = 1
+						}
+					}
+				} else {
+					writer.Number = int64(len(codesTaxids))
+					for _, codeT := range codesTaxids {
+						checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+					}
+					ns = len(codesTaxids)
 				}
 			} else {
-				writer.Number = int64(len(codes))
-				for _, code := range codes {
-					writer.WriteCode(code)
+				if unique {
+					var last uint64 = ^uint64(0)
+					for _, code := range codes {
+						if code == last {
+							continue
+						}
+						last = code
+						checkError(writer.WriteCode(code))
+						ns++
+					}
+				} else if repeated {
+					var last uint64 = ^uint64(0)
+					var count int
+					for _, code := range codes {
+						if code == last {
+							if count == 1 { // write once
+								checkError(writer.WriteCode(code))
+								ns++
+							}
+							count++
+						} else {
+							last = code
+							count = 1
+						}
+					}
+				} else {
+					writer.Number = int64(len(codes))
+					for _, code := range codes {
+						checkError(writer.WriteCode(code))
+					}
+					ns = len(codes)
 				}
-				ns = len(codes)
 			}
 		}
+
 		checkError(writer.Flush())
+
+		checkError(outfh.Flush())
+		if gw != nil {
+			gw.Close()
+		}
+		w.Close()
 		if opt.Verbose {
 			log.Infof("%d k-mers saved to %s", ns, outFile)
 		}

@@ -64,7 +64,11 @@ var viewCmd = &cobra.Command{
 		outFasta := getFlagBool(cmd, "fasta")
 		outFastq := getFlagBool(cmd, "fastq")
 		showCodeOnly := getFlagBool(cmd, "show-code-only")
+
 		showTaxid := getFlagBool(cmd, "show-taxid")
+		if opt.IgnoreTaxid {
+			showTaxid = false
+		}
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -82,6 +86,9 @@ var viewCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 		var taxid uint32
 
+		var k int = -1
+		var hasTaxid bool
+
 		var quality string
 		for _, file := range files {
 			func() {
@@ -91,6 +98,24 @@ var viewCmd = &cobra.Command{
 
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
+
+				if k == -1 {
+					k = reader.K
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
+					if showTaxid && !reader.HasTaxidInfo() {
+						log.Warningf("flag -t/--show-taxid ignored when no taxids found in input")
+					}
+					if opt.IgnoreTaxid || !reader.HasTaxidInfo() {
+						showTaxid = false
+					}
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					}
+				}
 
 				if outFastq {
 					quality = strings.Repeat("g", reader.K)

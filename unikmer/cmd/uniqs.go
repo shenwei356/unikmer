@@ -114,7 +114,7 @@ Attention:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
-					hasTaxid = reader.HasTaxidInfo()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")
@@ -129,7 +129,7 @@ Attention:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if reader.HasTaxidInfo() != hasTaxid {
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
 					}
 				}

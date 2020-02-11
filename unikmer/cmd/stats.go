@@ -328,11 +328,11 @@ Tips:
 
 				n = 0
 				if all {
-					if reader.Flag&unikmer.UNIK_SORTED > 0 && reader.Number >= 0 {
+					if reader.IsSorted() && reader.Number >= 0 {
 						n = reader.Number
 					} else {
 						for {
-							_, err = reader.Read()
+							_, _, err = reader.ReadCodeWithTaxid()
 							if err != nil {
 								if err == io.EOF {
 									break
@@ -426,6 +426,7 @@ Tips:
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
 					boolStr(sTrue, sFalse, info.sorted),
+					boolStr(sTrue, sFalse, info.includeTaxid),
 					info.globalTaxid,
 					humanize.Comma(info.number),
 				)

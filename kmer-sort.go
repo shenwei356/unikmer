@@ -60,3 +60,28 @@ func (codes CodeSlice) Swap(i, j int) {
 func (codes CodeSlice) Less(i, j int) bool {
 	return codes[i] < codes[j]
 }
+
+// CodeTaxid is the code-taxid pair
+type CodeTaxid struct {
+	Code uint64
+	// _ uint32 // needed? to test
+	Taxid uint32
+}
+
+// CodeTaxidSlice is a list of CodeTaxid, just for sorting
+type CodeTaxidSlice []CodeTaxid
+
+// Len return length of the slice
+func (pairs CodeTaxidSlice) Len() int {
+	return len(pairs)
+}
+
+// Swap swaps two elements
+func (pairs CodeTaxidSlice) Swap(i, j int) {
+	pairs[i], pairs[j] = pairs[j], pairs[i]
+}
+
+// Less simply compare two KmerCode
+func (pairs CodeTaxidSlice) Less(i, j int) bool {
+	return pairs[i].Code < pairs[j].Code
+}

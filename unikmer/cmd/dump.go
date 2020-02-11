@@ -193,16 +193,18 @@ var dumpCmd = &cobra.Command{
 					if unique {
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
-							writer.WriteCode(kcode.Code)
+							checkError(writer.WriteCode(kcode.Code))
 							if includeTaxid {
-								writer.WriteTaxid(_taxid)
+								checkError(writer.WriteTaxid(_taxid))
 							}
 							n++
 						}
 					} else {
-						writer.WriteCode(kcode.Code)
+						checkError(writer.WriteCode(kcode.Code))
+						log.Debugf("write code: %d", kcode.Code)
 						if includeTaxid {
-							writer.WriteTaxid(_taxid)
+							log.Debugf("write taxid: %d", _taxid)
+							checkError(writer.WriteTaxid(_taxid))
 						}
 						n++
 					}
@@ -223,7 +225,7 @@ func init() {
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	dumpCmd.Flags().BoolP("canonical", "K", false, "save the canonical k-mers")
-	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This option overides -K/--canonical")
+	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This flag overides -K/--canonical")
 	dumpCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
 	dumpCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
 }

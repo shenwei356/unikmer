@@ -65,12 +65,8 @@ Attentions:
 
 		outFile := getFlagString(cmd, "out-prefix")
 
-		sampling := true
 		start := getFlagPositiveInt(cmd, "start")
 		window := getFlagPositiveInt(cmd, "window")
-		if start == 1 && window == 1 {
-			sampling = false
-		}
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -115,7 +111,7 @@ Attentions:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
-					hasTaxid = reader.HasTaxidInfo()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
 					checkError(err)
 					checkError(writer.SetMaxTaxid(opt.MaxTaxid))
@@ -126,43 +122,26 @@ Attentions:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if reader.HasTaxidInfo() != hasTaxid {
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
 					}
 				}
 
-				if sampling {
-					j = 0
-					for {
-						code, taxid, err = reader.ReadCodeWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(err)
+				j = 0
+				for {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							break
 						}
-
-						j++
-						if (j-start)%window == 0 || j == start {
-							n++
-							writer.WriteCodeWithTaxid(code, taxid)
-						}
+						checkError(err)
 					}
 
-				} else {
-					for {
-						code, taxid, err = reader.ReadCodeWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(err)
-						}
-
+					j++
+					if j >= start && (j-start)%window == 0 {
 						n++
 						writer.WriteCodeWithTaxid(code, taxid)
 					}
-
 				}
 
 				return flagContinue
