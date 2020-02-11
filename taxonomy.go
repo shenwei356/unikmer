@@ -34,7 +34,7 @@ type Taxonomy struct {
 	file     string
 	rootNode uint32
 
-	nodes map[uint32]uint32 // parent -> child
+	Nodes map[uint32]uint32 // parent -> child
 
 	cacheLCA bool
 	lcaCache map[uint64]uint32 // cache of lca
@@ -45,7 +45,7 @@ type Taxonomy struct {
 // ErrIllegalColumnIndex means column index is 0 or negative.
 var ErrIllegalColumnIndex = errors.New("unikmer: illegal column index, positive integer needed")
 
-// NewTaxonomyFromNCBI parse Taxonomy from nodes.dmp
+// NewTaxonomyFromNCBI parses Taxonomy from nodes.dmp
 // from ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz .
 func NewTaxonomyFromNCBI(file string) (*Taxonomy, error) {
 	return NewTaxonomy(file, 1, 3)
@@ -69,7 +69,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	}
 
 	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.SplitN(line, "\t", minColumns)
+		items := strings.Split(line, "\t")
 		if len(items) < minColumns {
 			return nil, false, nil
 		}
@@ -84,9 +84,9 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 		return taxon{Taxid: uint32(child), Parent: uint32(parent)}, true, nil
 	}
 
-	reader, err := breader.NewBufferedReader(file, 2, 50, parseFunc)
+	reader, err := breader.NewBufferedReader(file, 8, 100, parseFunc)
 	if err != nil {
-		return nil, fmt.Errorf("unikmer: %w", err)
+		return nil, fmt.Errorf("unikmer: %s", err)
 	}
 
 	nodes := make(map[uint32]uint32, 1024)
@@ -97,7 +97,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	var maxTaxid uint32
 	for chunk := range reader.Ch {
 		if chunk.Err != nil {
-			return nil, fmt.Errorf("unikmer: %w", err)
+			return nil, fmt.Errorf("unikmer: %s", err)
 		}
 		for _, data = range chunk.Data {
 			tax = data.(taxon)
@@ -113,7 +113,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 		}
 	}
 
-	return &Taxonomy{file: file, nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
+	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
 }
 
 // MaxTaxid returns maximum taxid
@@ -124,6 +124,9 @@ func (t *Taxonomy) MaxTaxid() uint32 {
 // CacheLCA tells to cache every LCA query result
 func (t *Taxonomy) CacheLCA() {
 	t.cacheLCA = true
+	if t.lcaCache == nil {
+		t.lcaCache = make(map[uint64]uint32, 1024)
+	}
 }
 
 // LCA returns the Lowest Common Ancestor of two nodes
@@ -156,8 +159,12 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	var child, parent uint32
 
 	child = a
-	for true {
-		parent = t.nodes[child]
+	for {
+		parent, ok = t.Nodes[child]
+		if !ok {
+			t.lcaCache[query] = b
+			return 0
+		}
 		if parent == child { // root
 			lineA = append(lineA, parent)
 			mA[parent] = struct{}{}
@@ -171,11 +178,17 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		}
 		lineA = append(lineA, parent)
 		mA[parent] = struct{}{}
+
+		child = parent
 	}
 
 	child = b
-	for true {
-		parent = t.nodes[child]
+	for {
+		parent, ok = t.Nodes[child]
+		if !ok {
+			t.lcaCache[query] = b
+			return 0
+		}
 		if parent == child { // root
 			break
 		}
@@ -191,6 +204,8 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 			}
 			return parent
 		}
+
+		child = parent
 	}
 	return t.rootNode
 }

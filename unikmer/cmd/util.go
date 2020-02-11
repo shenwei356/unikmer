@@ -23,10 +23,13 @@ package cmd
 import (
 	"compress/flate"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 )
 
@@ -47,6 +50,9 @@ type Options struct {
 	CompressionLevel int
 	MaxTaxid         uint32
 	IgnoreTaxid      bool
+	DataDir          string
+	NodesFile        string
+	CacheLCA         bool
 }
 
 func getOptions(cmd *cobra.Command) *Options {
@@ -54,15 +60,61 @@ func getOptions(cmd *cobra.Command) *Options {
 	if level < flate.HuffmanOnly || level > flate.BestCompression {
 		checkError(fmt.Errorf("gzip: invalid compression level: %d", level))
 	}
+
+	var val, dataDir string
+	if val = os.Getenv("UNIKMER_DB"); val != "" {
+		dataDir = val
+	} else {
+		dataDir = getFlagString(cmd, "data-dir")
+	}
+
 	return &Options{
 		NumCPUs:          getFlagPositiveInt(cmd, "threads"),
 		Verbose:          getFlagBool(cmd, "verbose"),
 		Compress:         !getFlagBool(cmd, "no-compress"),
 		Compact:          getFlagBool(cmd, "compact"),
 		CompressionLevel: level,
-		MaxTaxid:         getFlagUint32(cmd, "max-taxid"),
-		IgnoreTaxid:      getFlagBool(cmd, "ignore-taxid"),
+
+		MaxTaxid:    getFlagUint32(cmd, "max-taxid"),
+		IgnoreTaxid: getFlagBool(cmd, "ignore-taxid"),
+
+		DataDir:   dataDir,
+		NodesFile: filepath.Join(dataDir, "nodes.dmp"),
+		CacheLCA:  true, // getFlagBool(cmd, "cache-lca"),
 	}
+}
+
+func checkDataDir(opt *Options) {
+	existed, err := pathutil.DirExists(opt.DataDir)
+	checkError(err)
+	if !existed {
+		log.Errorf(`data directory not created. please download and decompress ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz, and copy "nodes.dmp" to %s`, opt.DataDir)
+	}
+
+	existed, err = pathutil.Exists(opt.NodesFile)
+	checkError(err)
+	if !existed {
+		log.Errorf(`nodes.dmp not found in %s, please check`, opt.DataDir)
+	}
+}
+
+func loadTaxonomy(opt *Options) *unikmer.Taxonomy {
+	checkDataDir(opt)
+
+	if opt.Verbose {
+		log.Infof("loading Taxonomy nodes from: %s", opt.NodesFile)
+	}
+	t, err := unikmer.NewTaxonomyFromNCBI(opt.NodesFile)
+	if err != nil {
+		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
+	}
+	if opt.Verbose {
+		log.Infof("%d nodes loaded", len(t.Nodes))
+	}
+	if opt.CacheLCA {
+		t.CacheLCA()
+	}
+	return t
 }
 
 var degenerateBaseMapNucl = map[byte]string{

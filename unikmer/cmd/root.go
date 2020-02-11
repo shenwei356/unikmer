@@ -26,6 +26,7 @@ import (
 	"runtime"
 
 	"github.com/klauspost/compress/flate"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +50,13 @@ Author: Wei Shen <shenwei356@gmail.com>
 Documents  : https://shenwei356.github.io/unikmer
 Source code: https://github.com/shenwei356/unikmer
 
+Dataset (optional):
+
+  Some commands need taxonomy nodes file from e.g., NCBI Taxonomy database,
+  you can extract "nodes.dmp" from link below into ~/.unikmer ,
+  ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz , 
+  or some other directory, and later you can refer to using flag --data-dir,
+  or environment variable UNIKMER_DB.
 
 `, VERSION),
 }
@@ -62,7 +70,13 @@ func Execute() {
 	}
 }
 
+var defaulDataDir string
+
 func init() {
+	var err error
+	defaulDataDir, err = homedir.Expand("~/.unikmer/")
+	checkError(err)
+
 	defaultThreads := runtime.NumCPU()
 	if defaultThreads > 2 {
 		defaultThreads = 2
@@ -77,6 +91,8 @@ func init() {
 
 	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller taxids, we can use less space to store taxids. default value is 1<<32-1, that's enough for NCBI Taxonomy taxids")
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
+	RootCmd.PersistentFlags().StringP("data-dir", "", defaulDataDir, "directory containing nodes.dmp and names.dmp")
+	// RootCmd.PersistentFlags().BoolP("cache-lca", "", false, "cache LCA queries")
 }
 
 const helpSort = "sort k-mers, this significantly reduce file size. You can even disable gzip compression by flag -C/--no-compress. This flag overwrites global flag -c/--compact"
