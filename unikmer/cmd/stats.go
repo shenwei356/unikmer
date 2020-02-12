@@ -42,8 +42,8 @@ import (
 // statCmd represents
 var statCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "statistics of binary files",
-	Long: `statistics of binary files
+	Short: "Statistics of binary files",
+	Long: `Statistics of binary files
 
 Tips:
   1. For lots of small files (especially on SDD), use big value of '-j' to

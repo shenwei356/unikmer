@@ -39,9 +39,13 @@ import (
 // splitCmd represents
 var splitCmd = &cobra.Command{
 	Use:   "split",
-	Short: "split k-mers into sorted chunk files",
-	Long: `split k-mers into sorted chunk files
+	Short: "Split k-mers into sorted chunk files",
+	Long: `Split k-mers into sorted chunk files
 
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
+  
 Tips:
   1. You can use '-m/--chunk-size' to limit memory usage, and chunk file size
      depends on k-mers and file save mode (sorted/compact/normal).
@@ -211,7 +215,11 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 
@@ -391,7 +399,7 @@ func init() {
 
 	splitCmd.Flags().StringP("out-dir", "O", "", `output directory`)
 	splitCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N k-mers, supports K/M/G suffix, type "unikmer sort -h" for detail`)
-	splitCmd.Flags().BoolP("force", "f", false, `overwrite output directory`)
+	splitCmd.Flags().BoolP("force", "", false, `overwrite output directory`)
 	splitCmd.Flags().BoolP("unique", "u", false, `split for further removing duplicated k-mers`)
 	splitCmd.Flags().BoolP("repeated", "d", false, `split for further printing duplicate k-mers`)
 }

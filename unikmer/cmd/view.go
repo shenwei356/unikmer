@@ -35,9 +35,13 @@ import (
 // viewCmd represents
 var viewCmd = &cobra.Command{
 	Use:   "view",
-	Short: "read and output binary format to plain text",
-	Long: `read and output binary format to plain text
+	Short: "Read and output binary format to plain text",
+	Long: `Read and output binary format to plain text
 
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
+  
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
@@ -113,7 +117,11 @@ var viewCmd = &cobra.Command{
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 

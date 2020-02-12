@@ -35,16 +35,17 @@ import (
 // unionCmd represents
 var unionCmd = &cobra.Command{
 	Use:   "union",
-	Short: "union of multiple binary files",
-	Long: `union of multiple binary files
+	Short: "Union of multiple binary files",
+	Long: `Union of multiple binary files
 
 Attentions:
-  1. the 'canonical' flags of all files should be consistent.
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
 
 Tips:
   1. 'unikmer sort -u' is slightly faster in cost of more memory usage.
-  2. for really huge number of k-mers, you can use 'unikmer sort -m 100M -u'.
-  3. for large number of sorted .unik files, you can use 'unikmer merge'.
+  2. For really huge number of k-mers, you can use 'unikmer sort -m 100M -u'.
+  3. For large number of sorted .unik files, you can use 'unikmer merge'.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -156,7 +157,11 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 

@@ -34,8 +34,14 @@ import (
 // dumpCmd represents
 var dumpCmd = &cobra.Command{
 	Use:   "dump",
-	Short: "convert plain k-mer text to binary format",
-	Long: `convert plain k-mer text to binary format
+	Short: "Convert plain k-mer text to binary format",
+	Long: `Convert plain k-mer text to binary format
+
+
+Attentions:
+  1. Input should be one k-mer per line, or tab-delimited two columns
+     with a k-mer and it's taxid.
+  2. You can also assign a global taxid with flag -t/--taxid.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -149,8 +155,9 @@ var dumpCmd = &cobra.Command{
 
 						tmp, err = strconv.ParseUint(items[1], 10, 32)
 						if err != nil {
-							checkError(fmt.Errorf("2nd column (taxid) should be positive integer"))
+							checkError(fmt.Errorf("query taxid (2nd column) should be positive integer in range of [1, %d]: %s", maxUint32, items[1]))
 						}
+
 						_taxid = uint32(tmp)
 					}
 

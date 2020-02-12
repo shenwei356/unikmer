@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"sync"
 
 	"github.com/shenwei356/breader"
@@ -39,11 +40,12 @@ import (
 // grepCmd represents
 var grepCmd = &cobra.Command{
 	Use:   "grep",
-	Short: "search k-mers from binary files",
-	Long: `search k-mers from binary files
+	Short: "Search k-mers from binary files",
+	Long: `Search k-mers from binary files
 
 Attentions:
-  1. canonical k-mers are used and outputed
+  1. Canonical k-mers are used and outputed.
+  2. Input files should ALL have or don't have taxid information.
 
 Tips:
   1. Increase value of '-j' for better performance when dealing with
@@ -74,6 +76,7 @@ Tips:
 		queries := getFlagStringSlice(cmd, "query")
 		queryFiles := getFlagStringSlice(cmd, "query-file")
 		queryUnikFiles := getFlagStringSlice(cmd, "query-unik-file")
+		queryWithTaxids := getFlagBool(cmd, "query-is-taxid")
 
 		invertMatch := getFlagBool(cmd, "invert-match")
 		degenerate := getFlagBool(cmd, "degenerate")
@@ -100,7 +103,13 @@ Tips:
 			log.Warningf("flag -o/--out-prefix ignored when given -m/--multiple-outfiles")
 		}
 
-		m := make(map[uint64]struct{}, mapInitSize)
+		var m map[uint64]struct{}
+		var mt map[uint32]struct{}
+		if queryWithTaxids {
+			mt = make(map[uint32]struct{}, mapInitSize)
+		} else {
+			m = make(map[uint64]struct{}, mapInitSize)
+		}
 
 		k := -1
 
@@ -110,10 +119,12 @@ Tips:
 			if query == "" {
 				continue
 			}
-			if k == -1 {
-				k = len(query)
-			} else if len(query) != k {
-				checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
+			if !queryWithTaxids {
+				if k == -1 {
+					k = len(query)
+				} else if len(query) != k {
+					checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
+				}
 			}
 			queryList = append(queryList, query)
 		}
@@ -135,10 +146,12 @@ Tips:
 					checkError(chunk.Err)
 					for _, data = range chunk.Data {
 						query = data.(string)
-						if k == -1 {
-							k = len(query)
-						} else if len(query) != k {
-							checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
+						if !queryWithTaxids {
+							if k == -1 {
+								k = len(query)
+							} else if len(query) != k {
+								checkError(fmt.Errorf("length of query sequence are inconsistent: (%d) != (%d): %s", len(query), k, query))
+							}
 						}
 						queryList = append(queryList, query)
 					}
@@ -146,12 +159,22 @@ Tips:
 			}
 		}
 
-		// encode k-mers
+		// encode k-mers or parse taxids
 		var kcode unikmer.KmerCode
 		var mer []byte
 		var _queries [][]byte
 		var q []byte
+		var val uint64
 		for _, query := range queryList {
+			if queryWithTaxids {
+				val, err = strconv.ParseUint(query, 10, 32)
+				if err != nil {
+					checkError(fmt.Errorf("query taxid should be positive integer in range of [1, %d]: %s", maxUint32, query))
+				}
+
+				mt[uint32(val)] = struct{}{}
+				continue
+			}
 			if degenerate {
 				_queries, err = extendDegenerateSeq([]byte(query))
 				if err != nil {
@@ -174,8 +197,10 @@ Tips:
 		var r *os.File
 		var reader *unikmer.Reader
 		var flag int
+		var canonical bool
+		var taxid uint32
 
-		// load k-mers from .unik files
+		// load k-mers/taxids from .unik files
 		if len(queryUnikFiles) != 0 {
 			nfiles = len(files)
 			for i, file := range queryUnikFiles {
@@ -191,36 +216,35 @@ Tips:
 					reader, err = unikmer.NewReader(infh)
 					checkError(err)
 
+					canonical = reader.IsCanonical()
+
+					if !reader.HasTaxidInfo() {
+						checkError(fmt.Errorf("no taxids found in file: %s", file))
+					}
+
 					if k == -1 {
 						k = reader.K
 					} else if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
 					}
 
-					if reader.IsCanonical() {
-						for {
-							kcode, _, err = reader.ReadWithTaxid()
-							if err != nil {
-								if err == io.EOF {
-									break
-								}
-								checkError(err)
+					for {
+						kcode, taxid, err = reader.ReadWithTaxid()
+						if err != nil {
+							if err == io.EOF {
+								break
 							}
-
-							m[kcode.Code] = struct{}{}
+							checkError(err)
 						}
-					} else {
-						for {
-							kcode, _, err = reader.ReadWithTaxid()
-							if err != nil {
-								if err == io.EOF {
-									break
-								}
-								checkError(err)
-							}
 
-							m[kcode.Canonical().Code] = struct{}{}
+						if queryWithTaxids {
+							mt[taxid] = struct{}{}
+							continue
 						}
+						if !canonical {
+							kcode = kcode.Canonical()
+						}
+						m[kcode.Code] = struct{}{}
 					}
 
 					return flagContinue
@@ -235,7 +259,11 @@ Tips:
 		}
 
 		if opt.Verbose {
-			log.Infof("%d queries loaded", len(m))
+			if queryWithTaxids {
+				log.Infof("%d taxids loaded", len(mt))
+			} else {
+				log.Infof("%d k-mers loaded", len(m))
+			}
 			log.Info()
 		}
 
@@ -319,9 +347,10 @@ Tips:
 				var reader *unikmer.Reader
 
 				var n int
-				var canonical bool
+				var _canonical bool
 				var _hasGlobalTaxid bool
 				var _isIncludeTaxid bool
+				var _mustSort bool
 				var ok, hit bool
 
 				if opt.Verbose {
@@ -335,12 +364,16 @@ Tips:
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
-				if k != reader.K {
+				if !queryWithTaxids && k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
 				}
-				canonical = reader.IsCanonical()
+
+				_canonical = reader.IsCanonical()
 				_hasGlobalTaxid = reader.HasGlobalTaxid()
 				_isIncludeTaxid = reader.IsIncludeTaxid()
+
+				// if the input files is already sorted, we don't have to sort again in mOutput mode.
+				_mustSort = !reader.IsIncludeTaxid()
 
 				if !mOutputs { // set global writer
 					once.Do(func() {
@@ -358,13 +391,16 @@ Tips:
 						mode |= unikmer.UNIK_CANONICAL // forcing using canonical
 						if sortKmers {
 							mode |= unikmer.UNIK_SORTED
+						} else if len(files) == 1 && reader.IsSorted() {
+							// if the only input file is already sorted, we don't have to sort again.
+							mode |= unikmer.UNIK_SORTED
 						} else if opt.Compact {
 							mode |= unikmer.UNIK_COMPACT
 						}
 						if hasTaxid {
 							mode |= unikmer.UNIK_INCLUDETAXID
 						}
-						writer, err = unikmer.NewWriter(outfh, k, mode)
+						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 						checkError(err)
 
 						go func() {
@@ -392,7 +428,11 @@ Tips:
 					})
 
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 
@@ -418,19 +458,21 @@ Tips:
 					mode |= unikmer.UNIK_CANONICAL
 					if sortKmers {
 						mode |= unikmer.UNIK_SORTED
+					} else if reader.IsSorted() {
+						mode |= unikmer.UNIK_SORTED
 					} else if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT
 					}
 					if _isIncludeTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}
-					_writer, err = unikmer.NewWriter(_outfh, k, mode)
+					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
 					checkError(err)
 					if _hasGlobalTaxid {
 						checkError(_writer.SetGlobalTaxid(reader.GetGlobalTaxid()))
 					}
 
-					if sortKmers {
+					if sortKmers && _mustSort {
 						if _isIncludeTaxid {
 							_codesTaxids = make([]unikmer.CodeTaxid, 0, mapInitSize)
 						} else if _hasGlobalTaxid {
@@ -453,11 +495,15 @@ Tips:
 						checkError(err)
 					}
 
-					if !canonical {
-						kcode = kcode.Canonical()
-					}
+					if queryWithTaxids {
+						_, ok = mt[taxid]
+					} else {
+						if !_canonical {
+							kcode = kcode.Canonical()
+						}
 
-					_, ok = m[kcode.Code]
+						_, ok = m[kcode.Code]
+					}
 
 					if !invertMatch {
 						hit = ok
@@ -470,7 +516,7 @@ Tips:
 					}
 
 					if mOutputs {
-						if sortKmers {
+						if sortKmers && _mustSort {
 							if _isIncludeTaxid {
 								_codesTaxids = append(_codesTaxids, unikmer.CodeTaxid{Code: kcode.Code, Taxid: taxid})
 							} else {
@@ -493,8 +539,7 @@ Tips:
 					return
 				}
 
-				if sortKmers {
-
+				if sortKmers && _mustSort {
 					if _isIncludeTaxid {
 						if opt.Verbose {
 							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codesTaxids))
@@ -706,6 +751,7 @@ func init() {
 	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query k-mers (multiple values delimted by comma supported)`)
 	grepCmd.Flags().StringSliceP("query-file", "f", []string{""}, "query file (one k-mer per line)")
 	grepCmd.Flags().StringSliceP("query-unik-file", "F", []string{""}, "query file in .unik format")
+	grepCmd.Flags().BoolP("query-is-taxid", "t", false, "queries are taxids")
 
 	grepCmd.Flags().BoolP("degenerate", "D", false, "query k-mers contains degenerate base")
 	grepCmd.Flags().BoolP("invert-match", "v", false, "invert the sense of matching, to select non-matching records")

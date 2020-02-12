@@ -35,11 +35,15 @@ import (
 // interCmd represents
 var interCmd = &cobra.Command{
 	Use:   "inter",
-	Short: "intersection of multiple binary files",
-	Long: `intersection of multiple binary files
+	Short: "Intersection of multiple binary files",
+	Long: `Intersection of multiple binary files
 
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
+  
 Tips:
-  1. for comparing TWO files with really huge number of k-mers,
+  1. For comparing TWO files with really huge number of k-mers,
      you can use 'unikmer sort -u -m 100M' for each file,
      and then 'unikmer merge -' from them.
 
@@ -128,7 +132,11 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 

@@ -38,8 +38,12 @@ import (
 // sortCmd represents
 var sortCmd = &cobra.Command{
 	Use:   "sort",
-	Short: "sort k-mers in binary files to reduce file size",
-	Long: `sort k-mers in binary files to reduce file size
+	Short: "Sort k-mers in binary files to reduce file size",
+	Long: `Sort k-mers in binary files to reduce file size
+
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
 
 Notes:
   1. When sorting from large number of files, this command is equivalent to
@@ -199,7 +203,11 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 
@@ -560,5 +568,5 @@ func init() {
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 	sortCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)
 	sortCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
-	sortCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
+	sortCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 }

@@ -34,11 +34,12 @@ import (
 // concatCmd represents
 var concatCmd = &cobra.Command{
 	Use:   "concat",
-	Short: "concatenate multiple binary files without removing duplicates",
-	Long: `concatenate multiple binary files without removing duplicates
+	Short: "Concatenate multiple binary files without removing duplicates",
+	Long: `Concatenate multiple binary files without removing duplicates
 
 Attentions:
-  1. the 'canonical' flags of all files should be consistent.
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -130,7 +131,12 @@ Attentions:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
+
 					}
 				}
 

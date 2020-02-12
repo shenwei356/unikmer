@@ -37,14 +37,16 @@ var RootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
 
 A command-line toolkit providing functions including counting, format
-convertion, set operations and searching on small k-mers (k <= 32)
-(with taxids), but without frequency information.
+convertion, set operations and searching of small k-mers (k <= 32)
+optional with Taxids but without frequency information.
 
-K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang
-in RAM, and serialized in binary format.
+K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of
+golang in RAM, and serialized in binary file with extension '.unik'.
 
-Taxid can be assigned when counting k-mers, and LCA (Lowest Common 
-Ancestor) will be computed during k-mers processing.
+Taxids can be assigned when counting k-mers from genome sequences,
+and LCA (Lowest Common Ancestor) will be computed during opertions
+including computing union, intersecton, set difference, unique and
+repeated k-mers.
 
 Version: v%s
 
@@ -61,10 +63,13 @@ Dataset (optional):
   or some other directory, and later you can refer to using flag --data-dir,
   or environment variable UNIKMER_DB.
 
-  For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump to taxonomy
-  convertion.
+  For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump 
+  for taxonomy convertion.
 
-`, VERSION),
+  Note that Taxids are represented using uint32 and stored in 4 or less bytes,
+  all taxids should be in range of [1, %d]
+
+`, VERSION, maxUint32),
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.

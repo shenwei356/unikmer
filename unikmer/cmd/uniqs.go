@@ -37,8 +37,8 @@ import (
 // uniqsCmd represents
 var uniqsCmd = &cobra.Command{
 	Use:   "uniqs",
-	Short: "mapping k-mers back to genome and find unique subsequences",
-	Long: `mapping k-mers back to genome and find unique subsequences
+	Short: "Mapping k-mers back to genome and find unique subsequences",
+	Long: `Mapping k-mers back to genome and find unique subsequences
 
 Attention:
   1. default output is in BED3 format, with left-closed and right-open

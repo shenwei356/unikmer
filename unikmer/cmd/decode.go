@@ -34,8 +34,8 @@ import (
 // decodeCmd represents
 var decodeCmd = &cobra.Command{
 	Use:   "decode",
-	Short: "decode encoded integer to k-mer text",
-	Long: `decode encoded integer to k-mer text
+	Short: "Decode encoded integer to k-mer text",
+	Long: `Decode encoded integer to k-mer text
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

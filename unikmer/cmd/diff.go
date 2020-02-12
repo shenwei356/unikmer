@@ -36,11 +36,12 @@ import (
 // diffCmd represents
 var diffCmd = &cobra.Command{
 	Use:   "diff",
-	Short: "set difference of multiple binary files",
-	Long: `set difference of multiple binary files
+	Short: "Set difference of multiple binary files",
+	Long: `Set difference of multiple binary files
 
 Attentions:
-  1. the 'canonical' flags of all files should be consistent.
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
 
 Tips:
   1. Increasing threads number (-j/--threads) to accelerate computation,
@@ -261,7 +262,9 @@ Tips:
 		}
 
 		// -----------------------------------------------------------------------
-		log.Infof("%d workers in position", threads)
+		if opt.Verbose {
+			log.Infof("%d workers in position", threads)
+		}
 
 		hasDiff := true
 		var wgWorkers sync.WaitGroup
@@ -321,7 +324,11 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					// if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-					// 	checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+					// 	if reader.HasTaxidInfo() {
+					// 		checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+					// 	} else {
+					// 		checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+					// 	}
 					// }
 
 					// file is sorted, so we can skip codes that are small than minCode

@@ -38,9 +38,14 @@ import (
 // mergeCmd represents
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "merge from sorted chunk files",
-	Long: `merge from sorted chunk files
+	Short: "Merge k-mers from sorted chunk files",
+	Long: `Merge k-mers from sorted chunk files
 
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
+  3. Input files should be sorted.
+  
 Tips:
   1. If you don't need to compute unique or repeated k-mers, 
      use 'unikmer concat -s', which is faster.
@@ -157,6 +162,10 @@ Tips:
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
+				if !reader.IsSorted() {
+					checkError(fmt.Errorf("input files should be sorted"))
+				}
+
 				if k == -1 { // first file
 					k = reader.K
 					canonical = reader.IsCanonical()
@@ -184,7 +193,11 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
 					}
 				}
 
@@ -341,5 +354,5 @@ func init() {
 	mergeCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)
 	mergeCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 	mergeCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
-	mergeCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
+	mergeCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 }

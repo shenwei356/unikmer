@@ -269,3 +269,5 @@ func ParseByteSize(val string) (int, error) {
 	}
 	return int(size * float64(u)), nil
 }
+
+var maxUint32 = uint64(^uint32(0))

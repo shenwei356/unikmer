@@ -35,8 +35,8 @@ import (
 // numCmd represents
 var numCmd = &cobra.Command{
 	Use:   "num",
-	Short: "quickly inspect number of k-mers in binary files",
-	Long: `quickly inspect number of k-mers in binary files
+	Short: "Quickly inspect number of k-mers in binary files",
+	Long: `Quickly inspect number of k-mers in binary files
 
 Attention:
   1. This command is designed to quickly inspect the number of k-mers in binary file,

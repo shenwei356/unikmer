@@ -34,8 +34,8 @@ var VERSION = "0.9.0"
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "print version information and check for update",
-	Long: `print version information and check for update
+	Short: "Print version information and check for update",
+	Long: `Print version information and check for update
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

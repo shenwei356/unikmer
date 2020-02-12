@@ -38,11 +38,12 @@ import (
 // locateCmd represents
 var locateCmd = &cobra.Command{
 	Use:   "locate",
-	Short: "locate k-mers in genome",
-	Long: `locate k-mers in genome
+	Short: "Locate k-mers in genome",
+	Long: `Locate k-mers in genome
 
 Attention:
-  1. output location is 1-based
+  1. The 'canonical' flags of all files should be consistent.
+  2. output location is 1-based.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

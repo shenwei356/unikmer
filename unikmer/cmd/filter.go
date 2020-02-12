@@ -34,12 +34,11 @@ import (
 // filterCmd represents
 var filterCmd = &cobra.Command{
 	Use:   "filter",
-	Short: "filter low-complexity k-mers",
-	Long: `filter low-complexity k-mers (experimental)
+	Short: "Filter low-complexity k-mers",
+	Long: `Filter low-complexity k-mers (experimental)
 
 Attentions:
-  1. this command only detects single base repeat now.
-  2. output stream uses same flag as input, avoid repeatedly sorting sorted input.
+  1. This command only detects single base repeat now.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -33,8 +33,8 @@ import (
 // encodeCmd represents
 var encodeCmd = &cobra.Command{
 	Use:   "encode",
-	Short: "encode plain k-mer text to integer",
-	Long: `encode plain k-mer text to integer
+	Short: "Encode plain k-mer text to integer",
+	Long: `Encode plain k-mer text to integer
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
