@@ -20,3 +20,4 @@ doc/site/*
 testdata/*.unik
 t_*
 *.nextflow.log*
+*.brename_detail.txt
