@@ -201,9 +201,7 @@ var dumpCmd = &cobra.Command{
 						}
 					} else {
 						checkError(writer.WriteCode(kcode.Code))
-						log.Debugf("write code: %d", kcode.Code)
 						if includeTaxid {
-							log.Debugf("write taxid: %d", _taxid)
 							checkError(writer.WriteTaxid(_taxid))
 						}
 						n++

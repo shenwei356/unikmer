@@ -64,7 +64,7 @@ func (codes CodeSlice) Less(i, j int) bool {
 // CodeTaxid is the code-taxid pair
 type CodeTaxid struct {
 	Code uint64
-	// _ uint32 // needed? to test
+	// _     uint32 // needed? to test
 	Taxid uint32
 }
 

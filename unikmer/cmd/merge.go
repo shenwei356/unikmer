@@ -135,11 +135,12 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var nUnequalK, nNotConsC, nNotSorted int
+		// var nUnequalK, nNotConsC, nNotSorted int
 		var k int = -1
 		var canonical bool
 		var hasTaxid bool
 		var mode uint32
+		var taxondb *unikmer.Taxonomy
 
 		_files := make([]string, 0, len(files))
 		for _, file := range files {
@@ -164,7 +165,17 @@ Tips:
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
+					if hasTaxid {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
 					mode |= unikmer.UNIK_SORTED
+
+					if hasTaxid {
+						if opt.Verbose {
+							log.Infof("taxids found in file: %s", file)
+						}
+						taxondb = loadTaxonomy(opt)
+					}
 				} else {
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
@@ -179,9 +190,9 @@ Tips:
 
 			}()
 		}
-		if nNotSorted > 0 || nUnequalK > 0 || nNotConsC > 0 {
-			checkError(fmt.Errorf("please check chunk files: %d with different K, %d with different canonical flag, %d not sorted", nUnequalK, nNotConsC, nNotSorted))
-		}
+		// if nNotSorted > 0 || nUnequalK > 0 || nNotConsC > 0 {
+		// 	checkError(fmt.Errorf("please check chunk files: %d with different K, %d with different canonical flag, %d not sorted", nUnequalK, nNotConsC, nNotSorted))
+		// }
 
 		files = _files
 
@@ -205,7 +216,7 @@ Tips:
 				log.Info()
 				log.Infof("======= Stage 2: merging from %d chunks =======", len(files))
 			}
-			n, _ := mergeChunksFile(opt, files, outFile, k, mode, unique, repeated, true)
+			n, _ := mergeChunksFile(opt, taxondb, files, outFile, k, mode, unique, repeated, true)
 
 			if opt.Verbose {
 				log.Infof("%d k-mers saved to %s", n, outFile)
@@ -218,10 +229,10 @@ Tips:
 			log.Infof("======= Stage 2: merging from %d chunks (round: 1/2) =======", len(files))
 		}
 
-		if maxOpenFiles > len(files)*len(files) {
-			log.Warningf("are you sure for merging from %d files?", len(files)*len(files))
-			log.Warningf("if the files are of small size, you may use 'unikmer sort -m' instead")
-		}
+		// if maxOpenFiles > len(files)*len(files) {
+		// 	log.Warningf("are you sure for merging from %d files?", len(files)*len(files))
+		// 	log.Warningf("if the files are of small size, you may use 'unikmer sort -m' instead")
+		// }
 
 		tmpDir := getFlagString(cmd, "tmp-dir")
 		if isStdout(outFile0) {
@@ -259,7 +270,7 @@ Tips:
 				if opt.Verbose {
 					log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
 				}
-				n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
+				n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 				if opt.Verbose {
 					log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 				}
@@ -274,7 +285,7 @@ Tips:
 			if opt.Verbose {
 				log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
 			}
-			n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
+			n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 			if opt.Verbose {
 				log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 			}
@@ -285,7 +296,7 @@ Tips:
 			log.Info()
 			log.Infof("======= Stage 3: merging from %d chunks (round: 2/2) =======", len(tmpFiles))
 		}
-		n, _ := mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated, true)
+		n, _ := mergeChunksFile(opt, taxondb, tmpFiles, outFile, k, mode, unique, repeated, true)
 
 		if opt.Verbose {
 			log.Infof("%d k-mers saved to %s", n, outFile)

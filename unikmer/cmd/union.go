@@ -94,6 +94,7 @@ Tips:
 		var reader *unikmer.Reader
 		var code uint64
 		var taxid uint32
+		var lca uint32
 		var k int = -1
 		var canonical bool
 		var hasTaxid bool
@@ -169,10 +170,11 @@ Tips:
 					}
 
 					if hasTaxid {
-						if _, ok = mt[code]; !ok {
+						if lca, ok = mt[code]; !ok {
 							mt[code] = taxid
+							n++
 						} else {
-							mt[code] = taxondb.LCA(mt[code], taxid) // update with LCA
+							mt[code] = taxondb.LCA(lca, taxid) // update with LCA
 						}
 						continue
 					}
@@ -204,7 +206,9 @@ Tips:
 			if hasTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
 			}
-			mode |= unikmer.UNIK_SORTED
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			}
 			if hasTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
 			}
@@ -270,7 +274,6 @@ Tips:
 				}
 				n = len(m)
 			}
-
 		}
 
 		checkError(writer.Flush())
