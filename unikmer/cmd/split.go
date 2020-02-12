@@ -356,6 +356,7 @@ Tips:
 					sort.Sort(unikmer.CodeSlice(m))
 					if opt.Verbose {
 						log.Infof("[chunk %d] done sorting", iTmpFile)
+						log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
 					}
 				} else if opt.Verbose {
 					log.Infof("[chunk %d] skipping sorting for single sorted input file", iTmpFile)

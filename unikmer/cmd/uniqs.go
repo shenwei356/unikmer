@@ -92,8 +92,6 @@ Attention:
 
 		var k int = -1
 		var canonical bool
-		var hasTaxid bool
-
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
@@ -114,7 +112,6 @@ Attention:
 				if k == -1 {
 					k = reader.K
 					canonical = reader.IsCanonical()
-					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")
@@ -129,14 +126,11 @@ Attention:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
-					}
 				}
 
 				if canonical {
 					for {
-						kcode, err = reader.Read()
+						kcode, _, err = reader.ReadWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -148,7 +142,7 @@ Attention:
 					}
 				} else {
 					for {
-						kcode, err = reader.Read()
+						kcode, _, err = reader.ReadWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break

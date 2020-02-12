@@ -40,7 +40,8 @@ var interCmd = &cobra.Command{
 
 Tips:
   1. for comparing TWO files with really huge number of k-mers,
-     you can use 'unikmer sort -m 1G -u'.
+     you can use 'unikmer sort -u -m 100M' for each file,
+     and then 'unikmer merge -' from them.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -62,11 +63,20 @@ Tips:
 		}
 
 		checkFileSuffix(extDataFile, files...)
+		var nfiles = len(files)
+
+		if nfiles <= 1 {
+			checkError(fmt.Errorf("two or more files needed"))
+		}
 
 		outFile := getFlagString(cmd, "out-prefix")
 		sortKmers := getFlagBool(cmd, "sort")
 
-		m := make(map[uint64]bool, mapInitSize)
+		var m map[uint64]bool
+		var taxondb *unikmer.Taxonomy
+		var mt map[uint64]uint32
+
+		m = make(map[uint64]bool, mapInitSize) // if has taxid, this map is used for marking common elements
 
 		var infh *bufio.Reader
 		var r *os.File
@@ -77,9 +87,10 @@ Tips:
 		var firstFile = true
 		var hasInter = true
 		var code uint64
+		var taxid uint32
 		var ok bool
 		var flag int
-		var nfiles = len(files)
+
 		for i, file := range files {
 			if !firstFile && file == files[0] {
 				continue
@@ -94,103 +105,6 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				if len(files) == 1 {
-					reader, err = unikmer.NewReader(infh)
-					checkError(err)
-
-					k = reader.K
-					canonical = reader.IsCanonical()
-					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
-
-					if !isStdout(outFile) {
-						outFile += extDataFile
-					}
-					outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
-					checkError(err)
-					defer func() {
-						outfh.Flush()
-						if gw != nil {
-							gw.Close()
-						}
-						w.Close()
-					}()
-
-					var writer *unikmer.Writer
-					var m2 []uint64
-
-					if sortKmers {
-						m2 = make([]uint64, 0, mapInitSize)
-					} else {
-						var mode uint32
-						if sortKmers {
-							mode |= unikmer.UNIK_SORTED
-						} else if opt.Compact {
-							mode |= unikmer.UNIK_COMPACT
-						}
-						if canonical {
-							mode |= unikmer.UNIK_CANONICAL
-						}
-						if hasTaxid {
-							mode |= unikmer.UNIK_INCLUDETAXID
-						}
-						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
-						checkError(err)
-					}
-
-					m := make(map[uint64]struct{}, mapInitSize)
-					for {
-						code, err = reader.ReadCode()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(err)
-						}
-
-						if _, ok = m[code]; !ok {
-							m[code] = struct{}{}
-							if sortKmers {
-								m2 = append(m2, code)
-							} else {
-								writer.WriteCode(code) // not need to check err
-							}
-						}
-					}
-
-					if sortKmers {
-						var mode uint32
-						if canonical {
-							mode |= unikmer.UNIK_CANONICAL
-						}
-						if hasTaxid {
-							mode |= unikmer.UNIK_INCLUDETAXID
-						}
-						mode |= unikmer.UNIK_SORTED
-						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
-						checkError(err)
-
-						writer.Number = int64(len(m2))
-
-						if opt.Verbose {
-							log.Infof("sorting %d k-mers", len(m2))
-						}
-						sort.Sort(unikmer.CodeSlice(m2))
-						if opt.Verbose {
-							log.Infof("done sorting")
-						}
-
-						for _, code = range m2 {
-							writer.WriteCode(code)
-						}
-					}
-
-					checkError(writer.Flush())
-					if opt.Verbose {
-						log.Infof("%d k-mers saved to %s", len(m), outFile)
-					}
-					return flagReturn
-				}
-
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
@@ -198,6 +112,14 @@ Tips:
 					k = reader.K
 					canonical = reader.IsCanonical()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
+
+					if hasTaxid {
+						if opt.Verbose {
+							log.Infof("taxids found in file: %s", file)
+						}
+						mt = make(map[uint64]uint32, mapInitSize)
+						taxondb = loadTaxonomy(opt)
+					}
 				} else {
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
@@ -211,7 +133,7 @@ Tips:
 				}
 
 				for {
-					code, err = reader.ReadCode()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -221,12 +143,18 @@ Tips:
 
 					if firstFile {
 						m[code] = false
+						if hasTaxid {
+							mt[code] = taxid
+						}
 						continue
 					}
 
 					// mark seen kmer
 					if _, ok = m[code]; ok {
 						m[code] = true
+						if hasTaxid {
+							mt[code] = taxondb.LCA(mt[code], taxid)
+						}
 					}
 				}
 
@@ -241,6 +169,9 @@ Tips:
 						m[code] = false
 					} else {
 						delete(m, code)
+						if hasTaxid {
+							delete(mt, code)
+						}
 					}
 				}
 
@@ -308,14 +239,46 @@ Tips:
 			writer.Number = int64(len(m))
 		}
 
-		if len(m) > 0 {
-			if sortKmers {
+		if !sortKmers {
+			if hasTaxid {
+				for code, taxid = range mt {
+					writer.WriteCodeWithTaxid(code, taxid)
+				}
+			} else {
+				for code = range m {
+					writer.WriteCode(code)
+				}
+			}
+		} else if len(m) > 0 {
+			if hasTaxid {
+				codesTaxids := make([]unikmer.CodeTaxid, len(mt))
+
+				i := 0
+				for code, taxid := range mt {
+					codesTaxids[i] = unikmer.CodeTaxid{Code: code, Taxid: taxid}
+					i++
+				}
+
+				if opt.Verbose {
+					log.Infof("sorting %d k-mers", len(codesTaxids))
+				}
+				sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+				if opt.Verbose {
+					log.Infof("done sorting")
+				}
+
+				for _, codeT := range codesTaxids {
+					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				}
+			} else {
 				codes := make([]uint64, len(m))
+
 				i := 0
 				for code = range m {
 					codes[i] = code
 					i++
 				}
+
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))
 				}
@@ -323,12 +286,8 @@ Tips:
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}
+
 				for _, code = range codes {
-					writer.WriteCode(code)
-				}
-			} else {
-				for code = range m {
-					// not need to check err
 					writer.WriteCode(code)
 				}
 			}

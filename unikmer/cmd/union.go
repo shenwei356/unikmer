@@ -220,12 +220,12 @@ Tips:
 
 		if !sortKmers {
 			if hasTaxid {
-				for code, taxid := range mt {
+				for code, taxid = range mt {
 					writer.WriteCodeWithTaxid(code, taxid)
 				}
 				n = len(mt)
 			} else {
-				for code := range m {
+				for code = range m {
 					writer.WriteCode(code)
 				}
 				n = len(m)
@@ -256,7 +256,7 @@ Tips:
 				codes := make([]uint64, len(m))
 
 				i := 0
-				for code := range m {
+				for code = range m {
 					codes[i] = code
 					i++
 				}

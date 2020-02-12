@@ -253,6 +253,7 @@ Tips:
 							}
 							if opt.Verbose {
 								log.Infof("[chunk %d] done sorting", iTmpFile)
+								log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
 							}
 
 							var _n int64
@@ -313,6 +314,7 @@ Tips:
 					}
 					if opt.Verbose {
 						log.Infof("[chunk %d] done sorting", iTmpFile)
+						log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
 					}
 
 					var _n int64

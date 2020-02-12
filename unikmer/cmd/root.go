@@ -38,10 +38,13 @@ var RootCmd = &cobra.Command{
 
 A command-line toolkit providing functions including counting, format
 convertion, set operations and searching on small k-mers (k <= 32)
-without frequency information.
+(with taxids), but without frequency information.
 
 K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of golang
 in RAM, and serialized in binary format.
+
+Taxid can be assigned when counting k-mers, and LCA (Lowest Common 
+Ancestor) will be computed during k-mers processing.
 
 Version: v%s
 
@@ -53,10 +56,13 @@ Source code: https://github.com/shenwei356/unikmer
 Dataset (optional):
 
   Some commands need taxonomy nodes file from e.g., NCBI Taxonomy database,
-  you can extract "nodes.dmp" from link below into ~/.unikmer ,
+  you can extract "nodes.dmp" from link below into ~/.unikmer/ ,
   ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz , 
   or some other directory, and later you can refer to using flag --data-dir,
   or environment variable UNIKMER_DB.
+
+  For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump to taxonomy
+  convertion.
 
 `, VERSION),
 }

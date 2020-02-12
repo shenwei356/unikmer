@@ -90,9 +90,9 @@ Attentions:
 		var r *os.File
 		var reader *unikmer.Reader
 		var code uint64
+		var taxid uint32
 		var k int = -1
 		var canonical bool
-		var hasTaxid bool
 		var flag int
 		var nfiles = len(files)
 		var hit bool
@@ -118,7 +118,6 @@ Attentions:
 						window = k
 					}
 					canonical = reader.IsCanonical()
-					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					scores = make([]int, k)
 
@@ -131,13 +130,10 @@ Attentions:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						checkError(fmt.Errorf(`taxid information found in some files but missing in others, please check with "unikmer stats"`))
-					}
 				}
 
 				for {
-					code, err = reader.ReadCode()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -156,7 +152,7 @@ Attentions:
 					}
 
 					n++
-					writer.WriteCode(code) // not need to check err
+					writer.WriteCodeWithTaxid(code, taxid) // not need to check err
 				}
 
 				return flagContinue
