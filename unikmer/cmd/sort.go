@@ -46,9 +46,7 @@ Notes:
      'unikmer split' + 'unikmer merge'.
 
 Tips:
-  1. You can use '-m/--chunk-size' to limit memory usage, though which is
-     not precise and actually RSS is higher than '-m' * '-j'.
-     Maximum number of k-mers in chunks is '-m'/8, actual file size
+  1. You can use '-m/--chunk-size' to limit memory usage, and chunk file size
      depends on k-mers and file save mode (sorted/compact/normal).
   2. Increasing value of -j/--threads can accelerates splitting stage,
      in cost of more memory occupation.
@@ -59,7 +57,23 @@ Tips:
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
-		var err error
+		outFile0 := getFlagString(cmd, "out-prefix")
+		unique := getFlagBool(cmd, "unique")
+		repeated := getFlagBool(cmd, "repeated")
+		tmpDir := getFlagString(cmd, "tmp-dir")
+		maxOpenFiles := getFlagPositiveInt(cmd, "max-open-files")
+		keepTmpDir := getFlagBool(cmd, "keep-tmp-dir")
+		force := getFlagBool(cmd, "force")
+
+		if unique && repeated {
+			checkError(fmt.Errorf("flag -u/--unique overides -d/--repeated, don't provide both"))
+		}
+
+		maxElem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
+		if err != nil {
+			checkError(fmt.Errorf("parsing byte size: %s", err))
+		}
+		limitMem := maxElem > 0
 
 		if opt.Verbose {
 			log.Info("checking input files ...")
@@ -75,29 +89,9 @@ Tips:
 
 		checkFileSuffix(extDataFile, files...)
 
-		outFile0 := getFlagString(cmd, "out-prefix")
-		unique := getFlagBool(cmd, "unique")
-		repeated := getFlagBool(cmd, "repeated")
-		tmpDir := getFlagString(cmd, "tmp-dir")
-		maxOpenFiles := getFlagPositiveInt(cmd, "max-open-files")
-		keepTmpDir := getFlagBool(cmd, "keep-tmp-dir")
-		force := getFlagBool(cmd, "force")
-
-		if unique && repeated {
-			checkError(fmt.Errorf("flag -u/--unique overides -d/--repeated, don't provide both"))
-		}
-
-		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
-		if err != nil {
-			checkError(fmt.Errorf("parsing byte size: %s", err))
-		}
-		maxElem := maxMem >> 3 // uint64 == 8 bytes
-		if maxMem > 0 && maxElem < 1 {
-			maxElem = 1
-		}
-		limitMem := maxElem > 0
-
-		m := make([]uint64, 0, mapInitSize)
+		var m []uint64
+		var taxondb *unikmer.Taxonomy
+		var mt []unikmer.CodeTaxid
 
 		outFile := outFile0
 		if !isStdout(outFile) {
@@ -135,6 +129,7 @@ Tips:
 		var r *os.File
 		var reader *unikmer.Reader
 		var code uint64
+		var taxid uint32
 		var k int = -1
 		var canonical bool
 		var hasTaxid bool
@@ -172,6 +167,16 @@ Tips:
 					canonical = reader.IsCanonical()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
+					if hasTaxid {
+						if opt.Verbose {
+							log.Infof("taxids found in file: %s", file)
+						}
+						mt = make([]unikmer.CodeTaxid, 0, mapInitSize)
+						taxondb = loadTaxonomy(opt)
+					} else {
+						m = make([]uint64, 0, mapInitSize)
+					}
+
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
@@ -192,7 +197,7 @@ Tips:
 				}
 
 				for {
-					code, err = reader.ReadCode()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -200,7 +205,11 @@ Tips:
 						checkError(err)
 					}
 
-					m = append(m, code)
+					if hasTaxid {
+						mt = append(mt, unikmer.CodeTaxid{Code: code, Taxid: taxid})
+					} else {
+						m = append(m, code)
+					}
 
 					if limitMem && len(m) >= maxElem {
 						if !hasTmpFile {
@@ -377,10 +386,17 @@ Tips:
 
 		// all k-mers are stored in memory
 
-		if opt.Verbose {
-			log.Infof("sorting %d k-mers", len(m))
+		if hasTaxid {
+			if opt.Verbose {
+				log.Infof("sorting %d k-mers", len(mt))
+			}
+			sort.Sort(unikmer.CodeTaxidSlice(mt))
+		} else {
+			if opt.Verbose {
+				log.Infof("sorting %d k-mers", len(m))
+			}
+			sort.Sort(unikmer.CodeSlice(m))
 		}
-		sort.Sort(unikmer.CodeSlice(m))
 		if opt.Verbose {
 			log.Infof("done sorting")
 		}
@@ -398,37 +414,96 @@ Tips:
 		checkError(err)
 
 		var n int
-		if unique {
-			var last uint64 = ^uint64(0)
-			for _, code := range m {
-				if code == last {
-					continue
-				}
-				last = code
-				n++
-				writer.WriteCode(code)
-			}
-		} else if repeated {
-			var last uint64 = ^uint64(0)
-			var count int
-			for _, code := range m {
-				if code == last {
-					if count == 1 { // write once
-						writer.WriteCode(code)
+		if hasTaxid {
+			if unique {
+				var last uint64 = ^uint64(0)
+				var first bool = true
+				var lca uint32
+				for _, codeT := range mt {
+					// same k-mer, compute LCA and handle it later
+					if codeT.Code == last {
+						lca = taxondb.LCA(codeT.Taxid, lca)
+						continue
+					}
+
+					if first { // just ignore first code, faster than comparing code or slice index, I think
+						first = false
+					} else { // when metting new k-mer, output previous one
+						writer.WriteCodeWithTaxid(last, lca)
 						n++
 					}
-					count++
-				} else {
-					last = code
-					count = 1
+
+					last = codeT.Code
+					lca = codeT.Taxid
 				}
+				// do not forget the last one
+				writer.WriteCodeWithTaxid(last, lca)
+				n++
+			} else if repeated {
+				var last uint64 = ^uint64(0)
+				var count int = 1
+				var lca uint32
+				for _, codeT := range mt {
+					// same k-mer, compute LCA and handle it later
+					if codeT.Code == last {
+						lca = taxondb.LCA(codeT.Taxid, lca)
+						count++
+						continue
+					}
+
+					if count > 1 { // repeated
+						writer.WriteCodeWithTaxid(last, lca)
+						n++
+						count = 1
+					}
+					last = codeT.Code
+					lca = codeT.Taxid
+				}
+				if count > 1 { // last one
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+					count = 0
+				}
+			} else {
+				writer.Number = int64(len(mt))
+				for _, codeT := range mt {
+					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				}
+				n = len(mt)
 			}
 		} else {
-			writer.Number = int64(len(m))
-			for _, code := range m {
-				writer.WriteCode(code)
+			if unique {
+				var last uint64 = ^uint64(0)
+				for _, code := range m {
+					if code == last {
+						continue
+					}
+					last = code
+					writer.WriteCode(code)
+					n++
+				}
+			} else if repeated {
+				var last uint64 = ^uint64(0)
+				var count int
+				for _, code := range m {
+					if code == last {
+						if count == 1 { // write once
+							writer.WriteCode(code)
+							n++
+						}
+						count++
+					} else {
+						last = code
+						count = 1
+					}
+				}
+			} else {
+				writer.Number = int64(len(m))
+				for _, code := range m {
+					writer.WriteCode(code)
+				}
+				n = len(m)
 			}
-			n = len(m)
 		}
 
 		checkError(writer.Flush())

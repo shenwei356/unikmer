@@ -373,7 +373,7 @@ Tips:
 									if sortKmers {
 										codesTaxids = append(codesTaxids, codeT)
 									} else {
-										checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+										writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 										ns++
 									}
 								}
@@ -382,7 +382,7 @@ Tips:
 									if sortKmers {
 										codes = append(codes, code)
 									} else {
-										checkError(writer.WriteCode(code))
+										writer.WriteCode(code)
 										ns++
 									}
 								}
@@ -477,7 +477,7 @@ Tips:
 								_codes = append(_codes, kcode.Code)
 							}
 						} else {
-							checkError(_writer.WriteCodeWithTaxid(kcode.Code, taxid))
+							_writer.WriteCodeWithTaxid(kcode.Code, taxid)
 							n++
 						}
 					} else {
@@ -552,7 +552,7 @@ Tips:
 									continue
 								}
 								last = code
-								checkError(_writer.WriteCode(code))
+								_writer.WriteCode(code)
 								n++
 							}
 						} else if repeated {
@@ -561,7 +561,7 @@ Tips:
 							for _, code := range _codes {
 								if code == last {
 									if count == 1 { // write once
-										checkError(_writer.WriteCode(code))
+										_writer.WriteCode(code)
 										n++
 									}
 									count++
@@ -573,7 +573,7 @@ Tips:
 						} else {
 							_writer.Number = int64(len(_codes))
 							for _, code := range _codes {
-								checkError(_writer.WriteCode(code))
+								_writer.WriteCode(code)
 							}
 							n = len(_codes)
 						}
@@ -624,7 +624,7 @@ Tips:
 							continue
 						}
 						last = codeT.Code
-						checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+						writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 						ns++
 					}
 				} else if repeated {
@@ -633,7 +633,7 @@ Tips:
 					for _, codeT := range codesTaxids {
 						if codeT.Code == last {
 							if count == 1 { // write once
-								checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+								writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 								ns++
 							}
 							count++
@@ -645,7 +645,7 @@ Tips:
 				} else {
 					writer.Number = int64(len(codesTaxids))
 					for _, codeT := range codesTaxids {
-						checkError(writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid))
+						writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 					}
 					ns = len(codesTaxids)
 				}
@@ -657,7 +657,7 @@ Tips:
 							continue
 						}
 						last = code
-						checkError(writer.WriteCode(code))
+						writer.WriteCode(code)
 						ns++
 					}
 				} else if repeated {
@@ -666,7 +666,7 @@ Tips:
 					for _, code := range codes {
 						if code == last {
 							if count == 1 { // write once
-								checkError(writer.WriteCode(code))
+								writer.WriteCode(code)
 								ns++
 							}
 							count++
@@ -678,7 +678,7 @@ Tips:
 				} else {
 					writer.Number = int64(len(codes))
 					for _, code := range codes {
-						checkError(writer.WriteCode(code))
+						writer.WriteCode(code)
 					}
 					ns = len(codes)
 				}

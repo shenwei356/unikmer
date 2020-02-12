@@ -43,9 +43,7 @@ var splitCmd = &cobra.Command{
 	Long: `split k-mers into sorted chunk files
 
 Tips:
-  1. You can use '-m/--chunk-size' to limit memory usage, though which is
-     not precise and actually RSS is higher than '-m' * '-j'.
-     Maximum number of k-mers in chunks is '-m'/8, actual file size
+  1. You can use '-m/--chunk-size' to limit memory usage, and chunk file size
      depends on k-mers and file save mode (sorted/compact/normal).
   2. Increasing value of -j/--threads can accelerates splitting stage,
      in cost of more memory occupation.
@@ -56,7 +54,16 @@ Tips:
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
-		var err error
+		outDir := getFlagString(cmd, "out-dir")
+		force := getFlagBool(cmd, "force")
+		unique := getFlagBool(cmd, "unique")
+		repeated := getFlagBool(cmd, "repeated")
+
+		maxElem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
+		if err != nil {
+			checkError(fmt.Errorf("parsing byte size: %s", err))
+		}
+		limitMem := maxElem > 0
 
 		if opt.Verbose {
 			log.Info("checking input files ...")
@@ -72,22 +79,6 @@ Tips:
 
 		checkFileSuffix(extDataFile, files...)
 
-		outDir := getFlagString(cmd, "out-dir")
-		force := getFlagBool(cmd, "force")
-		unique := getFlagBool(cmd, "unique")
-		repeated := getFlagBool(cmd, "repeated")
-
-		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
-		if err != nil {
-			checkError(fmt.Errorf("parsing byte size: %s", err))
-		}
-		if maxMem == 0 {
-			checkError(fmt.Errorf("non-zero chunk size needed for flag -m/--chunk-size"))
-		}
-		maxElem := maxMem >> 3 // uint64 == 8 bytes
-		if maxMem > 0 && maxElem < 1 {
-			maxElem = 1
-		}
 		m := make([]uint64, 0, mapInitSize)
 
 		if outDir == "" {
@@ -131,7 +122,6 @@ Tips:
 		var doNotNeedSorting = false // only for ONE sorted input file
 
 		var iTmpFile int
-		limitMem := maxElem > 0
 
 		var wg sync.WaitGroup
 		tokens := make(chan int, opt.NumCPUs)
@@ -360,7 +350,7 @@ func init() {
 	RootCmd.AddCommand(splitCmd)
 
 	splitCmd.Flags().StringP("out-dir", "O", "", `output directory`)
-	splitCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer split -h" for detail`)
+	splitCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	splitCmd.Flags().BoolP("force", "f", false, `overwrite output directory`)
 	splitCmd.Flags().BoolP("unique", "u", false, `split for further removing duplicated k-mers`)
 	splitCmd.Flags().BoolP("repeated", "d", false, `split for further printing duplicate k-mers`)

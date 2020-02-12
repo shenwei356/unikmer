@@ -42,8 +42,9 @@ Attentions:
   1. the 'canonical' flags of all files should be consistent.
 
 Tips:
-  1. for really huge number of k-mers, you can use 'unikmer sort -m 1G -u'.
-  1. for large number of sorted .unik files, you can use 'unikmer merge'.
+  1. 'unikmer sort -u' is slightly faster in cost of more memory usage.
+  2. for really huge number of k-mers, you can use 'unikmer sort -m 100M -u'.
+  3. for large number of sorted .unik files, you can use 'unikmer merge'.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -70,7 +71,6 @@ Tips:
 		sortKmers := getFlagBool(cmd, "sort")
 
 		var m map[uint64]struct{}
-
 		var taxondb *unikmer.Taxonomy
 		var mt map[uint64]uint32
 
