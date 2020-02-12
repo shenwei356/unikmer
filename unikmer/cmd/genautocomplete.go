@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,8 @@ import (
 // genautocompleteCmd represents the fq2fa command
 var genautocompleteCmd = &cobra.Command{
 	Use:   "genautocomplete",
-	Short: "generate shell autocompletion script",
-	Long: `generate shell autocompletion script
+	Short: "Generate shell autocompletion script",
+	Long: `Generate shell autocompletion script
 
 Note: The current version supports Bash only.
 This should work for *nix systems with Bash installed.

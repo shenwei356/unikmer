@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,11 +34,12 @@ import (
 // concatCmd represents
 var concatCmd = &cobra.Command{
 	Use:   "concat",
-	Short: "concatenate multiple binary files without removing duplicates",
-	Long: `concatenate multiple binary files without removing duplicates
+	Short: "Concatenate multiple binary files without removing duplicates",
+	Long: `Concatenate multiple binary files without removing duplicates
 
 Attentions:
-  1. the 'canonical' flags of all files should be consistent.
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -47,7 +48,17 @@ Attentions:
 
 		var err error
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		checkFileSuffix(extDataFile, files...)
 
@@ -73,8 +84,10 @@ Attentions:
 		var r *os.File
 		var reader *unikmer.Reader
 		var code uint64
+		var taxid uint32
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var flag int
 		var n int64
 		var nfiles = len(files)
@@ -93,7 +106,8 @@ Attentions:
 
 				if k == -1 {
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					var mode uint32
 					if sortedKmers {
@@ -104,16 +118,30 @@ Attentions:
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
+					if hasTaxid {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
+
+					}
 				}
 
 				for {
-					code, err = reader.ReadCode()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -121,7 +149,7 @@ Attentions:
 						checkError(err)
 					}
 
-					writer.WriteCode(code) // not need to check err
+					checkError(writer.WriteCodeWithTaxid(code, taxid))
 					n++
 				}
 

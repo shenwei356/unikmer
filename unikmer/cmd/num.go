@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,8 @@ import (
 // numCmd represents
 var numCmd = &cobra.Command{
 	Use:   "num",
-	Short: "quickly inspect number of k-mers in binary files",
-	Long: `quickly inspect number of k-mers in binary files
+	Short: "Quickly inspect number of k-mers in binary files",
+	Long: `Quickly inspect number of k-mers in binary files
 
 Attention:
   1. This command is designed to quickly inspect the number of k-mers in binary file,
@@ -49,7 +49,17 @@ Attention:
 
 		var err error
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		checkFileSuffix(extDataFile, files...)
 

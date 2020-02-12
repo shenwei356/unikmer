@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,11 +38,12 @@ import (
 // locateCmd represents
 var locateCmd = &cobra.Command{
 	Use:   "locate",
-	Short: "locate k-mers in genome",
-	Long: `locate k-mers in genome
+	Short: "Locate k-mers in genome",
+	Long: `Locate k-mers in genome
 
 Attention:
-  1. output location is 1-based
+  1. The 'canonical' flags of all files should be consistent.
+  2. output location is 1-based.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -52,7 +53,17 @@ Attention:
 
 		var err error
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		checkFileSuffix(extDataFile, files...)
 
@@ -91,7 +102,7 @@ Attention:
 
 				if k == -1 {
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")
@@ -99,11 +110,15 @@ Attention:
 							log.Infof("flag of canonical is off")
 						}
 					}
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
 				}
+
 			}()
 		}
 
@@ -218,7 +233,7 @@ Attention:
 
 				if !canonical {
 					for {
-						kcode, err = reader.Read()
+						kcode, _, err = reader.ReadWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -251,7 +266,7 @@ Attention:
 					}
 				} else {
 					for {
-						kcode, err = reader.Read()
+						kcode, _, err = reader.ReadWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break

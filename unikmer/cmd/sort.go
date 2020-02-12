@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,17 +38,19 @@ import (
 // sortCmd represents
 var sortCmd = &cobra.Command{
 	Use:   "sort",
-	Short: "sort k-mers in binary files to reduce file size",
-	Long: `sort k-mers in binary files to reduce file size
+	Short: "Sort k-mers in binary files to reduce file size",
+	Long: `Sort k-mers in binary files to reduce file size
+
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
 
 Notes:
   1. When sorting from large number of files, this command is equivalent to
      'unikmer split' + 'unikmer merge'.
 
 Tips:
-  1. You can use '-m/--chunk-size' to limit memory usage, though which is
-     not precise and actually RSS is higher than '-m' * '-j'.
-     Maximum number of k-mers in chunks is '-m'/8, actual file size
+  1. You can use '-m/--chunk-size' to limit memory usage, and chunk file size
      depends on k-mers and file save mode (sorted/compact/normal).
   2. Increasing value of -j/--threads can accelerates splitting stage,
      in cost of more memory occupation.
@@ -58,12 +60,6 @@ Tips:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
-
-		var err error
-
-		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
-
-		checkFileSuffix(extDataFile, files...)
 
 		outFile0 := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
@@ -77,17 +73,36 @@ Tips:
 			checkError(fmt.Errorf("flag -u/--unique overides -d/--repeated, don't provide both"))
 		}
 
-		maxMem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
+		maxElem, err := ParseByteSize(getFlagString(cmd, "chunk-size"))
 		if err != nil {
 			checkError(fmt.Errorf("parsing byte size: %s", err))
 		}
-		maxElem := maxMem >> 3 // uint64 == 8 bytes
-		if maxMem > 0 && maxElem < 1 {
-			maxElem = 1
-		}
 		limitMem := maxElem > 0
 
-		m := make([]uint64, 0, mapInitSize)
+		var listInitSize int
+		if limitMem {
+			listInitSize = maxElem
+		} else {
+			listInitSize = mapInitSize
+		}
+
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
+		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
+
+		checkFileSuffix(extDataFile, files...)
+
+		var m []uint64
+		var taxondb *unikmer.Taxonomy
+		var mt []unikmer.CodeTaxid
 
 		outFile := outFile0
 		if !isStdout(outFile) {
@@ -125,8 +140,10 @@ Tips:
 		var r *os.File
 		var reader *unikmer.Reader
 		var code uint64
+		var taxid uint32
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var mode uint32
 		var firstFile = true
 		var flag int
@@ -158,20 +175,44 @@ Tips:
 
 				if k == -1 {
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
+
+					if hasTaxid {
+						if opt.Verbose {
+							log.Infof("taxids found in file: %s", file)
+						}
+						mt = make([]unikmer.CodeTaxid, 0, listInitSize)
+						taxondb = loadTaxonomy(opt)
+					} else {
+						m = make([]uint64, 0, listInitSize)
+					}
 
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
+					if hasTaxid {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
 					mode |= unikmer.UNIK_SORTED
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
+					}
 				}
 
 				for {
-					code, err = reader.ReadCode()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -179,9 +220,13 @@ Tips:
 						checkError(err)
 					}
 
-					m = append(m, code)
+					if hasTaxid {
+						mt = append(mt, unikmer.CodeTaxid{Code: code, Taxid: taxid})
+					} else {
+						m = append(m, code)
+					}
 
-					if limitMem && len(m) >= maxElem {
+					if limitMem && (len(m) >= maxElem || len(mt) >= maxElem) {
 						if !hasTmpFile {
 							if opt.Verbose {
 								log.Info()
@@ -197,27 +242,44 @@ Tips:
 
 						wg.Add(1)
 						tokens <- 1
-						go func(m []uint64, iTmpFile int, outFile string) {
+						go func(m []uint64, mt []unikmer.CodeTaxid, iTmpFile int, outFile string) {
 							defer func() {
 								wg.Done()
 								<-tokens
 							}()
 
-							if opt.Verbose {
-								log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
+							if hasTaxid {
+								if opt.Verbose {
+									log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(mt))
+								}
+								sort.Sort(unikmer.CodeTaxidSlice(mt))
+							} else {
+								if opt.Verbose {
+									log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
+								}
+								sort.Sort(unikmer.CodeSlice(m))
 							}
-							sort.Sort(unikmer.CodeSlice(m))
 							if opt.Verbose {
 								log.Infof("[chunk %d] done sorting", iTmpFile)
+								log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
 							}
 
-							_n := dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
+							var _n int64
+							if hasTaxid {
+								_n = dumpCodesTaxids2File(mt, k, mode, outFile, opt, unique, repeated)
+							} else {
+								_n = dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
+							}
 							if opt.Verbose {
 								log.Infof("[chunk %d] %d k-mers saved to tmp file: %s", iTmpFile, _n, outFile)
 							}
-						}(m, iTmpFile, outFile1)
+						}(m, mt, iTmpFile, outFile1)
 
-						m = make([]uint64, 0, mapInitSize)
+						if hasTaxid {
+							mt = make([]unikmer.CodeTaxid, 0, listInitSize)
+						} else {
+							m = make([]uint64, 0, listInitSize)
+						}
 					}
 
 				}
@@ -234,32 +296,45 @@ Tips:
 
 		if hasTmpFile {
 			// dump remaining k-mers to file
-			if len(m) > 0 {
+			if len(m) > 0 || len(mt) > 0 {
 				iTmpFile++
 				outFile1 := chunkFileName(tmpDir, iTmpFile)
 				tmpFiles = append(tmpFiles, outFile1)
 
 				wg.Add(1)
 				tokens <- 1
-				go func(m []uint64, iTmpFile int, outFile string) {
+				go func(m []uint64, mt []unikmer.CodeTaxid, iTmpFile int, outFile string) {
 					defer func() {
 						wg.Done()
 						<-tokens
 					}()
 
-					if opt.Verbose {
-						log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
+					if hasTaxid {
+						if opt.Verbose {
+							log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(mt))
+						}
+						sort.Sort(unikmer.CodeTaxidSlice(mt))
+					} else {
+						if opt.Verbose {
+							log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
+						}
+						sort.Sort(unikmer.CodeSlice(m))
 					}
-					sort.Sort(unikmer.CodeSlice(m))
 					if opt.Verbose {
 						log.Infof("[chunk %d] done sorting", iTmpFile)
+						log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
 					}
 
-					_n := dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
+					var _n int64
+					if hasTaxid {
+						_n = dumpCodesTaxids2File(mt, k, mode, outFile, opt, unique, repeated)
+					} else {
+						_n = dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
+					}
 					if opt.Verbose {
 						log.Infof("[chunk %d] %d k-mers saved to tmp file: %s", iTmpFile, _n, outFile)
 					}
-				}(m, iTmpFile, outFile1)
+				}(m, mt, iTmpFile, outFile1)
 			}
 
 			// wait all k-mers being wrote to files
@@ -280,7 +355,7 @@ Tips:
 					log.Info()
 					log.Infof("======= Stage 2: merging from %d chunks =======", len(files))
 				}
-				n, _ = mergeChunksFile(opt, files, outFile, k, mode, unique, repeated, true)
+				n, _ = mergeChunksFile(opt, taxondb, files, outFile, k, mode, unique, repeated, true)
 			} else {
 				if opt.Verbose {
 					log.Info()
@@ -297,7 +372,7 @@ Tips:
 						if opt.Verbose {
 							log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
 						}
-						n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
+						n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 						if opt.Verbose {
 							log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 						}
@@ -312,7 +387,7 @@ Tips:
 					if opt.Verbose {
 						log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
 					}
-					n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
+					n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 					if opt.Verbose {
 						log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 					}
@@ -322,7 +397,7 @@ Tips:
 					log.Info()
 					log.Infof("======= Stage 3: merging from %d chunks (round: 2/2) =======", len(tmpFiles))
 				}
-				n, _ = mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated, true)
+				n, _ = mergeChunksFile(opt, taxondb, tmpFiles, outFile, k, mode, unique, repeated, true)
 			}
 			if opt.Verbose {
 				log.Infof("%d k-mers saved to %s", n, outFile)
@@ -356,10 +431,17 @@ Tips:
 
 		// all k-mers are stored in memory
 
-		if opt.Verbose {
-			log.Infof("sorting %d k-mers", len(m))
+		if hasTaxid {
+			if opt.Verbose {
+				log.Infof("sorting %d k-mers", len(mt))
+			}
+			sort.Sort(unikmer.CodeTaxidSlice(mt))
+		} else {
+			if opt.Verbose {
+				log.Infof("sorting %d k-mers", len(m))
+			}
+			sort.Sort(unikmer.CodeSlice(m))
 		}
-		sort.Sort(unikmer.CodeSlice(m))
 		if opt.Verbose {
 			log.Infof("done sorting")
 		}
@@ -377,37 +459,96 @@ Tips:
 		checkError(err)
 
 		var n int
-		if unique {
-			var last uint64 = ^uint64(0)
-			for _, code := range m {
-				if code == last {
-					continue
-				}
-				last = code
-				n++
-				writer.WriteCode(code)
-			}
-		} else if repeated {
-			var last uint64 = ^uint64(0)
-			var count int
-			for _, code := range m {
-				if code == last {
-					if count == 1 { // write once
-						writer.WriteCode(code)
+		if hasTaxid {
+			if unique {
+				var last uint64 = ^uint64(0)
+				var first bool = true
+				var lca uint32
+				for _, codeT := range mt {
+					// same k-mer, compute LCA and handle it later
+					if codeT.Code == last {
+						lca = taxondb.LCA(codeT.Taxid, lca)
+						continue
+					}
+
+					if first { // just ignore first code, faster than comparing code or slice index, I think
+						first = false
+					} else { // when meeting new k-mer, output previous one
+						writer.WriteCodeWithTaxid(last, lca)
 						n++
 					}
-					count++
-				} else {
-					last = code
-					count = 1
+
+					last = codeT.Code
+					lca = codeT.Taxid
 				}
+				// do not forget the last one
+				writer.WriteCodeWithTaxid(last, lca)
+				n++
+			} else if repeated {
+				var last uint64 = ^uint64(0)
+				var count int = 1
+				var lca uint32
+				for _, codeT := range mt {
+					// same k-mer, compute LCA and handle it later
+					if codeT.Code == last {
+						lca = taxondb.LCA(codeT.Taxid, lca)
+						count++
+						continue
+					}
+
+					if count > 1 { // repeated
+						writer.WriteCodeWithTaxid(last, lca)
+						n++
+						count = 1
+					}
+					last = codeT.Code
+					lca = codeT.Taxid
+				}
+				if count > 1 { // last one
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+					count = 0
+				}
+			} else {
+				writer.Number = int64(len(mt))
+				for _, codeT := range mt {
+					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				}
+				n = len(mt)
 			}
 		} else {
-			writer.Number = int64(len(m))
-			for _, code := range m {
-				writer.WriteCode(code)
+			if unique {
+				var last uint64 = ^uint64(0)
+				for _, code := range m {
+					if code == last {
+						continue
+					}
+					last = code
+					writer.WriteCode(code)
+					n++
+				}
+			} else if repeated {
+				var last uint64 = ^uint64(0)
+				var count int
+				for _, code := range m {
+					if code == last {
+						if count == 1 { // write once
+							writer.WriteCode(code)
+							n++
+						}
+						count++
+					} else {
+						last = code
+						count = 1
+					}
+				}
+			} else {
+				writer.Number = int64(len(m))
+				for _, code := range m {
+					writer.WriteCode(code)
+				}
+				n = len(m)
 			}
-			n = len(m)
 		}
 
 		checkError(writer.Flush())
@@ -423,9 +564,9 @@ func init() {
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
-	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N bytes, supports K/M/G suffix, type "unikmer sort -h" for detail`)
+	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N k-mers, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 	sortCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)
 	sortCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
-	sortCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
+	sortCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 }

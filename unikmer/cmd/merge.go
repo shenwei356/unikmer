@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,9 +38,14 @@ import (
 // mergeCmd represents
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "merge from sorted chunk files",
-	Long: `merge from sorted chunk files
+	Short: "Merge k-mers from sorted chunk files",
+	Long: `Merge k-mers from sorted chunk files
 
+Attentions:
+  1. The 'canonical' flags of all files should be consistent.
+  2. Input files should ALL have or don't have taxid information.
+  3. Input files should be sorted.
+  
 Tips:
   1. If you don't need to compute unique or repeated k-mers, 
      use 'unikmer concat -s', which is faster.
@@ -58,7 +63,17 @@ Tips:
 
 		var err error
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		// read files from directory
 		if getFlagBool(cmd, "is-dir") {
@@ -125,10 +140,12 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		var nUnequalK, nNotConsC, nNotSorted int
+		// var nUnequalK, nNotConsC, nNotSorted int
 		var k int = -1
 		var canonical bool
+		var hasTaxid bool
 		var mode uint32
+		var taxondb *unikmer.Taxonomy
 
 		_files := make([]string, 0, len(files))
 		for _, file := range files {
@@ -145,29 +162,50 @@ Tips:
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
+				if !reader.IsSorted() {
+					checkError(fmt.Errorf("input files should be sorted"))
+				}
+
 				if k == -1 { // first file
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
+					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
+					if hasTaxid {
+						mode |= unikmer.UNIK_INCLUDETAXID
+					}
 					mode |= unikmer.UNIK_SORTED
-				} else if k != reader.K {
-					log.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k)
-					nUnequalK++
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
-					log.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`)
-					nNotConsC++
-				} else if reader.Flag&unikmer.UNIK_SORTED == 0 { // not sorted
-					log.Errorf("chunk file not sorted: %s", file)
-					nNotSorted++
+
+					if hasTaxid {
+						if opt.Verbose {
+							log.Infof("taxids found in file: %s", file)
+						}
+						taxondb = loadTaxonomy(opt)
+					}
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
+					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
+					}
 				}
+
 			}()
 		}
-		if nNotSorted > 0 || nUnequalK > 0 || nNotConsC > 0 {
-			checkError(fmt.Errorf("please check chunk files: %d with different K, %d with different canonical flag, %d not sorted", nUnequalK, nNotConsC, nNotSorted))
-		}
+		// if nNotSorted > 0 || nUnequalK > 0 || nNotConsC > 0 {
+		// 	checkError(fmt.Errorf("please check chunk files: %d with different K, %d with different canonical flag, %d not sorted", nUnequalK, nNotConsC, nNotSorted))
+		// }
 
 		files = _files
 
@@ -191,7 +229,7 @@ Tips:
 				log.Info()
 				log.Infof("======= Stage 2: merging from %d chunks =======", len(files))
 			}
-			n, _ := mergeChunksFile(opt, files, outFile, k, mode, unique, repeated, true)
+			n, _ := mergeChunksFile(opt, taxondb, files, outFile, k, mode, unique, repeated, true)
 
 			if opt.Verbose {
 				log.Infof("%d k-mers saved to %s", n, outFile)
@@ -204,10 +242,10 @@ Tips:
 			log.Infof("======= Stage 2: merging from %d chunks (round: 1/2) =======", len(files))
 		}
 
-		if maxOpenFiles > len(files)*len(files) {
-			log.Warningf("are you sure for merging from %d files?", len(files)*len(files))
-			log.Warningf("if the files are of small size, you may use 'unikmer sort -m' instead")
-		}
+		// if maxOpenFiles > len(files)*len(files) {
+		// 	log.Warningf("are you sure for merging from %d files?", len(files)*len(files))
+		// 	log.Warningf("if the files are of small size, you may use 'unikmer sort -m' instead")
+		// }
 
 		tmpDir := getFlagString(cmd, "tmp-dir")
 		if isStdout(outFile0) {
@@ -245,7 +283,7 @@ Tips:
 				if opt.Verbose {
 					log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
 				}
-				n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
+				n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 				if opt.Verbose {
 					log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 				}
@@ -260,7 +298,7 @@ Tips:
 			if opt.Verbose {
 				log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
 			}
-			n, _ := mergeChunksFile(opt, _files, outFile1, k, mode, unique, repeated, false)
+			n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 			if opt.Verbose {
 				log.Infof("%d k-mers saved to tmp file: %s", n, outFile1)
 			}
@@ -271,7 +309,7 @@ Tips:
 			log.Info()
 			log.Infof("======= Stage 3: merging from %d chunks (round: 2/2) =======", len(tmpFiles))
 		}
-		n, _ := mergeChunksFile(opt, tmpFiles, outFile, k, mode, unique, repeated, true)
+		n, _ := mergeChunksFile(opt, taxondb, tmpFiles, outFile, k, mode, unique, repeated, true)
 
 		if opt.Verbose {
 			log.Infof("%d k-mers saved to %s", n, outFile)
@@ -316,5 +354,5 @@ func init() {
 	mergeCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)
 	mergeCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
 	mergeCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
-	mergeCmd.Flags().BoolP("force", "f", false, "overwrite tmp dir")
+	mergeCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 }

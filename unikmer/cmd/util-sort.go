@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -80,13 +80,64 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 	return n
 }
 
+func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
+	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
+	checkError(err)
+	defer func() {
+		outfh.Flush()
+		if gw != nil {
+			gw.Close()
+		}
+		w.Close()
+	}()
+
+	writer, err := unikmer.NewWriter(outfh, k, mode)
+	checkError(err)
+
+	var n int64
+	var last = ^uint64(0)
+	var count int
+	// log.Warningf("%d", m)
+	for _, codeT := range mt {
+		if unique {
+			if codeT.Code != last {
+				writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				n++
+				last = codeT.Code
+			}
+		} else if repeated {
+			// log.Warningf("last: %d, code: %d, count: %d", last, code, count)
+			if codeT.Code == last {
+				if count == 1 { // write once
+					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+					n++
+					count++
+				}
+			} else {
+				writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				n++
+
+				last = codeT.Code
+				count = 1
+			}
+		} else {
+			writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+			n++
+		}
+	}
+
+	checkError(writer.Flush())
+	return n
+}
+
 func chunkFileName(outDir string, i int) string {
 	return filepath.Join(outDir, fmt.Sprintf("chunk_%03d", i)) + extDataFile
 }
 
 type codeEntry struct {
-	idx  int // chunk file index
-	code uint64
+	idx   int // chunk file index
+	code  uint64
+	taxid uint32
 }
 
 type codeEntryHeap struct {
@@ -114,7 +165,7 @@ func (h codeEntryHeap) Pop() interface{} {
 	return x
 }
 
-func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode uint32, unique bool, repeated bool, finalRound bool) (int64, string) {
+func mergeChunksFile(opt *Options, taxondb *unikmer.Taxonomy, files []string, outFile string, k int, mode uint32, unique bool, repeated bool, finalRound bool) (int64, string) {
 	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 	checkError(err)
 	defer func() {
@@ -126,7 +177,10 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 	}()
 
 	var writer *unikmer.Writer
-	var kcode unikmer.KmerCode
+	hasTaxid := mode&unikmer.UNIK_INCLUDETAXID > 0
+	if hasTaxid && taxondb == nil {
+		checkError(fmt.Errorf("taxon information is need when UNIK_INCLUDETAXID is one"))
+	}
 
 	writer, err = unikmer.NewWriter(outfh, k, mode)
 	checkError(err)
@@ -157,12 +211,13 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 
 	fillBuffer := func() error {
 		var err error
-		var kcode unikmer.KmerCode
+		var code uint64
+		var taxid uint32
 		for i, reader := range readers {
 			reader = readers[i]
 			n := 0
 			for {
-				kcode, err = reader.Read()
+				code, taxid, err = reader.ReadCodeWithTaxid()
 				if err != nil {
 					if err == io.EOF {
 						delete(readers, i)
@@ -171,7 +226,7 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 					checkError(fmt.Errorf("faild to fill bufer from file '%s': %s", files[i], err))
 				}
 				n++
-				heap.Push(codes, &codeEntry{idx: i, code: kcode.Code})
+				heap.Push(codes, &codeEntry{idx: i, code: code, taxid: taxid})
 				if n >= maxChunkElem {
 					break
 				}
@@ -183,8 +238,11 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 
 	var e *codeEntry
 	var n int64
+	var first bool = true
 	var last = ^uint64(0)
+	var lca uint32
 	var code uint64
+	var taxid uint32
 	var count int
 
 	for {
@@ -197,37 +255,78 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 
 		e = heap.Pop(codes).(*codeEntry)
 		code = e.code
+		taxid = e.taxid
 
-		if unique {
-			if code != last {
-				writer.WriteCode(code)
-				n++
-				last = code
-			}
-		} else if repeated {
-			if code == last {
-				if count == 1 { // write another copy
-					writer.WriteCode(code)
-					n++
+		if hasTaxid {
+			if unique {
+				if code == last {
+					lca = taxondb.LCA(taxid, lca)
+				} else {
+					if first { // just ignore first code, faster than comparing code or slice index, I think
+						first = false
+					} else { // when meeting new k-mer, output previous one
+						writer.WriteCodeWithTaxid(last, lca)
+						n++
+					}
+
+					last = code
+					lca = taxid
+				}
+			} else if repeated {
+				// same k-mer, compute LCA and handle it later
+				if code == last {
+					lca = taxondb.LCA(taxid, lca)
 					count++
+				} else {
+					if count > 1 { // repeated
+						writer.WriteCodeWithTaxid(last, lca)
+						n++
+						if !finalRound {
+							writer.WriteCodeWithTaxid(last, lca)
+							n++
+						}
+						count = 1
+					}
+
+					last = code
+					lca = taxid
 				}
 			} else {
-				if !finalRound {
-					writer.WriteCode(code)
-					n++
-				}
-
-				last = code
-				count = 1
+				writer.WriteCodeWithTaxid(code, taxid)
+				n++
 			}
 		} else {
-			writer.WriteCode(code)
-			n++
+			if unique {
+				if code != last {
+					writer.WriteCode(code)
+					n++
+					last = code
+				}
+			} else if repeated {
+				if code == last {
+					if count == 1 { // write another copy
+						writer.WriteCode(code)
+						n++
+						count++
+					}
+				} else {
+					if !finalRound {
+						writer.WriteCode(code)
+						n++
+					}
+
+					last = code
+					count = 1
+				}
+			} else {
+				writer.WriteCode(code)
+				n++
+			}
 		}
 
 		reader = readers[e.idx]
 		if reader != nil {
-			kcode, err = reader.Read()
+			code, taxid, err = reader.ReadCodeWithTaxid()
 			if err != nil {
 				if err == io.EOF {
 					delete(readers, e.idx)
@@ -235,7 +334,20 @@ func mergeChunksFile(opt *Options, files []string, outFile string, k int, mode u
 				}
 				checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
 			}
-			heap.Push(codes, &codeEntry{e.idx, kcode.Code})
+			heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
+		}
+	}
+
+	if hasTaxid {
+		if unique {
+			writer.WriteCodeWithTaxid(last, lca)
+			n++
+		}
+		if repeated {
+			if count > 1 { // last one
+				writer.WriteCodeWithTaxid(last, lca)
+				n++
+			}
 		}
 	}
 

@@ -1,0 +1,5 @@
+2094-GCA_900660725.1.fa.gz.k21.unik	_shenwei356-brename_	2094.fa.gz.k21.unik
+2096-GCA_004771095.1.fa.gz.k21.unik	_shenwei356-brename_	2096.fa.gz.k21.unik
+634997-GCA_000496815.1.fa.gz.k21.unik	_shenwei356-brename_	634997.fa.gz.k21.unik
+710127-GCA_000092585.1.fa.gz.k21.unik	_shenwei356-brename_	710127.fa.gz.k21.unik
+872331-GCA_000145705.1.fa.gz.k21.unik	_shenwei356-brename_	872331.fa.gz.k21.unik

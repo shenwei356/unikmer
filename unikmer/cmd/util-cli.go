@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,12 @@ func isStdout(file string) bool {
 
 func getFlagInt(cmd *cobra.Command, flag string) int {
 	value, err := cmd.Flags().GetInt(flag)
+	checkError(err)
+	return value
+}
+
+func getFlagUint32(cmd *cobra.Command, flag string) uint32 {
+	value, err := cmd.Flags().GetUint32(flag)
 	checkError(err)
 	return value
 }

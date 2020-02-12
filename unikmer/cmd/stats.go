@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -41,8 +42,8 @@ import (
 // statCmd represents
 var statCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "statistics of binary files",
-	Long: `statistics of binary files
+	Short: "Statistics of binary files",
+	Long: `Statistics of binary files
 
 Tips:
   1. For lots of small files (especially on SDD), use big value of '-j' to
@@ -55,7 +56,17 @@ Tips:
 
 		var err error
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		checkFileSuffix(extDataFile, files...)
 
@@ -66,6 +77,7 @@ Tips:
 		sTrue := getFlagString(cmd, "symbol-true")
 		sFalse := getFlagString(cmd, "symbol-false")
 		basename := getFlagBool(cmd, "basename")
+
 		if sTrue == sFalse {
 			checkError(fmt.Errorf("values of -/--symbol-true and -F/--symbol--false should be different"))
 		}
@@ -89,6 +101,8 @@ Tips:
 				"compact",
 				"canonical",
 				"sorted",
+				"include-taxid",
+				"global-taxid",
 			}
 			if all {
 				colnames = append(colnames, []string{"number"}...)
@@ -98,7 +112,7 @@ Tips:
 		}
 
 		ch := make(chan statInfo, opt.NumCPUs)
-		statInfos := make([]statInfo, 0, 1000)
+		statInfos := make([]statInfo, 0, 256)
 
 		cancel := make(chan struct{})
 
@@ -125,22 +139,28 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
-								info.file,
-								info.k,
-								boolStr(sTrue, sFalse, info.gzipped),
-								boolStr(sTrue, sFalse, info.compact),
-								boolStr(sTrue, sFalse, info.canonical),
-								boolStr(sTrue, sFalse, info.sorted)))
-						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.gzipped),
 								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
 								boolStr(sTrue, sFalse, info.sorted),
-								info.number))
+								boolStr(sTrue, sFalse, info.includeTaxid),
+								info.globalTaxid,
+							))
+						} else {
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+								info.file,
+								info.k,
+								boolStr(sTrue, sFalse, info.gzipped),
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.canonical),
+								boolStr(sTrue, sFalse, info.sorted),
+								boolStr(sTrue, sFalse, info.includeTaxid),
+								info.globalTaxid,
+								info.number,
+							))
 						}
 						outfh.Flush()
 					}
@@ -152,22 +172,28 @@ Tips:
 								statInfos = append(statInfos, info1)
 							} else {
 								if !all {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
-										info1.file,
-										info1.k,
-										boolStr(sTrue, sFalse, info1.gzipped),
-										boolStr(sTrue, sFalse, info1.compact),
-										boolStr(sTrue, sFalse, info1.canonical),
-										boolStr(sTrue, sFalse, info.sorted)))
-								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
-										info1.file,
-										info1.k,
-										boolStr(sTrue, sFalse, info1.gzipped),
-										boolStr(sTrue, sFalse, info1.compact),
-										boolStr(sTrue, sFalse, info1.canonical),
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+										info.file,
+										info.k,
+										boolStr(sTrue, sFalse, info.gzipped),
+										boolStr(sTrue, sFalse, info.compact),
+										boolStr(sTrue, sFalse, info.canonical),
 										boolStr(sTrue, sFalse, info.sorted),
-										info1.number))
+										boolStr(sTrue, sFalse, info.includeTaxid),
+										info.globalTaxid,
+									))
+								} else {
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+										info.file,
+										info.k,
+										boolStr(sTrue, sFalse, info.gzipped),
+										boolStr(sTrue, sFalse, info.compact),
+										boolStr(sTrue, sFalse, info.canonical),
+										boolStr(sTrue, sFalse, info.sorted),
+										boolStr(sTrue, sFalse, info.includeTaxid),
+										info.globalTaxid,
+										info.number,
+									))
 								}
 								outfh.Flush()
 							}
@@ -196,22 +222,28 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\n",
-								info.file,
-								info.k,
-								boolStr(sTrue, sFalse, info.gzipped),
-								boolStr(sTrue, sFalse, info.compact),
-								boolStr(sTrue, sFalse, info.canonical),
-								boolStr(sTrue, sFalse, info.sorted)))
-						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.gzipped),
 								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
 								boolStr(sTrue, sFalse, info.sorted),
-								info.number))
+								boolStr(sTrue, sFalse, info.includeTaxid),
+								info.globalTaxid,
+							))
+						} else {
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+								info.file,
+								info.k,
+								boolStr(sTrue, sFalse, info.gzipped),
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.canonical),
+								boolStr(sTrue, sFalse, info.sorted),
+								boolStr(sTrue, sFalse, info.includeTaxid),
+								info.globalTaxid,
+								info.number,
+							))
 						}
 						outfh.Flush()
 					}
@@ -261,6 +293,7 @@ Tips:
 				var reader *unikmer.Reader
 				var gzipped bool
 				var n int64
+				var globalTaxid string
 
 				infh, r, gzipped, err = inStream(file)
 				if err != nil {
@@ -295,11 +328,11 @@ Tips:
 
 				n = 0
 				if all {
-					if reader.Flag&unikmer.UNIK_SORTED > 0 && reader.Number >= 0 {
+					if reader.IsSorted() && reader.Number >= 0 {
 						n = reader.Number
 					} else {
 						for {
-							_, err = reader.Read()
+							_, _, err = reader.ReadCodeWithTaxid()
 							if err != nil {
 								if err == io.EOF {
 									break
@@ -314,14 +347,21 @@ Tips:
 				if basename {
 					file = filepath.Base(file)
 				}
+				if reader.GetGlobalTaxid() > 0 {
+					globalTaxid = strconv.FormatUint(uint64(reader.GetGlobalTaxid()), 10)
+				} else {
+					globalTaxid = ""
+				}
 				ch <- statInfo{
-					file:      file,
-					k:         reader.K,
-					gzipped:   gzipped,
-					compact:   reader.Flag&unikmer.UNIK_COMPACT > 0,
-					canonical: reader.Flag&unikmer.UNIK_CANONICAL > 0,
-					sorted:    reader.Flag&unikmer.UNIK_SORTED > 0,
-					number:    n,
+					file:         file,
+					k:            reader.K,
+					gzipped:      gzipped,
+					compact:      reader.IsCompact(),
+					canonical:    reader.IsCanonical(),
+					sorted:       reader.IsSorted(),
+					includeTaxid: reader.IsIncludeTaxid(),
+					globalTaxid:  globalTaxid,
+					number:       n,
 
 					err: nil,
 					id:  id,
@@ -353,6 +393,8 @@ Tips:
 			{Header: "compact"},
 			{Header: "canonical"},
 			{Header: "sorted"},
+			{Header: "include-taxid"},
+			{Header: "global-taxid"},
 		}
 		if all {
 			columns = append(columns, []prettytable.Column{
@@ -373,6 +415,8 @@ Tips:
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
 					boolStr(sTrue, sFalse, info.sorted),
+					boolStr(sTrue, sFalse, info.includeTaxid),
+					info.globalTaxid,
 				)
 			} else {
 				tbl.AddRow(
@@ -382,6 +426,8 @@ Tips:
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
 					boolStr(sTrue, sFalse, info.sorted),
+					boolStr(sTrue, sFalse, info.includeTaxid),
+					info.globalTaxid,
 					humanize.Comma(info.number),
 				)
 			}
@@ -391,13 +437,15 @@ Tips:
 }
 
 type statInfo struct {
-	file      string
-	k         int
-	gzipped   bool
-	compact   bool
-	canonical bool
-	sorted    bool
-	number    int64
+	file         string
+	k            int
+	gzipped      bool
+	compact      bool
+	canonical    bool
+	sorted       bool
+	includeTaxid bool
+	globalTaxid  string
+	number       int64
 
 	err error
 	id  uint64
@@ -408,10 +456,10 @@ func init() {
 
 	statCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	statCmd.Flags().BoolP("all", "a", false, "all information, including number of k-mers")
-	statCmd.Flags().BoolP("tabular", "t", false, "output in machine-friendly tabular format")
+	statCmd.Flags().BoolP("tabular", "T", false, "output in machine-friendly tabular format")
 	statCmd.Flags().BoolP("skip-err", "e", false, "skip error, only show warning message")
-	statCmd.Flags().StringP("symbol-true", "T", "✓", "smybol for true")
-	statCmd.Flags().StringP("symbol-false", "F", "✕", "smybol for false")
+	statCmd.Flags().StringP("symbol-true", "", "✓", "smybol for true")
+	statCmd.Flags().StringP("symbol-false", "", "✕", "smybol for false")
 	statCmd.Flags().BoolP("basename", "b", false, "only output basename of files")
 }
 

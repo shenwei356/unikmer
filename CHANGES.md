@@ -1,3 +1,8 @@
+- v0.9.0
+    - `unikmer`: new binary format supporting optional taxid.
+    - deleted command: `unikmer subset`.
+    - `unikmer inter/diff`: need two or more files.
+    - `unikmer grep`: support searching with taxids.
 - v0.8.0
     - `unikmer`:
          - new option `-i/--infile-list`, if given, files in the list file are appended to files from cli arguments.

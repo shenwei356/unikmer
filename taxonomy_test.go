@@ -18,42 +18,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package main
+package unikmer
 
 import (
-	"io"
-	"os"
-	"runtime"
-
-	colorable "github.com/mattn/go-colorable"
-	"github.com/shenwei356/go-logging"
-	"github.com/shenwei356/unikmer/unikmer/cmd"
+	"testing"
 )
 
-var logFormat = logging.MustStringFormatter(
-	`%{time:15:04:05.000} %{color}[%{level:.4s}]%{color:reset} %{message}`,
-)
-
-func init() {
-	var stderr io.Writer = os.Stderr
-	if runtime.GOOS == "windows" {
-		stderr = colorable.NewColorableStderr()
+func TestPackTwoTaxids(t *testing.T) {
+	type Test struct {
+		a, b uint32
+		c    uint64
 	}
-	backend := logging.NewLogBackend(stderr, "", 0)
-	backendFormatter := logging.NewBackendFormatter(backend, logFormat)
-	logging.SetBackend(backendFormatter)
-}
+	tests := []Test{
+		Test{0, 0, 0},
+		Test{1, 1, 1<<32 + 1},
+		Test{2, 1, 1<<32 + 2},
+	}
 
-func main() {
-	// go tool pprof -http=:8080 cpu.pprof
-	// defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
-
-	// go tool trace -http=:8080 trace.out
-	// defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
-
-	// go tool pprof -http=:8080 mem.pprof
-	// defer profile.Start(profile.MemProfile, profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
-	// defer profile.Start(profile.MemProfile, profile.ProfilePath(".")).Stop()
-
-	cmd.Execute()
+	for _, test := range tests {
+		c := pack2uint32(test.a, test.b)
+		if c != test.c {
+			t.Errorf("pack2uint32 error: %d != %d ", c, test.c)
+		}
+	}
 }

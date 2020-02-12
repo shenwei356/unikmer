@@ -19,3 +19,5 @@ doc/site/*
 *ssshtest
 testdata/*.unik
 t_*
+*.nextflow.log*
+*.brename_detail.txt

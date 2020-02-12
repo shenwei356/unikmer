@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,8 +37,8 @@ import (
 // uniqsCmd represents
 var uniqsCmd = &cobra.Command{
 	Use:   "uniqs",
-	Short: "mapping k-mers back to genome and find unique subsequences",
-	Long: `mapping k-mers back to genome and find unique subsequences
+	Short: "Mapping k-mers back to genome and find unique subsequences",
+	Long: `Mapping k-mers back to genome and find unique subsequences
 
 Attention:
   1. default output is in BED3 format, with left-closed and right-open
@@ -51,7 +51,17 @@ Attention:
 
 		var err error
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		checkFileSuffix(extDataFile, files...)
 
@@ -82,7 +92,6 @@ Attention:
 
 		var k int = -1
 		var canonical bool
-
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
@@ -102,7 +111,7 @@ Attention:
 
 				if k == -1 {
 					k = reader.K
-					canonical = reader.Flag&unikmer.UNIK_CANONICAL > 0
+					canonical = reader.IsCanonical()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")
@@ -110,15 +119,18 @@ Attention:
 							log.Infof("flag of canonical is off")
 						}
 					}
-				} else if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				} else if (reader.Flag&unikmer.UNIK_CANONICAL > 0) != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+				} else {
+					if k != reader.K {
+						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+					}
+					if reader.IsCanonical() != canonical {
+						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
+					}
 				}
 
 				if canonical {
 					for {
-						kcode, err = reader.Read()
+						kcode, _, err = reader.ReadWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -130,7 +142,7 @@ Attention:
 					}
 				} else {
 					for {
-						kcode, err = reader.Read()
+						kcode, _, err = reader.ReadWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break

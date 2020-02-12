@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,8 @@ import (
 // countCmd represents
 var countCmd = &cobra.Command{
 	Use:   "count",
-	Short: "count k-mers from FASTA/Q sequences",
-	Long: `count k-mers from FASTA/Q sequences
+	Short: "Count k-mers from FASTA/Q sequences",
+	Long: `Count k-mers from FASTA/Q sequences
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -53,10 +53,22 @@ var countCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")
+
+		taxid := getFlagUint32(cmd, "taxid")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -82,6 +94,11 @@ var countCmd = &cobra.Command{
 		}
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
+		checkError(writer.SetMaxTaxid(opt.MaxTaxid))
+		if taxid > 0 {
+			checkError(writer.SetGlobalTaxid(taxid))
+		}
+
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		var m2 []uint64
@@ -217,4 +234,5 @@ func init() {
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	countCmd.Flags().BoolP("sort", "s", false, helpSort)
+	countCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
 }

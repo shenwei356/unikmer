@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,8 @@ import (
 // decodeCmd represents
 var decodeCmd = &cobra.Command{
 	Use:   "decode",
-	Short: "decode encoded integer to k-mer text",
-	Long: `decode encoded integer to k-mer text
+	Short: "Decode encoded integer to k-mer text",
+	Long: `Decode encoded integer to k-mer text
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -51,7 +51,17 @@ var decodeCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
+		if opt.Verbose {
+			log.Info("checking input files ...")
+		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		if opt.Verbose {
+			if len(files) == 1 && isStdin(files[0]) {
+				log.Info("no files given, reading from stdin")
+			} else {
+				log.Infof("%d input file(s) given", len(files))
+			}
+		}
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)

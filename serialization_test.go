@@ -1,4 +1,4 @@
-// Copyright © 2018-2019 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@ func TestWriter(t *testing.T) {
 
 	ns := []int{10001, 10001, 10001, 10000}
 	for k := 1; k <= 31; k++ {
-		for i, flag := range []uint32{0, UNIK_COMPACT, UNIK_SORTED, UNIK_SORTED} { //
+		for i, flag := range []uint32{0, UNIK_COMPACT, UNIK_SORTED} { //, UNIK_SORTED
 			func(flag uint32) {
 				mers = genKmers(k, ns[i], flag&UNIK_SORTED > 0)
 
