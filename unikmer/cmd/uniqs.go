@@ -85,9 +85,6 @@ Attention:
 
 		m := make(map[uint64]struct{}, mapInitSize)
 
-		// debug := bufio.NewWriterSize(os.Stdout, os.Getpagesize())
-		// defer debug.Flush()
-
 		// -----------------------------------------------------------------------
 
 		var k int = -1

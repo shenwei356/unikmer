@@ -402,6 +402,7 @@ Tips:
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 						checkError(err)
+						writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
 						go func() {
 							if hasTaxid {
@@ -468,6 +469,7 @@ Tips:
 					}
 					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
 					checkError(err)
+					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 					if _hasGlobalTaxid {
 						checkError(_writer.SetGlobalTaxid(reader.GetGlobalTaxid()))
 					}

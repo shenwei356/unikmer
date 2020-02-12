@@ -122,6 +122,7 @@ Attentions:
 
 					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
 					checkError(err)
+					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))

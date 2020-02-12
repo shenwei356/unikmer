@@ -163,6 +163,11 @@ func (reader *Reader) GetGlobalTaxid() uint32 {
 	return reader.globalTaxid
 }
 
+// GetTaxidBytesLength returns number of byte to store a taxid
+func (reader *Reader) GetTaxidBytesLength() int {
+	return reader.taxidByteLen
+}
+
 func (reader *Reader) readHeader() (err error) {
 	// check Magic number
 	var m [8]byte
@@ -301,13 +306,13 @@ func (reader *Reader) ReadTaxid() (taxid uint32, err error) {
 
 	if reader.sorted {
 		if reader.lastRecord {
-			_, err = io.ReadFull(reader.r, reader.bufTaxid[0:4])
+			_, err = io.ReadFull(reader.r, reader.bufTaxid)
 			if err != nil {
 				return 0, err
 			}
 			reader.hasPrevTaxid = false
 			reader.justReadACode = false
-			return be.Uint32(reader.bufTaxid[0:4]), nil
+			return be.Uint32(reader.bufTaxid), nil
 		}
 
 		if reader.hasPrevTaxid {
@@ -317,13 +322,13 @@ func (reader *Reader) ReadTaxid() (taxid uint32, err error) {
 			return c, nil
 		}
 
-		_, err = io.ReadFull(reader.r, reader.bufTaxid[0:reader.taxidByteLen])
+		_, err = io.ReadFull(reader.r, reader.bufTaxid[4-reader.taxidByteLen:])
 		if err != nil {
 			return 0, err
 		}
 		taxid = be.Uint32(reader.bufTaxid)
 
-		_, err = io.ReadFull(reader.r, reader.bufTaxid[0:reader.taxidByteLen])
+		_, err = io.ReadFull(reader.r, reader.bufTaxid[4-reader.taxidByteLen:])
 		if err != nil {
 			return 0, err
 		}
@@ -641,6 +646,7 @@ func (writer *Writer) WriteTaxid(taxid uint32) (err error) {
 		}
 		be.PutUint32(writer.bufTaxid, writer.prevTaxid)
 		_, err = writer.w.Write(writer.bufTaxid[4-writer.taxidByteLen:])
+		// fmt.Printf("write taxid: %d, %d\n", writer.prevTaxid, writer.bufTaxid[4-writer.taxidByteLen:])
 
 		be.PutUint32(writer.bufTaxid, taxid)
 		_, err = writer.w.Write(writer.bufTaxid[4-writer.taxidByteLen:])

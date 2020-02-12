@@ -185,6 +185,7 @@ Tips:
 
 			writer, err := unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
+			writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
 			writer.Number = 0
 			checkError(writer.WriteHeader())
@@ -477,6 +478,7 @@ Tips:
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
+		writer.SetMaxTaxid(opt.MaxTaxid)
 
 		if sortKmers {
 			writer.Number = int64(len(m0))

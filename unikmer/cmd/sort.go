@@ -457,6 +457,7 @@ Tips:
 		}()
 		writer, err = unikmer.NewWriter(outfh, k, mode)
 		checkError(err)
+		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 
 		var n int
 		if hasTaxid {

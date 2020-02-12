@@ -148,6 +148,7 @@ Tips:
 						}
 						writer, err = unikmer.NewWriter(outfh, k, mode)
 						checkError(err)
+						writer.SetMaxTaxid(opt.MaxTaxid)
 					}
 				} else {
 					if k != reader.K {
@@ -219,6 +220,7 @@ Tips:
 			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
+			writer.SetMaxTaxid(opt.MaxTaxid)
 
 			writer.Number = int64(n)
 		}

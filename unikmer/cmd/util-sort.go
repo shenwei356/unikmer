@@ -43,6 +43,7 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 
 	writer, err := unikmer.NewWriter(outfh, k, mode)
 	checkError(err)
+	writer.SetMaxTaxid(opt.MaxTaxid)
 
 	var n int64
 	var last = ^uint64(0)
@@ -93,6 +94,7 @@ func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, k int, mode uint32, outFile st
 
 	writer, err := unikmer.NewWriter(outfh, k, mode)
 	checkError(err)
+	writer.SetMaxTaxid(opt.MaxTaxid)
 
 	var n int64
 	var last = ^uint64(0)
@@ -184,6 +186,7 @@ func mergeChunksFile(opt *Options, taxondb *unikmer.Taxonomy, files []string, ou
 
 	writer, err = unikmer.NewWriter(outfh, k, mode)
 	checkError(err)
+	writer.SetMaxTaxid(opt.MaxTaxid)
 
 	readers := make(map[int]*unikmer.Reader, len(files))
 	fhs := make([]*os.File, len(files))

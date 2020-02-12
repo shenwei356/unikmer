@@ -114,6 +114,8 @@ func loadTaxonomy(opt *Options) *unikmer.Taxonomy {
 	if opt.CacheLCA {
 		t.CacheLCA()
 	}
+
+	opt.MaxTaxid = t.MaxTaxid()
 	return t
 }
 
@@ -271,3 +273,7 @@ func ParseByteSize(val string) (int, error) {
 }
 
 var maxUint32 = uint64(^uint32(0))
+
+func maxUint32N(n int) uint32 {
+	return (1 << (n << 3)) - 1
+}

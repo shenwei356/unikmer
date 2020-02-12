@@ -206,6 +206,10 @@ Tips:
 
 						writer, err = unikmer.NewWriter(outfh, k, mode)
 						checkError(err)
+						writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
+						if opt.Verbose {
+							log.Infof("[chunk %d] begin writing k-mers to: %s", iTmpFile, outFile2)
+						}
 					}
 				} else {
 					if k != reader.K {
@@ -238,7 +242,7 @@ Tips:
 
 						if limitMem && n >= maxElem {
 							if opt.Verbose {
-								log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, n, outFile2)
+								log.Infof("[chunk %d] %d k-mers saved to: %s", iTmpFile, n, outFile2)
 							}
 							chN <- int64(n)
 
@@ -255,6 +259,11 @@ Tips:
 
 							writer, err = unikmer.NewWriter(outfh, k, mode)
 							checkError(err)
+							writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
+
+							if opt.Verbose {
+								log.Infof("[chunk %d] begin writing k-mers to: %s", iTmpFile, outFile2)
+							}
 
 							n = 0
 						}

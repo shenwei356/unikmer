@@ -1,5 +1,5 @@
 - v0.9.0
-    - `unikmer`: new binary format supporting optional taxid.
+    - `unikmer`: **new binary format supporting optional Taxids**.
     - deleted command: `unikmer subset`.
     - `unikmer inter/diff`: need two or more files.
     - `unikmer grep`: support searching with taxids.
