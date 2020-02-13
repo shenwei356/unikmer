@@ -68,6 +68,7 @@ Attentions:
 		outFasta := getFlagBool(cmd, "fasta")
 		outFastq := getFlagBool(cmd, "fastq")
 		showCodeOnly := getFlagBool(cmd, "show-code-only")
+		showTaxidOnly := getFlagBool(cmd, "show-taxid-only")
 
 		showTaxid := getFlagBool(cmd, "show-taxid")
 		if opt.IgnoreTaxid {
@@ -140,15 +141,25 @@ Attentions:
 
 					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
 					if outFasta {
-						outfh.WriteString(fmt.Sprintf(">%d\n%s\n", kcode.Code, kcode.String()))
+						if showTaxid {
+							outfh.WriteString(fmt.Sprintf(">%d %d\n%s\n", kcode.Code, taxid, kcode.String()))
+						} else {
+							outfh.WriteString(fmt.Sprintf(">%d\n%s\n", kcode.Code, kcode.String()))
+						}
 					} else if outFastq {
-						outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
+						if showTaxid {
+							outfh.WriteString(fmt.Sprintf("@%d %d\n%s\n+\n%s\n", kcode.Code, taxid, kcode.String(), quality))
+						} else {
+							outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
+						}
+					} else if showTaxid {
+						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), taxid))
+					} else if showTaxidOnly {
+						outfh.WriteString(fmt.Sprintf("%d\n", taxid))
 					} else if showCodeOnly {
 						outfh.WriteString(fmt.Sprintf("%d\n", kcode.Code))
 					} else if showCode {
 						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
-					} else if showTaxid {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), taxid))
 					} else {
 						outfh.WriteString(kcode.String() + "\n")
 					}
@@ -168,4 +179,5 @@ func init() {
 	viewCmd.Flags().BoolP("fasta", "a", false, `output in FASTA format, with encoded integer as FASTA header`)
 	viewCmd.Flags().BoolP("fastq", "q", false, `output in FASTQ format, with encoded integer as FASTQ header`)
 	viewCmd.Flags().BoolP("show-taxid", "t", false, "show taxid")
+	viewCmd.Flags().BoolP("show-taxid-only", "T", false, "show taxid only")
 }
