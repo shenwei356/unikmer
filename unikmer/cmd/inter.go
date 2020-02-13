@@ -69,10 +69,6 @@ Tips:
 		checkFileSuffix(extDataFile, files...)
 		var nfiles = len(files)
 
-		if nfiles <= 1 {
-			checkError(fmt.Errorf("two or more files needed"))
-		}
-
 		outFile := getFlagString(cmd, "out-prefix")
 		sortKmers := getFlagBool(cmd, "sort")
 

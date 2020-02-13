@@ -68,12 +68,10 @@ Tips:
 		checkFileSuffix(extDataFile, files...)
 
 		var nfiles = len(files)
-		if nfiles <= 1 {
-			checkError(fmt.Errorf("two or more files needed"))
-		}
 
 		outFile := getFlagString(cmd, "out-prefix")
 		sortKmers := getFlagBool(cmd, "sort")
+		compareTaxid := getFlagBool(cmd, "compare-taxid")
 
 		threads := opt.NumCPUs
 
@@ -90,6 +88,8 @@ Tips:
 		var canonical bool
 		var hasTaxid bool
 		var ok bool
+
+		var taxondb *unikmer.Taxonomy
 
 		// -----------------------------------------------------------------------
 
@@ -109,6 +109,16 @@ Tips:
 		k = reader.K
 		canonical = reader.IsCanonical()
 		hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
+		if compareTaxid {
+			if hasTaxid {
+				if opt.Verbose {
+					log.Infof("taxids found in file: %s", file)
+				}
+				taxondb = loadTaxonomy(opt)
+			} else {
+				log.Warningf("not taxids found in file: %s, flag -t/--compare-taxid ignored", file)
+			}
+		}
 
 		var minCode uint64 = ^uint64(0)
 		if reader.IsSorted() { // query is sorted
@@ -286,6 +296,7 @@ Tips:
 				}
 
 				var code uint64
+				var qtaxid, taxid uint32
 				var ifile iFile
 				var file string
 				var infh *bufio.Reader
@@ -325,20 +336,20 @@ Tips:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					// if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-					// 	if reader.HasTaxidInfo() {
-					// 		checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
-					// 	} else {
-					// 		checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
-					// 	}
-					// }
+					if compareTaxid && reader.HasTaxidInfo() != hasTaxid {
+						if reader.HasTaxidInfo() {
+							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+						} else {
+							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+						}
+					}
 
 					// file is sorted, so we can skip codes that are small than minCode
 					sorted = reader.IsSorted()
 					nSkip = 0
 					checkSkip = sorted
 					for {
-						code, _, err = reader.ReadCodeWithTaxid()
+						code, taxid, err = reader.ReadCodeWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -359,7 +370,11 @@ Tips:
 						}
 
 						// delete seen kmer
-						if _, ok = m1[code]; ok { // slowest part
+						if qtaxid, ok = m1[code]; ok { // slowest part
+							if compareTaxid && (qtaxid == taxid ||
+								taxondb.LCA(qtaxid, taxid) == qtaxid) {
+								continue
+							}
 							delete(m1, code)
 						}
 					}
@@ -524,4 +539,5 @@ func init() {
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	diffCmd.Flags().BoolP("sort", "s", false, helpSort)
+	diffCmd.Flags().BoolP("compare-taxid", "t", false, "if files contain taxids, compare them")
 }
