@@ -260,8 +260,16 @@ Tips:
 
 		if opt.Verbose {
 			if queryWithTaxids {
+				if len(mt) == 0 {
+					log.Warningf("%d taxids loaded", len(mt))
+					return
+				}
 				log.Infof("%d taxids loaded", len(mt))
 			} else {
+				if len(m) == 0 {
+					log.Warningf("%d k-mers loaded", len(m))
+					return
+				}
 				log.Infof("%d k-mers loaded", len(m))
 			}
 			log.Info()
@@ -320,6 +328,9 @@ Tips:
 
 		if threads > len(files)-1 {
 			threads = len(files) - 1
+		}
+		if threads < 1 {
+			threads = 1
 		}
 
 		if opt.Verbose {

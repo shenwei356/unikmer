@@ -159,7 +159,9 @@ Tips:
 
 		if opt.Verbose {
 			log.Infof("%d k-mers loaded", len(m))
-			log.Infof("min code: %s (%d)", unikmer.KmerCode{Code: minCode, K: k}, minCode)
+			if len(m) > 0 {
+				log.Infof("min code: %s (%d)", unikmer.KmerCode{Code: minCode, K: k}, minCode)
+			}
 		}
 
 		if len(m) == 0 {
@@ -211,6 +213,9 @@ Tips:
 
 		if threads > len(files)-1 {
 			threads = len(files) - 1
+		}
+		if threads < 1 {
+			threads = 1
 		}
 
 		done := make(chan int)
