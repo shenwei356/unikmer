@@ -41,7 +41,11 @@ var diffCmd = &cobra.Command{
 
 Attentions:
   1. The 'canonical' flags of all files should be consistent.
-  2. Input files should ALL have or don't have taxid information.
+  2. By default taxids in the 2nd and later files are ignored.
+  3. You can switch on flag -t/--compare-taxid , and input
+     files should ALL have or don't have taxid information.
+     A same k-mer found but query taxid equals to target taxid,
+     or query taxid is ancester of target taxid, this k-mer remains
 
 Tips:
   1. Increasing threads number (-j/--threads) to accelerate computation,
@@ -377,7 +381,7 @@ Tips:
 						// delete seen kmer
 						if qtaxid, ok = m1[code]; ok { // slowest part
 							if compareTaxid && (qtaxid == taxid ||
-								taxondb.LCA(qtaxid, taxid) == qtaxid) {
+								taxondb.LCA(taxid, qtaxid) == qtaxid) {
 								continue
 							}
 							delete(m1, code)
@@ -544,5 +548,5 @@ func init() {
 
 	diffCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	diffCmd.Flags().BoolP("sort", "s", false, helpSort)
-	diffCmd.Flags().BoolP("compare-taxid", "t", false, "if files contain taxids, compare them")
+	diffCmd.Flags().BoolP("compare-taxid", "t", false, `take taxid into consideration. type unikmer "diff -h" for detail`)
 }
