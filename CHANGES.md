@@ -1,6 +1,7 @@
 - v0.9.0
     - `unikmer`: **new binary format supporting optional Taxids**.
     - deleted command: `unikmer subset`.
+    - new command: `unikmer head` for extracting the first N k-mers
     - `unikmer inter/diff`: need two or more files.
     - `unikmer grep`: support searching with taxids.
 - v0.8.0

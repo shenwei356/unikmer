@@ -267,6 +267,13 @@ Tips:
 			log.Info()
 		}
 
+		// for faster query when only one taxid given
+		singleTaxidQuery := queryWithTaxids && len(mt) == 1
+		var theOneTaxid uint32
+		for ot := range mt {
+			theOneTaxid = ot
+			break
+		}
 		////////////////////////////////////////////////////////////////////////////////
 
 		var outfh *bufio.Writer
@@ -307,7 +314,18 @@ Tips:
 			}
 		}
 
+		// -----------------------------------------------------------------------
+
 		threads := opt.NumCPUs
+
+		if threads > len(files)-1 {
+			threads = len(files) - 1
+		}
+
+		if opt.Verbose {
+			log.Infof("%d workers in position", threads)
+		}
+
 		var wg sync.WaitGroup
 		tokens := make(chan int, threads)
 
@@ -498,7 +516,11 @@ Tips:
 					}
 
 					if queryWithTaxids {
-						_, ok = mt[taxid]
+						if singleTaxidQuery {
+							ok = taxid == theOneTaxid
+						} else {
+							_, ok = mt[taxid]
+						}
 					} else {
 						if !_canonical {
 							kcode = kcode.Canonical()
@@ -750,8 +772,8 @@ func init() {
 
 	grepCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 
-	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query k-mers (multiple values delimted by comma supported)`)
-	grepCmd.Flags().StringSliceP("query-file", "f", []string{""}, "query file (one k-mer per line)")
+	grepCmd.Flags().StringSliceP("query", "q", []string{""}, `query k-mers/taxids (multiple values delimted by comma supported)`)
+	grepCmd.Flags().StringSliceP("query-file", "f", []string{""}, "query file (one k-mer/taxid per line)")
 	grepCmd.Flags().StringSliceP("query-unik-file", "F", []string{""}, "query file in .unik format")
 	grepCmd.Flags().BoolP("query-is-taxid", "t", false, "queries are taxids")
 

@@ -21,3 +21,4 @@ testdata/*.unik
 t_*
 *.nextflow.log*
 *.brename_detail.txt
+*/Rplots.pdf

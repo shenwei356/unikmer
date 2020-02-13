@@ -100,6 +100,7 @@ repeated k-mers.
 
 1. Set operations
 
+        head            Extract the first N k-mers
         concat          Concatenate multiple binary files without removing duplicates
         inter           Intersection of multiple binary files
         union           Union of multiple binary files
@@ -134,20 +135,17 @@ Taxids are optionally stored next to k-mers with 4 or less bytes.
 
 #### Compression rate comparison
 
-No Taxids stored.
+No Taxids stored in this test.
 
-![Ecoli-MG1655.fasta.gz.cr.tsv.png](testdata/Ecoli-MG1655.fasta.gz.cr.tsv.png)
-![A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png](testdata/A.muciniphila-ATCC_BAA-835.fasta.gz.cr.tsv.png)
+![cr.jpg](testdata/cr.jpg)
 
 label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-format<sup>c</sup>|sorted<sup>d</sup>|comment
 :---------------|:----------------------:|:-------------------------:|:------------------------:|:----------------:|:------------------------------------------------------
 `plain`         |                        |                           |                          |                  |plain text
-`plain.gz`      |                        |✔                          |                          |                  |gzipped plain text
-`.unik`         |✔                       |✔                          |                          |                  |gzipped encoded k-mers in fixed-length byte array
-`.unik.cpt`     |✔                       |✔                          |✔                         |                  |gzipped encoded k-mers in shorter fixed-length byte array
-`.unik.sort`    |✔                       |✔                          |                          |✔                 |gzipped sorted encoded k-mers
-`.unik.ungz`    |✔                       |                           |                          |                  |encoded k-mers in fixed-length byte array
-`.unik.cpt.ungz`|✔                       |                           |✔                         |                  |encoded k-mers in shorter fixed-length byte array
+`gzip`          |                        |✔                          |                          |                  |gzipped plain text
+`unik.default`  |✔                       |✔                          |                          |                  |gzipped encoded k-mers in fixed-length byte array
+`unik.compat`   |✔                       |✔                          |✔                         |                  |gzipped encoded k-mers in shorter fixed-length byte array
+`unik.sorted`   |✔                       |✔                          |                          |✔                 |gzipped sorted encoded k-mers
 
 
 - <sup>a</sup> One k-mer is encoded as `uint64` and serialized in 8 Bytes.
