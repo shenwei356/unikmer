@@ -263,7 +263,7 @@ Tips:
 				if force {
 					checkError(os.RemoveAll(tmpDir))
 				} else {
-					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use -f (--force) to overwrite", tmpDir))
+					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use --force to overwrite", tmpDir))
 				}
 			} else {
 				checkError(os.RemoveAll(tmpDir))

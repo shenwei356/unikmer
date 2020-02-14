@@ -125,7 +125,7 @@ Tips:
 					if force {
 						checkError(os.RemoveAll(tmpDir))
 					} else {
-						checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use -f (--force) to overwrite", tmpDir))
+						checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use --force to overwrite", tmpDir))
 					}
 				} else {
 					checkError(os.RemoveAll(tmpDir))
@@ -145,7 +145,6 @@ Tips:
 		var canonical bool
 		var hasTaxid bool
 		var mode uint32
-		var firstFile = true
 		var flag int
 		var nfiles = len(files)
 
@@ -157,9 +156,6 @@ Tips:
 		tokens := make(chan int, opt.NumCPUs)
 
 		for i, file := range files {
-			if !firstFile && file == files[0] {
-				continue
-			}
 
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)

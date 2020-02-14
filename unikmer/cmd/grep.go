@@ -313,7 +313,7 @@ Tips:
 						if force {
 							checkError(os.RemoveAll(outdir))
 						} else {
-							log.Warningf("outdir not empty: %s, use -f (--force) to overwrite", outdir)
+							log.Warningf("outdir not empty: %s, you can use --force to overwrite", outdir)
 						}
 					}
 				} else {
@@ -498,7 +498,7 @@ Tips:
 					}
 					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
 					checkError(err)
-					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
+					_writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 					if _hasGlobalTaxid {
 						checkError(_writer.SetGlobalTaxid(reader.GetGlobalTaxid()))
 					}

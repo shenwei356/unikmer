@@ -111,7 +111,7 @@ Tips:
 					if force {
 						checkError(os.RemoveAll(outDir))
 					} else {
-						checkError(fmt.Errorf("outDir not empty: %s, use -f (--force) to overwrite", outDir))
+						checkError(fmt.Errorf("outDir not empty: %s, use --force to overwrite", outDir))
 					}
 				} else {
 					checkError(os.RemoveAll(outDir))
@@ -129,7 +129,6 @@ Tips:
 		var canonical bool
 		var hasTaxid bool
 		var mode uint32
-		var firstFile = true
 		var flag int
 		var nfiles = len(files)
 		var doNotNeedSorting = false // only for ONE sorted input file
@@ -158,9 +157,6 @@ Tips:
 		var w *os.File
 
 		for i, file := range files {
-			if !firstFile && file == files[0] {
-				continue
-			}
 
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)

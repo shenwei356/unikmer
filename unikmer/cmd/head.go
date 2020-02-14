@@ -88,16 +88,11 @@ Attentions:
 		var k int = -1
 		var canonical bool
 		var hasTaxid bool
-		var firstFile = true
 		var n int
 		var flag int
 		var nfiles = len(files)
 
 		for i, file := range files {
-			if !firstFile && file == files[0] {
-				continue
-			}
-
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
 			}

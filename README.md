@@ -109,6 +109,7 @@ repeated k-mers.
 
         sort            Sort k-mers in binary files to reduce file size
         split           Split k-mers into sorted chunk files
+        tsplit          Split k-mers according to taxid
         merge           Merge k-mers from sorted chunk files
 
         filter          Filter low-complexity k-mers
