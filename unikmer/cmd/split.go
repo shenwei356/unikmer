@@ -145,6 +145,8 @@ Tips:
 		go func() {
 			for n := range chN {
 				N += n
+
+				runtime.GC()
 			}
 			done <- 1
 		}()

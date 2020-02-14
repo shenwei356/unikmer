@@ -155,6 +155,16 @@ Tips:
 		var wg sync.WaitGroup
 		tokens := make(chan int, opt.NumCPUs)
 
+		// just for gc
+		chN := make(chan int64, opt.NumCPUs)
+		done := make(chan int)
+		go func() {
+			for range chN {
+				runtime.GC()
+			}
+			done <- 1
+		}()
+
 		for i, file := range files {
 
 			if opt.Verbose {
@@ -335,6 +345,8 @@ Tips:
 
 			// wait all k-mers being wrote to files
 			wg.Wait()
+			close(chN)
+			<-done
 
 			// merge sort
 

@@ -219,9 +219,9 @@ Tips:
 			tick := 0
 			for n := range chN {
 				N += n
+
 				tick++
 				if tick%100 == 0 {
-					log.Infof(" ----------- GC ----------")
 					runtime.GC()
 				}
 			}
@@ -259,6 +259,8 @@ Tips:
 
 				_writer, err := unikmer.NewWriter(_outfh, k, mode)
 				checkError(err)
+
+				_writer.Number = int64(len(*codes))
 				_writer.SetMaxTaxid(maxTaxid) // follow reader
 				_writer.SetGlobalTaxid(taxid)
 
