@@ -68,8 +68,13 @@ func getOptions(cmd *cobra.Command) *Options {
 		dataDir = getFlagString(cmd, "data-dir")
 	}
 
+	threads := getFlagPositiveInt(cmd, "threads")
+	if threads >= 1000 {
+		checkError(fmt.Errorf("are your seriously? %d threads? It will exhaust your RAM", threads))
+	}
+
 	return &Options{
-		NumCPUs:          getFlagPositiveInt(cmd, "threads"),
+		NumCPUs:          threads,
 		Verbose:          getFlagBool(cmd, "verbose"),
 		Compress:         !getFlagBool(cmd, "no-compress"),
 		Compact:          getFlagBool(cmd, "compact"),
