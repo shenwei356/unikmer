@@ -97,13 +97,13 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
 	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file (not recommended)")
 	RootCmd.PersistentFlags().IntP("compression-level", "L", flate.DefaultCompression, "compression level")
-	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write more compact binary file with little loss of speed")
+	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write compact binary file with little loss of speed")
 	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, they are appended to files from cli arguments")
 
 	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller taxids, we can use less space to store taxids. default value is 1<<32-1, that's enough for NCBI Taxonomy taxids")
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
-	RootCmd.PersistentFlags().StringP("data-dir", "", defaulDataDir, "directory containing nodes.dmp and names.dmp")
+	RootCmd.PersistentFlags().StringP("data-dir", "", defaulDataDir, "directory containing NCBI Taxonomy nodes.dmp and names.dmp")
 	// RootCmd.PersistentFlags().BoolP("cache-lca", "", false, "cache LCA queries")
 }
 
-const helpSort = "sort k-mers, this significantly reduce file size. You can even disable gzip compression by flag -C/--no-compress. This flag overwrites global flag -c/--compact"
+const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overwrites global flag -c/--compact"
