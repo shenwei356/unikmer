@@ -202,7 +202,7 @@ Tips:
 
 		// load k-mers/taxids from .unik files
 		if len(queryUnikFiles) != 0 {
-			nfiles = len(files)
+			nfiles = len(queryUnikFiles)
 			for i, file := range queryUnikFiles {
 				if opt.Verbose {
 					log.Infof("loading queries from .unik file [%d/%d]: %s", i+1, nfiles, file)
@@ -326,8 +326,8 @@ Tips:
 
 		threads := opt.NumCPUs
 
-		if threads > len(files)-1 {
-			threads = len(files) - 1
+		if threads > len(files) {
+			threads = len(files)
 		}
 		if threads < 1 {
 			threads = 1
