@@ -38,8 +38,9 @@ type Taxonomy struct {
 	Nodes map[uint32]uint32 // parent -> child
 
 	cacheLCA bool
-	lcaCache map[uint64]uint32 // cache of lca
-	mux      sync.Mutex
+	// lcaCache map[uint64]uint32 // cache of lca
+	// mux      sync.Mutex
+	lcaCache sync.Map
 
 	maxTaxid uint32
 }
@@ -126,9 +127,9 @@ func (t *Taxonomy) MaxTaxid() uint32 {
 // CacheLCA tells to cache every LCA query result
 func (t *Taxonomy) CacheLCA() {
 	t.cacheLCA = true
-	if t.lcaCache == nil {
-		t.lcaCache = make(map[uint64]uint32, 1024)
-	}
+	// if t.lcaCache == nil {
+	// 	t.lcaCache = make(map[uint64]uint32, 1024)
+	// }
 }
 
 // LCA returns the Lowest Common Ancestor of two nodes
@@ -147,14 +148,13 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	var ok bool
 
 	var query uint64
+	var tmp interface{}
 	if t.cacheLCA {
 		query = pack2uint32(a, b)
-		var c uint32
-		t.mux.Lock()
-		c, ok = t.lcaCache[query]
-		t.mux.Unlock()
+
+		tmp, ok = t.lcaCache.Load(query)
 		if ok {
-			return c
+			return tmp.(uint32)
 		}
 	}
 
@@ -168,9 +168,7 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		parent, ok = t.Nodes[child]
 		if !ok {
 			if t.cacheLCA {
-				t.mux.Lock()
-				t.lcaCache[query] = b
-				t.mux.Unlock()
+				t.lcaCache.Store(query, b)
 			}
 			return 0
 		}
@@ -181,9 +179,7 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		}
 		if parent == b { // b is ancestor of a
 			if t.cacheLCA {
-				t.mux.Lock()
-				t.lcaCache[query] = b
-				t.mux.Unlock()
+				t.lcaCache.Store(query, b)
 			}
 			return b
 		}
@@ -198,9 +194,7 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		parent, ok = t.Nodes[child]
 		if !ok {
 			if t.cacheLCA {
-				t.mux.Lock()
-				t.lcaCache[query] = b
-				t.mux.Unlock()
+				t.lcaCache.Store(query, b)
 			}
 			return 0
 		}
@@ -209,17 +203,13 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		}
 		if parent == a { // a is ancestor of b
 			if t.cacheLCA {
-				t.mux.Lock()
-				t.lcaCache[query] = a
-				t.mux.Unlock()
+				t.lcaCache.Store(query, a)
 			}
 			return a
 		}
 		if _, ok = mA[parent]; ok {
 			if t.cacheLCA {
-				t.mux.Lock()
-				t.lcaCache[query] = parent
-				t.mux.Unlock()
+				t.lcaCache.Store(query, parent)
 			}
 			return parent
 		}

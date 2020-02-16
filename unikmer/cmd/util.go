@@ -85,7 +85,7 @@ func getOptions(cmd *cobra.Command) *Options {
 
 		DataDir:   dataDir,
 		NodesFile: filepath.Join(dataDir, "nodes.dmp"),
-		CacheLCA:  getFlagBool(cmd, "cache-lca"),
+		CacheLCA:  true, // getFlagBool(cmd, "cache-lca"),
 	}
 }
 
