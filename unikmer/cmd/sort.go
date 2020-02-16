@@ -272,7 +272,7 @@ Tips:
 
 							var _n int64
 							if hasTaxid {
-								_n = dumpCodesTaxids2File(mt, k, mode, outFile, opt, unique, repeated)
+								_n = dumpCodesTaxids2File(mt, taxondb, k, mode, outFile, opt, unique, repeated)
 							} else {
 								_n = dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 							}
@@ -333,7 +333,7 @@ Tips:
 
 					var _n int64
 					if hasTaxid {
-						_n = dumpCodesTaxids2File(mt, k, mode, outFile, opt, unique, repeated)
+						_n = dumpCodesTaxids2File(mt, taxondb, k, mode, outFile, opt, unique, repeated)
 					} else {
 						_n = dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 					}

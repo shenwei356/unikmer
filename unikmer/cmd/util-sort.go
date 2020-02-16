@@ -48,7 +48,6 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 	var n int64
 	var last = ^uint64(0)
 	var count int
-	// log.Warningf("%d", m)
 	for _, code := range m {
 		if unique {
 			if code != last {
@@ -57,7 +56,6 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 				last = code
 			}
 		} else if repeated {
-			// log.Warningf("last: %d, code: %d, count: %d", last, code, count)
 			if code == last {
 				if count == 1 { // write once
 					writer.WriteCode(code)
@@ -81,7 +79,7 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 	return n
 }
 
-func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
+func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, taxondb *unikmer.Taxonomy, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
 	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 	checkError(err)
 	defer func() {
@@ -97,32 +95,58 @@ func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, k int, mode uint32, outFile st
 	writer.SetMaxTaxid(opt.MaxTaxid)
 
 	var n int64
-	var last = ^uint64(0)
-	var count int
-	// log.Warningf("%d", m)
-	for _, codeT := range mt {
-		if unique {
-			if codeT.Code != last {
-				writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
-				n++
-				last = codeT.Code
-			}
-		} else if repeated {
-			// log.Warningf("last: %d, code: %d, count: %d", last, code, count)
+	if unique {
+		var last uint64 = ^uint64(0)
+		var first bool = true
+		var lca uint32
+		for _, codeT := range mt {
+			// same k-mer, compute LCA and handle it later
 			if codeT.Code == last {
-				if count == 1 { // write once
-					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
-					n++
-					count++
-				}
-			} else {
-				writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
-				n++
+				lca = taxondb.LCA(codeT.Taxid, lca)
+				continue
+			}
 
-				last = codeT.Code
+			if first { // just ignore first code, faster than comparing code or slice index, I think
+				first = false
+			} else { // when meeting new k-mer, output previous one
+				writer.WriteCodeWithTaxid(last, lca)
+				n++
+			}
+
+			last = codeT.Code
+			lca = codeT.Taxid
+		}
+		// do not forget the last one
+		writer.WriteCodeWithTaxid(last, lca)
+		n++
+	} else if repeated {
+		var last uint64 = ^uint64(0)
+		var count int = 1
+		var lca uint32
+		for _, codeT := range mt {
+			// same k-mer, compute LCA and handle it later
+			if codeT.Code == last {
+				lca = taxondb.LCA(codeT.Taxid, lca)
+				count++
+				continue
+			}
+
+			if count > 1 { // repeated
+				writer.WriteCodeWithTaxid(last, lca)
+				n++
 				count = 1
 			}
-		} else {
+			last = codeT.Code
+			lca = codeT.Taxid
+		}
+		if count > 1 { // last one
+			writer.WriteCodeWithTaxid(last, lca)
+			n++
+			count = 0
+		}
+	} else {
+		writer.Number = int64(len(mt))
+		for _, codeT := range mt {
 			writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 			n++
 		}

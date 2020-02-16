@@ -91,6 +91,7 @@ Tips:
 		checkFileSuffix(extDataFile, files...)
 
 		var m []uint64
+		var taxondb *unikmer.Taxonomy
 		var mt []unikmer.CodeTaxid
 
 		if outDir == "" {
@@ -184,6 +185,7 @@ Tips:
 							log.Infof("taxids found in file: %s", file)
 						}
 						mt = make([]unikmer.CodeTaxid, 0, listInitSize)
+						taxondb = loadTaxonomy(opt)
 					} else {
 						m = make([]uint64, 0, listInitSize)
 					}
@@ -301,7 +303,7 @@ Tips:
 
 							var _n int64
 							if hasTaxid {
-								_n = dumpCodesTaxids2File(mt, k, mode, outFile, opt, unique, repeated)
+								_n = dumpCodesTaxids2File(mt, taxondb, k, mode, outFile, opt, unique, repeated)
 							} else {
 								_n = dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 							}
@@ -379,7 +381,7 @@ Tips:
 
 				var _n int64
 				if hasTaxid {
-					_n = dumpCodesTaxids2File(mt, k, mode, outFile, opt, unique, repeated)
+					_n = dumpCodesTaxids2File(mt, taxondb, k, mode, outFile, opt, unique, repeated)
 				} else {
 					_n = dumpCodes2File(m, k, mode, outFile, opt, unique, repeated)
 				}
