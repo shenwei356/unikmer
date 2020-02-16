@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/shenwei356/breader"
 )
@@ -38,6 +39,7 @@ type Taxonomy struct {
 
 	cacheLCA bool
 	lcaCache map[uint64]uint32 // cache of lca
+	mux      sync.Mutex
 
 	maxTaxid uint32
 }
@@ -148,7 +150,10 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	if t.cacheLCA {
 		query = pack2uint32(a, b)
 		var c uint32
-		if c, ok = t.lcaCache[query]; ok {
+		t.mux.Lock()
+		c, ok = t.lcaCache[query]
+		t.mux.Unlock()
+		if ok {
 			return c
 		}
 	}
@@ -162,7 +167,11 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	for {
 		parent, ok = t.Nodes[child]
 		if !ok {
-			t.lcaCache[query] = b
+			if t.cacheLCA {
+				t.mux.Lock()
+				t.lcaCache[query] = b
+				t.mux.Unlock()
+			}
 			return 0
 		}
 		if parent == child { // root
@@ -172,7 +181,9 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		}
 		if parent == b { // b is ancestor of a
 			if t.cacheLCA {
+				t.mux.Lock()
 				t.lcaCache[query] = b
+				t.mux.Unlock()
 			}
 			return b
 		}
@@ -186,7 +197,11 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	for {
 		parent, ok = t.Nodes[child]
 		if !ok {
-			t.lcaCache[query] = b
+			if t.cacheLCA {
+				t.mux.Lock()
+				t.lcaCache[query] = b
+				t.mux.Unlock()
+			}
 			return 0
 		}
 		if parent == child { // root
@@ -194,13 +209,17 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		}
 		if parent == a { // a is ancestor of b
 			if t.cacheLCA {
+				t.mux.Lock()
 				t.lcaCache[query] = a
+				t.mux.Unlock()
 			}
 			return a
 		}
 		if _, ok = mA[parent]; ok {
 			if t.cacheLCA {
+				t.mux.Lock()
 				t.lcaCache[query] = parent
+				t.mux.Unlock()
 			}
 			return parent
 		}
