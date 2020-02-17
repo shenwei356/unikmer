@@ -23,8 +23,10 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
@@ -53,6 +55,32 @@ var countCmd = &cobra.Command{
 			checkError(fmt.Errorf("k > 32 not supported"))
 		}
 
+		canonical := getFlagBool(cmd, "canonical")
+		sortKmers := getFlagBool(cmd, "sort")
+
+		taxid := getFlagUint32(cmd, "taxid")
+
+		parseTaxid := getFlagBool(cmd, "parse-taxid")
+		parseTaxidRegexp := getFlagString(cmd, "parse-taxid-regexp")
+
+		var reParseTaxid *regexp.Regexp
+		if parseTaxid {
+			if taxid > 0 {
+				checkError(fmt.Errorf("flag -t/--taxid and -T/--parse-taxid can not given simultaneously"))
+			}
+			if parseTaxidRegexp == "" {
+				checkError(fmt.Errorf("flag -r/--parse-taxid-regexp needed when given flag -T/--parse-taxid"))
+			}
+			if !regexp.MustCompile(`\(.+\)`).MatchString(parseTaxidRegexp) {
+				checkError(fmt.Errorf(`value of -r/--parse-taxid-regexp must contains "(" and ")" to capture taxid`))
+			}
+
+			reParseTaxid, err = regexp.Compile(parseTaxidRegexp)
+			if err != nil {
+				checkError(fmt.Errorf("invalid regular express: %s", parseTaxidRegexp))
+			}
+		}
+
 		if opt.Verbose {
 			log.Info("checking input files ...")
 		}
@@ -64,11 +92,6 @@ var countCmd = &cobra.Command{
 				log.Infof("%d input file(s) given", len(files))
 			}
 		}
-
-		canonical := getFlagBool(cmd, "canonical")
-		sortKmers := getFlagBool(cmd, "sort")
-
-		taxid := getFlagUint32(cmd, "taxid")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -84,26 +107,38 @@ var countCmd = &cobra.Command{
 		}()
 
 		var mode uint32
-		if sortKmers {
-			mode |= unikmer.UNIK_SORTED
-		} else if opt.Compact {
-			mode |= unikmer.UNIK_COMPACT
+		var writer *unikmer.Writer
+
+		if !parseTaxid && !sortKmers {
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			} else if opt.Compact {
+				mode |= unikmer.UNIK_COMPACT
+			}
+			if canonical {
+				mode |= unikmer.UNIK_CANONICAL
+			}
+			if parseTaxid {
+				mode |= unikmer.UNIK_INCLUDETAXID
+			}
+			writer, err := unikmer.NewWriter(outfh, k, mode)
+			checkError(err)
+			writer.SetMaxTaxid(opt.MaxTaxid)
 		}
-		if canonical {
-			mode |= unikmer.UNIK_CANONICAL
-		}
-		writer, err := unikmer.NewWriter(outfh, k, mode)
-		checkError(err)
-		writer.SetMaxTaxid(opt.MaxTaxid)
+
 		if taxid > 0 {
 			checkError(writer.SetGlobalTaxid(taxid))
 		}
 
-		m := make(map[uint64]struct{}, mapInitSize)
+		var m map[uint64]struct{}
+		var taxondb *unikmer.Taxonomy
+		var mt map[uint64]uint32
 
-		var m2 []uint64
-		if sortKmers {
-			m2 = make([]uint64, 0, mapInitSize)
+		if parseTaxid {
+			mt = make(map[uint64]uint32, mapInitSize)
+			taxondb = loadTaxonomy(opt)
+		} else {
+			m = make(map[uint64]struct{}, mapInitSize)
 		}
 
 		var sequence, kmer, preKmer []byte
@@ -115,6 +150,9 @@ var countCmd = &cobra.Command{
 		var i, j, iters int
 		var ok bool
 		var n int64
+		var founds [][][]byte
+		var val uint64
+		var lca uint32
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -131,6 +169,23 @@ var countCmd = &cobra.Command{
 					break
 				}
 
+				if parseTaxid {
+					founds = reParseTaxid.FindAllSubmatch(record.Name, 1)
+					if len(founds) == 0 {
+						checkError(fmt.Errorf("failed to parse taxid in header: %s", record.Name))
+					}
+					val, err = strconv.ParseUint(string(founds[0][1]), 10, 32)
+					taxid = uint32(val)
+				}
+
+				if opt.Verbose {
+					if parseTaxid {
+						log.Infof("processing sequence: %s, taxid: %d", record.ID, taxid)
+					} else {
+						log.Infof("processing sequence: %s", record.ID)
+					}
+				}
+
 				if canonical {
 					iters = 1
 				} else {
@@ -140,16 +195,8 @@ var countCmd = &cobra.Command{
 				for j = 0; j < iters; j++ {
 					if j == 0 { // sequence
 						sequence = record.Seq.Seq
-
-						if opt.Verbose {
-							log.Infof("processing sequence: %s", record.ID)
-						}
 					} else { // reverse complement sequence
 						sequence = record.Seq.RevComInplace().Seq
-
-						if opt.Verbose {
-							log.Infof("processing reverse complement sequence: %s", record.ID)
-						}
 					}
 
 					originalLen = len(record.Seq.Seq)
@@ -189,11 +236,18 @@ var countCmd = &cobra.Command{
 							kcode = kcode.Canonical()
 						}
 
+						if parseTaxid {
+							if lca, ok = mt[kcode.Code]; !ok {
+								mt[kcode.Code] = taxid
+							} else {
+								mt[kcode.Code] = taxondb.LCA(lca, taxid) // update with LCA
+							}
+							continue
+						}
+
 						if _, ok = m[kcode.Code]; !ok {
 							m[kcode.Code] = struct{}{}
-							if sortKmers {
-								m2 = append(m2, kcode.Code)
-							} else {
+							if !sortKmers {
 								writer.WriteCode(kcode.Code)
 								n++
 							}
@@ -202,20 +256,81 @@ var countCmd = &cobra.Command{
 				}
 			}
 		}
-		if sortKmers {
-			n = int64(len(m2))
 
-			if opt.Verbose {
-				log.Infof("sorting %d k-mers", n)
+		if sortKmers || parseTaxid {
+			var mode uint32
+			if canonical {
+				mode |= unikmer.UNIK_CANONICAL
 			}
-			sort.Sort(unikmer.CodeSlice(m2))
-			if opt.Verbose {
-				log.Infof("done sorting")
+			if parseTaxid {
+				mode |= unikmer.UNIK_INCLUDETAXID
 			}
-			writer.Number = n
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			}
+			writer, err = unikmer.NewWriter(outfh, k, mode)
+			checkError(err)
+			writer.SetMaxTaxid(opt.MaxTaxid)
 
-			for _, code := range m2 {
-				writer.WriteCode(code)
+			if parseTaxid {
+				n = int64(len(mt))
+			} else {
+				n = int64(len(m))
+			}
+			writer.Number = int64(n)
+		}
+
+		var code uint64
+		if !sortKmers {
+			if parseTaxid {
+				for code, taxid = range mt {
+					writer.WriteCodeWithTaxid(code, taxid)
+				}
+				n = int64(len(mt))
+			}
+		} else {
+			if parseTaxid {
+				codesTaxids := make([]unikmer.CodeTaxid, len(mt))
+
+				i := 0
+				for code, taxid := range mt {
+					codesTaxids[i] = unikmer.CodeTaxid{Code: code, Taxid: taxid}
+					i++
+				}
+
+				if opt.Verbose {
+					log.Infof("sorting %d k-mers", len(codesTaxids))
+				}
+				sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+				if opt.Verbose {
+					log.Infof("done sorting")
+				}
+
+				for _, codeT := range codesTaxids {
+					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				}
+				n = int64(len(mt))
+			} else {
+				codes := make([]uint64, len(m))
+
+				i := 0
+				for code = range m {
+					codes[i] = code
+					i++
+				}
+
+				if opt.Verbose {
+					log.Infof("sorting %d k-mers", len(codes))
+				}
+				sort.Sort(unikmer.CodeSlice(codes))
+				if opt.Verbose {
+					log.Infof("done sorting")
+				}
+
+				for _, code := range codes {
+					writer.WriteCode(code)
+				}
+				n = int64(len(m))
 			}
 		}
 
@@ -235,4 +350,6 @@ func init() {
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	countCmd.Flags().BoolP("sort", "s", false, helpSort)
 	countCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
+	countCmd.Flags().BoolP("parse-taxid", "T", false, `parse taxid from FASTA/Q header`)
+	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
 }

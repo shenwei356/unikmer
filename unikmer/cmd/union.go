@@ -173,7 +173,6 @@ Tips:
 					if hasTaxid {
 						if lca, ok = mt[code]; !ok {
 							mt[code] = taxid
-							n++
 						} else {
 							mt[code] = taxondb.LCA(lca, taxid) // update with LCA
 						}
@@ -210,13 +209,15 @@ Tips:
 			if sortKmers {
 				mode |= unikmer.UNIK_SORTED
 			}
-			if hasTaxid {
-				mode |= unikmer.UNIK_INCLUDETAXID
-			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
 
+			if hasTaxid {
+				n = len(mt)
+			} else {
+				n = len(m)
+			}
 			writer.Number = int64(n)
 		}
 

@@ -124,7 +124,6 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
-
 }
 
 // LoadMergedNodesFromNCBI loads merged nodes from  NCBI merged.dmp.
