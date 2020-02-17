@@ -276,12 +276,29 @@ Tips:
 		}
 
 		// for faster query when only one taxid given
-		singleTaxidQuery := queryWithTaxids && len(mt) == 1
+		var singleTaxidQuery, singleCodeQuery bool
 		var theOneTaxid uint32
-		for ot := range mt {
-			theOneTaxid = ot
-			break
+		var theOneCode uint64
+
+		if queryWithTaxids {
+			singleTaxidQuery = len(mt) == 1
+			if singleTaxidQuery {
+				for ot := range mt {
+					theOneTaxid = ot
+					break
+				}
+			}
+		} else {
+			singleCodeQuery = len(mt) == 1
+			if singleCodeQuery {
+				for oc := range m {
+					theOneCode = oc
+					break
+				}
+			}
+
 		}
+
 		////////////////////////////////////////////////////////////////////////////////
 
 		var outfh *bufio.Writer
@@ -380,6 +397,7 @@ Tips:
 				var _hasGlobalTaxid bool
 				var _isIncludeTaxid bool
 				var _mustSort bool
+				var _sorted bool
 				var ok, hit bool
 
 				if opt.Verbose {
@@ -400,6 +418,7 @@ Tips:
 				_canonical = reader.IsCanonical()
 				_hasGlobalTaxid = reader.HasGlobalTaxid()
 				_isIncludeTaxid = reader.IsIncludeTaxid()
+				_sorted = reader.IsSorted()
 
 				// if the input files is already sorted, we don't have to sort again in mOutput mode.
 				_mustSort = !reader.IsIncludeTaxid()
@@ -533,11 +552,17 @@ Tips:
 							_, ok = mt[taxid]
 						}
 					} else {
-						if !_canonical {
-							kcode = kcode.Canonical()
+						if singleCodeQuery {
+							ok = kcode.Code == theOneCode
+							if _sorted && kcode.Code > theOneCode { // no need compare later codes
+								break
+							}
+						} else {
+							if !_canonical {
+								kcode = kcode.Canonical()
+							}
+							_, ok = m[kcode.Code]
 						}
-
-						_, ok = m[kcode.Code]
 					}
 
 					if !invertMatch {

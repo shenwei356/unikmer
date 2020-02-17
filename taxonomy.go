@@ -35,7 +35,12 @@ type Taxonomy struct {
 	file     string
 	rootNode uint32
 
-	Nodes map[uint32]uint32 // parent -> child
+	Nodes      map[uint32]uint32 // parent -> child
+	DelNodes   map[uint32]struct{}
+	MergeNodes map[uint32]uint32
+
+	hasDelNodes   bool
+	hasMergeNodes bool
 
 	cacheLCA bool
 	// lcaCache map[uint64]uint32 // cache of lca
@@ -54,7 +59,7 @@ func NewTaxonomyFromNCBI(file string) (*Taxonomy, error) {
 	return NewTaxonomy(file, 1, 3)
 }
 
-// NewTaxonomy loads nodes from file,
+// NewTaxonomy loads nodes from nodes.dmp file,
 // for example,
 func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, error) {
 	if childColumn < 1 || parentColumn < 1 {
@@ -71,16 +76,18 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 		Parent uint32
 	}
 
+	childColumn--
+	parentColumn--
 	parseFunc := func(line string) (interface{}, bool, error) {
 		items := strings.Split(line, "\t")
 		if len(items) < minColumns {
 			return nil, false, nil
 		}
-		child, e := strconv.Atoi(items[childColumn-1])
+		child, e := strconv.Atoi(items[childColumn])
 		if e != nil {
 			return nil, false, e
 		}
-		parent, e := strconv.Atoi(items[parentColumn-1])
+		parent, e := strconv.Atoi(items[parentColumn])
 		if e != nil {
 			return nil, false, e
 		}
@@ -117,6 +124,110 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
+
+}
+
+// LoadMergedNodesFromNCBI loads merged nodes from  NCBI merged.dmp.
+func (t *Taxonomy) LoadMergedNodesFromNCBI(file string) error {
+	return t.LoadMergedNodes(file, 1, 3)
+}
+
+// LoadMergedNodes loads merged nodes.
+func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) error {
+	if oldColumn < 1 || newColumn < 1 {
+		return ErrIllegalColumnIndex
+	}
+
+	minColumns := oldColumn
+	if newColumn > minColumns {
+		minColumns = newColumn
+	}
+
+	oldColumn--
+	newColumn--
+	parseFunc := func(line string) (interface{}, bool, error) {
+		items := strings.Split(line, "\t")
+		if len(items) < minColumns {
+			return nil, false, nil
+		}
+		old, e := strconv.Atoi(items[oldColumn])
+		if e != nil {
+			return nil, false, e
+		}
+		new, e := strconv.Atoi(items[newColumn])
+		if e != nil {
+			return nil, false, e
+		}
+		return [2]uint32{uint32(old), uint32(new)}, true, nil
+	}
+
+	m := make(map[uint32]uint32, 1024)
+	reader, err := breader.NewBufferedReader(file, 3, 50, parseFunc)
+	if err != nil {
+		return fmt.Errorf("unikmer: %s", err)
+	}
+
+	var p [2]uint32
+	var data interface{}
+	for chunk := range reader.Ch {
+		if chunk.Err != nil {
+			return fmt.Errorf("unikmer: %s", err)
+		}
+
+		for _, data = range chunk.Data {
+			p = data.([2]uint32)
+			m[p[0]] = p[1]
+		}
+	}
+	t.MergeNodes = m
+	t.hasMergeNodes = true
+	return nil
+}
+
+// LoadDeletedNodesFromNCBI loads deleted nodes from NCBI delnodes.dmp.
+func (t *Taxonomy) LoadDeletedNodesFromNCBI(file string) error {
+	return t.LoadDeletedNodes(file, 1)
+}
+
+// LoadDeletedNodes loads deleted nodes.
+func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
+	if column < 1 {
+		return ErrIllegalColumnIndex
+	}
+
+	parseFunc := func(line string) (interface{}, bool, error) {
+		items := strings.Split(line, "\t")
+		if len(items) < column {
+			return nil, false, nil
+		}
+		id, e := strconv.Atoi(items[column-1])
+		if e != nil {
+			return nil, false, e
+		}
+		return uint32(id), true, nil
+	}
+
+	m := make(map[uint32]struct{}, 1024)
+	reader, err := breader.NewBufferedReader(file, 3, 50, parseFunc)
+	if err != nil {
+		return fmt.Errorf("unikmer: %s", err)
+	}
+
+	var taxid uint32
+	var data interface{}
+	for chunk := range reader.Ch {
+		if chunk.Err != nil {
+			return fmt.Errorf("unikmer: %s", err)
+		}
+
+		for _, data = range chunk.Data {
+			taxid = data.(uint32)
+			m[taxid] = struct{}{}
+		}
+	}
+	t.DelNodes = m
+	t.hasDelNodes = true
+	return nil
 }
 
 // MaxTaxid returns maximum taxid
@@ -161,16 +272,31 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	lineA := make([]uint32, 0, 16)
 	mA := make(map[uint32]struct{}, 16)
 
-	var child, parent uint32
+	var child, parent, newTaxid uint32
+	var flag bool
 
 	child = a
 	for {
 		parent, ok = t.Nodes[child]
 		if !ok {
-			if t.cacheLCA {
-				t.lcaCache.Store(query, b)
+			flag = false
+			if t.hasMergeNodes { // merged?
+				if newTaxid, ok = t.MergeNodes[child]; ok { // merged
+					child = newTaxid // update child
+
+					parent, ok = t.Nodes[child]
+					if ok {
+						flag = true
+					}
+				}
 			}
-			return 0
+
+			if !flag {
+				if t.cacheLCA {
+					t.lcaCache.Store(query, 0)
+				}
+				return 0
+			}
 		}
 		if parent == child { // root
 			lineA = append(lineA, parent)
@@ -193,11 +319,26 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	for {
 		parent, ok = t.Nodes[child]
 		if !ok {
-			if t.cacheLCA {
-				t.lcaCache.Store(query, b)
+			flag = false
+			if t.hasMergeNodes { // merged?
+				if newTaxid, ok = t.MergeNodes[child]; ok { // merged
+					child = newTaxid // update child
+
+					parent, ok = t.Nodes[child]
+					if ok {
+						flag = true
+					}
+				}
 			}
-			return 0
+
+			if !flag {
+				if t.cacheLCA {
+					t.lcaCache.Store(query, 0)
+				}
+				return 0
+			}
 		}
+
 		if parent == child { // root
 			break
 		}

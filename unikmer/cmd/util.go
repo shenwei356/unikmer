@@ -83,9 +83,8 @@ func getOptions(cmd *cobra.Command) *Options {
 		MaxTaxid:    getFlagUint32(cmd, "max-taxid"),
 		IgnoreTaxid: getFlagBool(cmd, "ignore-taxid"),
 
-		DataDir:   dataDir,
-		NodesFile: filepath.Join(dataDir, "nodes.dmp"),
-		CacheLCA:  true, // getFlagBool(cmd, "cache-lca"),
+		DataDir:  dataDir,
+		CacheLCA: true, // getFlagBool(cmd, "cache-lca"),
 	}
 }
 
@@ -95,27 +94,35 @@ func checkDataDir(opt *Options) {
 	if !existed {
 		log.Errorf(`data directory not created. please download and decompress ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz, and copy "nodes.dmp" to %s`, opt.DataDir)
 	}
-
-	existed, err = pathutil.Exists(opt.NodesFile)
-	checkError(err)
-	if !existed {
-		log.Errorf(`nodes.dmp not found in %s, please check`, opt.DataDir)
-	}
 }
 
 func loadTaxonomy(opt *Options) *unikmer.Taxonomy {
 	checkDataDir(opt)
 
 	if opt.Verbose {
-		log.Infof("loading Taxonomy nodes from: %s", opt.NodesFile)
+		log.Infof("loading Taxonomy from: %s", opt.DataDir)
 	}
-	t, err := unikmer.NewTaxonomyFromNCBI(opt.NodesFile)
+	t, err := unikmer.NewTaxonomyFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
 	if err != nil {
 		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
 	}
+
+	// err = t.LoadDeletedNodesFromNCBI(filepath.Join(opt.DataDir, "delnodes.dmp"))
+	// if err != nil {
+	// 	checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
+	// }
+
+	err = t.LoadMergedNodesFromNCBI(filepath.Join(opt.DataDir, "merged.dmp"))
+	if err != nil {
+		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
+	}
+
 	if opt.Verbose {
 		log.Infof("%d nodes loaded", len(t.Nodes))
+		log.Infof("%d merged nodes loaded", len(t.MergeNodes))
+		// log.Infof("%d deleted nodes loaded", len(t.DelNodes))
 	}
+
 	if opt.CacheLCA {
 		t.CacheLCA()
 	}

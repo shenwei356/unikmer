@@ -57,8 +57,9 @@ Source code: https://github.com/shenwei356/unikmer
 
 Dataset (optional):
 
-  Some commands need taxonomy nodes file from e.g., NCBI Taxonomy database,
-  you can extract "nodes.dmp" from link below into ~/.unikmer/ ,
+  Some commands need taxonomy file from e.g., NCBI Taxonomy database,
+  please extract "nodes.dmp", "names.dmp", "delnodes.dmp" and "merged.dmp" 
+  from link below into ~/.unikmer/ ,
   ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz , 
   or some other directory, and later you can refer to using flag --data-dir,
   or environment variable UNIKMER_DB.
@@ -102,7 +103,7 @@ func init() {
 
 	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller taxids, we can use less space to store taxids. default value is 1<<32-1, that's enough for NCBI Taxonomy taxids")
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
-	RootCmd.PersistentFlags().StringP("data-dir", "", defaulDataDir, "directory containing NCBI Taxonomy nodes.dmp and names.dmp")
+	RootCmd.PersistentFlags().StringP("data-dir", "", defaulDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
 	// RootCmd.PersistentFlags().BoolP("cache-lca", "", false, "cache LCA queries")
 }
 
