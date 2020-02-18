@@ -63,6 +63,8 @@ var countCmd = &cobra.Command{
 		parseTaxid := getFlagBool(cmd, "parse-taxid")
 		parseTaxidRegexp := getFlagString(cmd, "parse-taxid-regexp")
 
+		repeated := getFlagBool(cmd, "repeated")
+
 		var reParseTaxid *regexp.Regexp
 		if parseTaxid {
 			if taxid > 0 {
@@ -121,7 +123,7 @@ var countCmd = &cobra.Command{
 			if parseTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
 			}
-			writer, err := unikmer.NewWriter(outfh, k, mode)
+			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
 		}
@@ -134,11 +136,18 @@ var countCmd = &cobra.Command{
 		var taxondb *unikmer.Taxonomy
 		var mt map[uint64]uint32
 
+		// could use bloom filter
+		// a key exists means it appear once, value of true means it's appeared more than once.
+		var marks map[uint64]bool
+
 		if parseTaxid {
 			mt = make(map[uint64]uint32, mapInitSize)
 			taxondb = loadTaxonomy(opt)
 		} else {
 			m = make(map[uint64]struct{}, mapInitSize)
+		}
+		if repeated {
+			marks = make(map[uint64]bool, mapInitSize)
 		}
 
 		var sequence, kmer, preKmer []byte
@@ -153,6 +162,7 @@ var countCmd = &cobra.Command{
 		var founds [][][]byte
 		var val uint64
 		var lca uint32
+		var mark bool
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -237,11 +247,42 @@ var countCmd = &cobra.Command{
 						}
 
 						if parseTaxid {
+							if repeated {
+								if mark, ok = marks[kcode.Code]; !ok {
+									marks[kcode.Code] = false
+								} else if !mark {
+									if lca, ok = mt[kcode.Code]; !ok {
+										mt[kcode.Code] = taxid
+									} else {
+										mt[kcode.Code] = taxondb.LCA(lca, taxid) // update with LCA
+									}
+									marks[kcode.Code] = true
+								}
+
+								continue
+							}
+
 							if lca, ok = mt[kcode.Code]; !ok {
 								mt[kcode.Code] = taxid
 							} else {
 								mt[kcode.Code] = taxondb.LCA(lca, taxid) // update with LCA
 							}
+							continue
+						}
+
+						if repeated {
+							if mark, ok = marks[kcode.Code]; !ok {
+								marks[kcode.Code] = false
+							} else if !mark {
+								if !sortKmers {
+									writer.WriteCode(kcode.Code)
+									n++
+								} else {
+									m[kcode.Code] = struct{}{}
+								}
+								marks[kcode.Code] = true
+							}
+
 							continue
 						}
 
@@ -352,4 +393,5 @@ func init() {
 	countCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
 	countCmd.Flags().BoolP("parse-taxid", "T", false, `parse taxid from FASTA/Q header`)
 	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
+	countCmd.Flags().BoolP("repeated", "d", false, `only count duplicated k-mers, for removing singleton in FASTQ`)
 }
