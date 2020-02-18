@@ -218,7 +218,7 @@ Tips:
 
 					canonical = reader.IsCanonical()
 
-					if !reader.HasTaxidInfo() {
+					if queryWithTaxids && !reader.HasTaxidInfo() {
 						checkError(fmt.Errorf("no taxids found in file: %s", file))
 					}
 

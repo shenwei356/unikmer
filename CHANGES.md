@@ -4,6 +4,7 @@
     - new command: `unikmer head` for extracting the first N k-mers.
     - new command: `unikmer tsplit` for splitting k-mers according to taxid.
     - `unikmer grep`: support searching with taxids.
+    - `unikmer count`: support parsing taxid from FASTA/Q header.
 - v0.8.0
     - `unikmer`:
          - new option `-i/--infile-list`, if given, files in the list file are appended to files from cli arguments.
