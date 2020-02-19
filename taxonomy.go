@@ -79,7 +79,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	childColumn--
 	parentColumn--
 	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.Split(line, "\t")
+		items := strings.Split(strings.TrimSpace(line), "\t")
 		if len(items) < minColumns {
 			return nil, false, nil
 		}
@@ -145,7 +145,7 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 	oldColumn--
 	newColumn--
 	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.Split(line, "\t")
+		items := strings.Split(strings.TrimSpace(line), "\t")
 		if len(items) < minColumns {
 			return nil, false, nil
 		}
@@ -195,7 +195,7 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 	}
 
 	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.Split(line, "\t")
+		items := strings.Split(strings.TrimSpace(line), "\t")
 		if len(items) < column {
 			return nil, false, nil
 		}
@@ -292,7 +292,7 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 
 			if !flag {
 				if t.cacheLCA {
-					t.lcaCache.Store(query, 0)
+					t.lcaCache.Store(query, uint32(0))
 				}
 				return 0
 			}
@@ -332,7 +332,7 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 
 			if !flag {
 				if t.cacheLCA {
-					t.lcaCache.Store(query, 0)
+					t.lcaCache.Store(query, uint32(0))
 				}
 				return 0
 			}

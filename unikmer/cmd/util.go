@@ -106,21 +106,30 @@ func loadTaxonomy(opt *Options) *unikmer.Taxonomy {
 	if err != nil {
 		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
 	}
+	if opt.Verbose {
+		log.Infof("%d nodes loaded", len(t.Nodes))
+	}
+
+	var existed bool
 
 	// err = t.LoadDeletedNodesFromNCBI(filepath.Join(opt.DataDir, "delnodes.dmp"))
 	// if err != nil {
 	// 	checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
 	// }
 
-	err = t.LoadMergedNodesFromNCBI(filepath.Join(opt.DataDir, "merged.dmp"))
+	existed, err = pathutil.Exists(filepath.Join(opt.DataDir, "merged.dmp"))
 	if err != nil {
-		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
+		checkError(fmt.Errorf("err on checking file merged.dmp: %s", err))
+	}
+	if existed {
+		err = t.LoadMergedNodesFromNCBI(filepath.Join(opt.DataDir, "merged.dmp"))
+		if err != nil {
+			checkError(fmt.Errorf("err on loading Taxonomy merged nodes: %s", err))
+		}
 	}
 
 	if opt.Verbose {
-		log.Infof("%d nodes loaded", len(t.Nodes))
 		log.Infof("%d merged nodes loaded", len(t.MergeNodes))
-		// log.Infof("%d deleted nodes loaded", len(t.DelNodes))
 	}
 
 	if opt.CacheLCA {

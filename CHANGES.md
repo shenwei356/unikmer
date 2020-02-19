@@ -1,3 +1,8 @@
+- v0.10.0
+    - `unikmer`: fix loading custom taxonomy files.
+    - `unikmer count`:
+        - new flag `-d` for only count duplicated k-mers, for removing singleton in FASTQ.
+        - fix nil pointer bug of `-t`.
 - v0.9.0
     - `unikmer`: **new binary format supporting optional Taxids**.
     - deleted command: `unikmer subset`.
