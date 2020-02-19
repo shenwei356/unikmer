@@ -126,10 +126,9 @@ var countCmd = &cobra.Command{
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
-		}
-
-		if taxid > 0 {
-			checkError(writer.SetGlobalTaxid(taxid))
+			if taxid > 0 {
+				checkError(writer.SetGlobalTaxid(taxid))
+			}
 		}
 
 		var m map[uint64]struct{}
@@ -314,6 +313,9 @@ var countCmd = &cobra.Command{
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
+			if taxid > 0 {
+				checkError(writer.SetGlobalTaxid(taxid))
+			}
 
 			if parseTaxid {
 				n = int64(len(mt))
