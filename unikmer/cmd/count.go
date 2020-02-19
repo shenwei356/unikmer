@@ -163,6 +163,7 @@ var countCmd = &cobra.Command{
 		var val uint64
 		var lca uint32
 		var mark bool
+		var nseq int64
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -188,11 +189,12 @@ var countCmd = &cobra.Command{
 					taxid = uint32(val)
 				}
 
+				nseq++
 				if opt.Verbose {
 					if parseTaxid {
-						log.Infof("processing sequence: %s, taxid: %d", record.ID, taxid)
+						log.Infof("processing sequence #%d: %s, taxid: %d", nseq, record.ID, taxid)
 					} else {
-						log.Infof("processing sequence: %s", record.ID)
+						log.Infof("processing sequence #%d: %s", nseq, record.ID)
 					}
 				}
 
