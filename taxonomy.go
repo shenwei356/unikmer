@@ -242,13 +242,10 @@ func (t *Taxonomy) CacheLCA() {
 	// }
 }
 
-// LCA returns the Lowest Common Ancestor of two nodes
+// LCA returns the Lowest Common Ancestor of two nodes, 0 for unknown taxid.
 func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
-	if a == 0 {
-		return b
-	}
-	if b == 0 {
-		return a
+	if a == 0 || b == 0 {
+		return 0
 	}
 	if a == b {
 		return a
