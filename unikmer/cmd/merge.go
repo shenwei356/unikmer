@@ -281,7 +281,7 @@ Tips:
 				outFile1 := chunkFileName(tmpDir, iTmpFile)
 
 				if opt.Verbose {
-					log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
+					log.Infof("[chunk %d] merging k-mers from %d tmp files", iTmpFile, len(_files))
 				}
 				n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 				if opt.Verbose {
@@ -296,7 +296,7 @@ Tips:
 			outFile1 := chunkFileName(tmpDir, iTmpFile)
 
 			if opt.Verbose {
-				log.Infof("[chunk %d] sorting k-mers from %d tmp files", iTmpFile, len(_files))
+				log.Infof("[chunk %d] merging k-mers from %d tmp files", iTmpFile, len(_files))
 			}
 			n, _ := mergeChunksFile(opt, taxondb, _files, outFile1, k, mode, unique, repeated, false)
 			if opt.Verbose {
