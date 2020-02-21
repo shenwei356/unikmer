@@ -243,13 +243,13 @@ func uniqInts(data []int) []int {
 	return data2
 }
 
-// ParseByteSize parses byte size from string
+// ParseByteSize parses byte size from string.
 func ParseByteSize(val string) (int, error) {
 	val = strings.Trim(val, " \t\r\n")
 	if val == "" {
 		return 0, nil
 	}
-	var u int
+	var u int64
 	var noUnit bool
 	switch val[len(val)-1] {
 	case 'B', 'b':
@@ -260,8 +260,6 @@ func ParseByteSize(val string) (int, error) {
 		u = 1 << 20
 	case 'G', 'g':
 		u = 1 << 30
-	case 'T', 't':
-		u = 1 << 40
 	default:
 		noUnit = true
 		u = 1
@@ -276,7 +274,7 @@ func ParseByteSize(val string) (int, error) {
 		if size < 0 {
 			size = 0
 		}
-		return int(size * float64(u)), nil
+		return int(size), nil
 	}
 
 	if len(val) == 1 { // no value
