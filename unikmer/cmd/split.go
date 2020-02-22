@@ -180,14 +180,19 @@ Tips:
 					if nfiles == 1 && reader.IsSorted() {
 						doNotNeedSorting = true
 					}
-					if hasTaxid {
-						if opt.Verbose {
-							log.Infof("taxids found in file: %s", file)
+
+					if !doNotNeedSorting {
+						if hasTaxid {
+							if opt.Verbose {
+								log.Infof("taxids found in file: %s", file)
+							}
+							mt = make([]unikmer.CodeTaxid, 0, listInitSize)
+							taxondb = loadTaxonomy(opt)
+						} else {
+							m = make([]uint64, 0, listInitSize)
 						}
-						mt = make([]unikmer.CodeTaxid, 0, listInitSize)
-						taxondb = loadTaxonomy(opt)
 					} else {
-						m = make([]uint64, 0, listInitSize)
+						log.Infof("sorting is not needed for ONE input file")
 					}
 
 					if canonical {
@@ -246,6 +251,7 @@ Tips:
 							}
 							chN <- int64(n)
 
+							writer.Flush()
 							outfh.Flush()
 							if gw != nil {
 								gw.Close()
@@ -336,7 +342,7 @@ Tips:
 		// dump remaining k-mers to file
 
 		if doNotNeedSorting {
-
+			writer.Flush()
 			outfh.Flush()
 			if gw != nil {
 				gw.Close()
@@ -366,17 +372,13 @@ Tips:
 					<-tokens
 				}()
 
-				if !doNotNeedSorting {
-					if opt.Verbose {
-						log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
-					}
-					sort.Sort(unikmer.CodeSlice(m))
-					if opt.Verbose {
-						log.Infof("[chunk %d] done sorting", iTmpFile)
-						log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
-					}
-				} else if opt.Verbose {
-					log.Infof("[chunk %d] skipping sorting for single sorted input file", iTmpFile)
+				if opt.Verbose {
+					log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
+				}
+				sort.Sort(unikmer.CodeSlice(m))
+				if opt.Verbose {
+					log.Infof("[chunk %d] done sorting", iTmpFile)
+					log.Infof("[chunk %d] writing to file: %s", iTmpFile, outFile)
 				}
 
 				var _n int64
@@ -389,6 +391,7 @@ Tips:
 					log.Infof("[chunk %d] %d k-mers saved to %s", iTmpFile, _n, outFile)
 				}
 				chN <- int64(len(m))
+
 			}(m, mt, iTmpFile, outFile1)
 		}
 
