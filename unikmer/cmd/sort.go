@@ -189,7 +189,9 @@ Tips:
 							log.Infof("taxids found in file: %s", file)
 						}
 						mt = make([]unikmer.CodeTaxid, 0, listInitSize)
-						taxondb = loadTaxonomy(opt)
+						if unique || repeated {
+							taxondb = loadTaxonomy(opt)
+						}
 					} else {
 						m = make([]uint64, 0, listInitSize)
 					}

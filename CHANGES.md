@@ -4,6 +4,7 @@
         - new flag `-d` for only count duplicated k-mers, for removing singleton in FASTQ.
         - fix nil pointer bug of `-t`.
     - `unikmer split`: fix memery and last odd k-mer mising bug for given ONE sorted input file.
+    - `unikmer sort`: skip loading taxonomy data when neither `-u` or `-d` given.
 - v0.9.0
     - `unikmer`: **new binary format supporting optional Taxids**.
     - deleted command: `unikmer subset`.
