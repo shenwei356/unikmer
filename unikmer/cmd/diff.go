@@ -125,6 +125,7 @@ Tips:
 		}
 
 		var minCode uint64 = ^uint64(0)
+		var maxCode uint64 = 0
 		if reader.IsSorted() { // query is sorted
 			once := true
 			for {
@@ -141,6 +142,7 @@ Tips:
 					once = false
 				}
 				m[code] = taxid
+				maxCode = code
 			}
 		} else {
 			for {
@@ -154,6 +156,9 @@ Tips:
 
 				if code < minCode {
 					minCode = code
+				}
+				if code > maxCode {
+					maxCode = code
 				}
 				m[code] = taxid
 			}
@@ -314,7 +319,7 @@ Tips:
 				var ok bool
 				var sorted bool
 				var nSkip int
-				var checkSkip bool
+				var checkSkip, checkSkip2 bool
 				m1 := maps[i]
 				for {
 					ifile, ok = <-chFile
@@ -357,6 +362,7 @@ Tips:
 					sorted = reader.IsSorted()
 					nSkip = 0
 					checkSkip = sorted
+					checkSkip2 = sorted
 					for {
 						code, taxid, err = reader.ReadCodeWithTaxid()
 						if err != nil {
@@ -376,6 +382,13 @@ Tips:
 								}
 								checkSkip = false
 							}
+						}
+
+						if checkSkip2 && code > maxCode {
+							if opt.Verbose {
+								log.Infof("worker %02d: processing file (%d/%d): skipping left k-mers", i, ifile.i+1, nfiles)
+							}
+							break
 						}
 
 						// delete seen kmer
