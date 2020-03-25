@@ -40,6 +40,7 @@ var diffCmd = &cobra.Command{
 	Long: `Set difference of multiple binary files
 
 Attentions:
+  0. The first file should be sorted.
   1. The 'canonical' flags of all files should be consistent.
   2. By default taxids in the 2nd and later files are ignored.
   3. You can switch on flag -t/--compare-taxid , and input
@@ -48,8 +49,8 @@ Attentions:
      or query taxid is ancester of target taxid, this k-mer remains
 
 Tips:
-  1. Increasing threads number (-j/--threads) to accelerate computation,
-     in cost of more memory occupation.
+  1. Increasing threads number (-j/--threads) to accelerate computation
+     when dealing with lots of files, in cost of more memory occupation.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -81,7 +82,7 @@ Tips:
 
 		runtime.GOMAXPROCS(threads)
 
-		m := make(map[uint64]uint32, mapInitSize)
+		mc := make([]unikmer.CodeTaxid, 0, mapInitSize)
 
 		var infh *bufio.Reader
 		var r *os.File
@@ -110,6 +111,10 @@ Tips:
 		reader, err = unikmer.NewReader(infh)
 		checkError(err)
 
+		if !reader.IsSorted() { // query is sorted
+			checkError(fmt.Errorf("the first file should be sorted"))
+		}
+
 		k = reader.K
 		canonical = reader.IsCanonical()
 		hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
@@ -124,56 +129,27 @@ Tips:
 			}
 		}
 
-		var minCode uint64 = ^uint64(0)
-		var maxCode uint64 = 0
-		if reader.IsSorted() { // query is sorted
-			once := true
-			for {
-				code, taxid, err = reader.ReadCodeWithTaxid()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					checkError(err)
+		var n0 int
+		for {
+			code, taxid, err = reader.ReadCodeWithTaxid()
+			if err != nil {
+				if err == io.EOF {
+					break
 				}
-
-				if once {
-					minCode = code
-					once = false
-				}
-				m[code] = taxid
-				maxCode = code
+				checkError(err)
 			}
-		} else {
-			for {
-				code, taxid, err = reader.ReadCodeWithTaxid()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					checkError(err)
-				}
 
-				if code < minCode {
-					minCode = code
-				}
-				if code > maxCode {
-					maxCode = code
-				}
-				m[code] = taxid
-			}
+			mc = append(mc, unikmer.CodeTaxid{Code: code, Taxid: taxid})
 		}
+		n0 = len(mc)
 
 		r.Close()
 
 		if opt.Verbose {
-			log.Infof("%d k-mers loaded", len(m))
-			if len(m) > 0 {
-				log.Infof("min code: %s (%d)", unikmer.KmerCode{Code: minCode, K: k}, minCode)
-			}
+			log.Infof("%d k-mers loaded", n0)
 		}
 
-		if len(m) == 0 {
+		if n0 == 0 {
 			if opt.Verbose {
 				log.Infof("exporting k-mers")
 			}
@@ -248,7 +224,9 @@ Tips:
 		doneSendFile := make(chan int)
 
 		maps := make(map[int]map[uint64]uint32, threads)
-		maps[0] = m
+
+		mapsc := make(map[int][]unikmer.CodeTaxid, threads)
+		mapsc[0] = mc
 
 		if len(files) > 2 {
 			// clone maps
@@ -257,8 +235,9 @@ Tips:
 			}
 			var wg sync.WaitGroup
 			type iMap struct {
-				i int
-				m map[uint64]uint32
+				i  int
+				m  map[uint64]uint32
+				mc []unikmer.CodeTaxid
 			}
 			ch := make(chan iMap, threads)
 			doneClone := make(chan int)
@@ -271,11 +250,11 @@ Tips:
 			for i := 1; i < threads; i++ {
 				wg.Add(1)
 				go func(i int) {
-					m1 := make(map[uint64]uint32, len(m))
-					for k, t := range m {
-						m1[k] = t
+					mc1 := make([]unikmer.CodeTaxid, len(mc))
+					for i, ct := range mc {
+						mc1[i] = ct
 					}
-					ch <- iMap{i: i, m: m1}
+					ch <- iMap{i: i, mc: mc1}
 					wg.Done()
 				}(i)
 			}
@@ -318,9 +297,8 @@ Tips:
 				var reader *unikmer.Reader
 				var ok bool
 				var sorted bool
-				var nSkip int
-				var checkSkip, checkSkip2 bool
-				m1 := maps[i]
+				var m1 map[uint64]uint32
+				mc1 := mapsc[i]
 				for {
 					ifile, ok = <-chFile
 					if !ok {
@@ -360,10 +338,53 @@ Tips:
 
 					// file is sorted, so we can skip codes that are small than minCode
 					sorted = reader.IsSorted()
-					nSkip = 0
-					checkSkip = sorted
-					checkSkip2 = sorted
-					for {
+
+					if !sorted {
+						if m1 == nil { // clone mc for this worker
+							m1 = make(map[uint64]uint32, len(mc))
+							for _, ct := range mc {
+								m1[ct.Code] = ct.Taxid
+							}
+							maps[i] = m1
+						}
+
+						for {
+							code, taxid, err = reader.ReadCodeWithTaxid()
+							if err != nil {
+								if err == io.EOF {
+									break
+								}
+								checkError(err)
+							}
+
+							// delete seen kmer
+							if qtaxid, ok = m1[code]; ok { // slowest part
+								if compareTaxid && (qtaxid == taxid ||
+									taxondb.LCA(taxid, qtaxid) == qtaxid) {
+									continue
+								}
+								delete(m1, code)
+							}
+						}
+
+						r.Close()
+
+						if opt.Verbose {
+							log.Infof("worker %02d: finished processing file (%d/%d): %s, %d k-mers remain", i, ifile.i+1, nfiles, file, len(m1))
+						}
+						if len(m1) == 0 {
+							hasDiff = false
+							toStop <- 1
+							return
+						}
+					} else {
+						mc2 := make([]unikmer.CodeTaxid, 0, len(mc1))
+						var qCode, code uint64
+						var qtaxid, taxid uint32
+						ii := 0
+
+						qCode = mc1[ii].Code
+						qtaxid = mc1[ii].Taxid
 						code, taxid, err = reader.ReadCodeWithTaxid()
 						if err != nil {
 							if err == io.EOF {
@@ -372,45 +393,67 @@ Tips:
 							checkError(err)
 						}
 
-						if checkSkip {
-							if code < minCode {
-								nSkip++
-								continue
-							} else {
-								if opt.Verbose {
-									log.Infof("worker %02d: started processing file (%d/%d): leading %d k-mers skipped for comparison", i, ifile.i+1, nfiles, nSkip)
+						for {
+							if qCode < code {
+								mc2 = append(mc2, mc1[ii])
+
+								ii++
+								if ii >= len(mc1) {
+									break
 								}
-								checkSkip = false
+								qCode = mc1[ii].Code
+								qtaxid = mc1[ii].Taxid
+							} else if qCode == code {
+								if compareTaxid && (qtaxid == taxid ||
+									taxondb.LCA(taxid, qtaxid) == qtaxid) {
+									mc2 = append(mc2, mc1[ii])
+								}
+
+								ii++
+								if ii >= len(mc1) {
+									break
+								}
+								qCode = mc1[ii].Code
+								qtaxid = mc1[ii].Taxid
+
+								code, taxid, err = reader.ReadCodeWithTaxid()
+								if err != nil {
+									if err == io.EOF {
+										break
+									}
+									checkError(err)
+								}
+							} else {
+								code, taxid, err = reader.ReadCodeWithTaxid()
+								if err != nil {
+									if err == io.EOF {
+										break
+									}
+									checkError(err)
+								}
 							}
 						}
+						mc2 = append(mc2, mc1[ii:]...)
 
-						if checkSkip2 && code > maxCode {
-							if opt.Verbose {
-								log.Infof("worker %02d: processing file (%d/%d): skipping left k-mers", i, ifile.i+1, nfiles)
-							}
-							break
+						r.Close()
+
+						mc1 = mc2
+						if opt.Verbose {
+							log.Infof("worker %02d: finished processing file (%d/%d): %s, %d k-mers remain", i, ifile.i+1, nfiles, file, len(mc1))
+						}
+						if len(mc1) == 0 {
+							hasDiff = false
+							toStop <- 1
+							return
 						}
 
-						// delete seen kmer
-						if qtaxid, ok = m1[code]; ok { // slowest part
-							if compareTaxid && (qtaxid == taxid ||
-								taxondb.LCA(taxid, qtaxid) == qtaxid) {
-								continue
-							}
-							delete(m1, code)
+						m1 = make(map[uint64]uint32, len(mc1))
+						for _, ct := range mc1 {
+							m1[ct.Code] = ct.Taxid
 						}
+						maps[i] = m1
 					}
 
-					r.Close()
-
-					if opt.Verbose {
-						log.Infof("worker %02d: finished processing file (%d/%d): %s, %d k-mers remain", i, ifile.i+1, nfiles, file, len(m1))
-					}
-					if len(m1) == 0 {
-						hasDiff = false
-						toStop <- 1
-						return
-					}
 				}
 			}(i)
 		}

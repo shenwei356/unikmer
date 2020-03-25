@@ -5,7 +5,7 @@
         - fix nil pointer bug of `-t`.
     - `unikmer split`: fix memery and last odd k-mer mising bug for given ONE sorted input file.
     - `unikmer sort`: skip loading taxonomy data when neither `-u` or `-d` given.
-    - `unikmer diff`: early quit.
+    - `unikmer diff`: 2X speedup, and requiring 1th file being sorted.
 - v0.9.0
     - `unikmer`: **new binary format supporting optional Taxids**.
     - deleted command: `unikmer subset`.
