@@ -228,7 +228,7 @@ Tips:
 		mapsc := make(map[int][]unikmer.CodeTaxid, threads)
 		mapsc[0] = mc
 
-		if len(files) > 2 {
+		if threads > 1 {
 			// clone maps
 			if opt.Verbose {
 				log.Infof("cloning data for parallization")
@@ -243,7 +243,7 @@ Tips:
 			doneClone := make(chan int)
 			go func() {
 				for ptr := range ch {
-					maps[ptr.i] = ptr.m
+					mapsc[ptr.i] = ptr.mc
 				}
 				doneClone <- 1
 			}()
