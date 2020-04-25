@@ -171,6 +171,7 @@ Tips:
 				ii := 0
 				qCode = mc[ii].Code
 				qtaxid = mc[ii].Taxid
+
 				code, taxid, err = reader.ReadCodeWithTaxid()
 				if err != nil {
 					if err == io.EOF {
@@ -179,6 +180,7 @@ Tips:
 					checkError(err)
 				}
 
+				n := 0
 				for {
 					if qCode < code {
 						ii++
@@ -192,6 +194,7 @@ Tips:
 							mc[ii].Taxid = taxondb.LCA(qtaxid, taxid)
 						}
 						m[ii] = true
+						n++
 
 						ii++
 						if ii >= len(mc) {
@@ -218,15 +221,16 @@ Tips:
 					}
 				}
 
-				mc1 := make([]unikmer.CodeTaxid, 0, len(mc))
-				n := 0
-				for ii, flag := range m {
-					if flag {
+				mc1 := make([]unikmer.CodeTaxid, 0, n)
+				n = 0
+				for ii, found := range m {
+					if found {
 						mc1 = append(mc1, mc[ii])
 						n++
 					}
 				}
 				mc = mc1
+				m = make([]bool, n)
 
 				if opt.Verbose {
 					log.Infof("%d k-mers remain", n)

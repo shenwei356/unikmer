@@ -1,4 +1,6 @@
 - v0.10.0
+    - `unikmer inter`: fix bug.
+- v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:
         - new flag `-d` for only count duplicated k-mers, for removing singleton in FASTQ.
