@@ -404,8 +404,8 @@ Tips:
 								qCode = mc1[ii].Code
 								qtaxid = mc1[ii].Taxid
 							} else if qCode == code {
-								if compareTaxid && (qtaxid == taxid ||
-									taxondb.LCA(taxid, qtaxid) == qtaxid) {
+								if compareTaxid && (qtaxid == taxid || // keep k-mer with same taxid
+									taxondb.LCA(taxid, qtaxid) == qtaxid) { // keep k-mer which is son of query
 									mc2 = append(mc2, mc1[ii])
 								}
 

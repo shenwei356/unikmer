@@ -1,6 +1,3 @@
-- v0.10.1
-    - `unikmer inter`: fix bug.
-    - `unikmer diff`: fix bug.
 - v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:
