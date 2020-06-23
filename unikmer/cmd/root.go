@@ -82,11 +82,11 @@ func Execute() {
 	}
 }
 
-var defaulDataDir string
+var defaultDataDir string
 
 func init() {
 	var err error
-	defaulDataDir, err = homedir.Expand("~/.unikmer/")
+	defaultDataDir, err = homedir.Expand("~/.unikmer/")
 	checkError(err)
 
 	defaultThreads := runtime.NumCPU()
@@ -97,13 +97,13 @@ func init() {
 	RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs to use. (default value: 1 for single-CPU PC, 2 for others)")
 	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
 	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file (not recommended)")
-	RootCmd.PersistentFlags().IntP("compression-level", "L", flate.DefaultCompression, "compression level")
+	RootCmd.PersistentFlags().IntP("compression-level", "", flate.DefaultCompression, "compression level")
 	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write compact binary file with little loss of speed")
 	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, they are appended to files from cli arguments")
 
 	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller taxids, we can use less space to store taxids. default value is 1<<32-1, that's enough for NCBI Taxonomy taxids")
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
-	RootCmd.PersistentFlags().StringP("data-dir", "", defaulDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
+	RootCmd.PersistentFlags().StringP("data-dir", "", defaultDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
 	// RootCmd.PersistentFlags().BoolP("cache-lca", "", false, "cache LCA queries")
 }
 

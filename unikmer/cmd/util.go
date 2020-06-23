@@ -96,18 +96,28 @@ func checkDataDir(opt *Options) {
 	}
 }
 
-func loadTaxonomy(opt *Options) *unikmer.Taxonomy {
+func loadTaxonomy(opt *Options, withRank bool) *unikmer.Taxonomy {
 	checkDataDir(opt)
 
 	if opt.Verbose {
 		log.Infof("loading Taxonomy from: %s", opt.DataDir)
 	}
-	t, err := unikmer.NewTaxonomyFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
+	var t *unikmer.Taxonomy
+	var err error
+	if withRank {
+		t, err = unikmer.NewTaxonomyWithRankFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
+	} else {
+		t, err = unikmer.NewTaxonomyFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
+	}
 	if err != nil {
 		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
 	}
 	if opt.Verbose {
-		log.Infof("%d nodes loaded", len(t.Nodes))
+		if withRank {
+			log.Infof("%d nodes in %d ranks loaded", len(t.Nodes), len(t.Ranks))
+		} else {
+			log.Infof("%d nodes loaded", len(t.Nodes))
+		}
 	}
 
 	var existed bool
@@ -241,6 +251,16 @@ func uniqInts(data []int) []int {
 		i++
 	}
 	return data2
+}
+
+func minInt(a int, vals ...int) int {
+	min := a
+	for _, v := range vals {
+		if v < min {
+			min = v
+		}
+	}
+	return min
 }
 
 // ParseByteSize parses byte size from string.

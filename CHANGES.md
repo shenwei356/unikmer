@@ -1,3 +1,5 @@
+- v0.11.0
+    - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank
 - v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:

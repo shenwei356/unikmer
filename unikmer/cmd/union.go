@@ -125,7 +125,7 @@ Tips:
 							log.Infof("taxids found in file: %s", file)
 						}
 						mt = make(map[uint64]uint32, mapInitSize)
-						taxondb = loadTaxonomy(opt)
+						taxondb = loadTaxonomy(opt, false)
 					} else {
 						m = make(map[uint64]struct{}, mapInitSize)
 					}

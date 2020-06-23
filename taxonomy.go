@@ -39,6 +39,11 @@ type Taxonomy struct {
 	DelNodes   map[uint32]struct{}
 	MergeNodes map[uint32]uint32
 
+	taxid2rankid map[uint32]uint8 // taxid -> rank id
+	ranks        []string         // rank id -> rank
+	Ranks        map[string]interface{}
+
+	hasRanks      bool
 	hasDelNodes   bool
 	hasMergeNodes bool
 
@@ -53,22 +58,24 @@ type Taxonomy struct {
 // ErrIllegalColumnIndex means column index is 0 or negative.
 var ErrIllegalColumnIndex = errors.New("unikmer: illegal column index, positive integer needed")
 
+// ErrRankNotLoaded means you should reate load Taxonomy with NewTaxonomyWithRank before calling some methods.
+var ErrRankNotLoaded = errors.New("unikmer: ranks not loaded, please call: NewTaxonomyWithRank")
+
+// ErrTooManyRanks means number of ranks exceed limit of 255
+var ErrTooManyRanks = errors.New("unikmer: number of ranks exceed limit of 255")
+
 // NewTaxonomyFromNCBI parses Taxonomy from nodes.dmp
 // from ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz .
 func NewTaxonomyFromNCBI(file string) (*Taxonomy, error) {
 	return NewTaxonomy(file, 1, 3)
 }
 
-// NewTaxonomy loads nodes from nodes.dmp file,
-// for example,
+// NewTaxonomy loads nodes from nodes.dmp file.
 func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, error) {
 	if childColumn < 1 || parentColumn < 1 {
 		return nil, ErrIllegalColumnIndex
 	}
-	minColumns := childColumn
-	if parentColumn > minColumns {
-		minColumns = parentColumn
-	}
+	minColumns := minInt(childColumn, parentColumn)
 
 	// taxon represents a taxonomic node
 	type taxon struct {
@@ -79,7 +86,11 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	childColumn--
 	parentColumn--
 	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.Split(strings.TrimSpace(line), "\t")
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return nil, false, nil
+		}
+		items := strings.Split(line, "\t")
 		if len(items) < minColumns {
 			return nil, false, nil
 		}
@@ -107,7 +118,7 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	var maxTaxid uint32
 	for chunk := range reader.Ch {
 		if chunk.Err != nil {
-			return nil, fmt.Errorf("unikmer: %s", err)
+			return nil, fmt.Errorf("unikmer: %s", chunk.Err)
 		}
 		for _, data = range chunk.Data {
 			tax = data.(taxon)
@@ -124,6 +135,113 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
+}
+
+// NewTaxonomyWithRankFromNCBI parses Taxonomy from nodes.dmp
+// from ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz .
+func NewTaxonomyWithRankFromNCBI(file string) (*Taxonomy, error) {
+	return NewTaxonomyWithRank(file, 1, 3, 5)
+}
+
+// NewTaxonomyWithRank loads nodes and ranks from nodes.dmp file.
+func NewTaxonomyWithRank(file string, childColumn int, parentColumn int, rankColumn int) (*Taxonomy, error) {
+	if childColumn < 1 || parentColumn < 1 || rankColumn < 1 {
+		return nil, ErrIllegalColumnIndex
+	}
+	minColumns := minInt(childColumn, parentColumn, rankColumn)
+
+	// taxon represents a taxonomic node
+	type taxon struct {
+		Taxid  uint32
+		Parent uint32
+		Rank   string
+	}
+
+	childColumn--
+	parentColumn--
+	rankColumn--
+	parseFunc := func(line string) (interface{}, bool, error) {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return nil, false, nil
+		}
+		items := strings.Split(line, "\t")
+		if len(items) < minColumns {
+			return nil, false, nil
+		}
+		child, e := strconv.Atoi(items[childColumn])
+		if e != nil {
+			return nil, false, e
+		}
+		parent, e := strconv.Atoi(items[parentColumn])
+		if e != nil {
+			return nil, false, e
+		}
+		return taxon{Taxid: uint32(child), Parent: uint32(parent), Rank: items[rankColumn]}, true, nil
+	}
+
+	reader, err := breader.NewBufferedReader(file, 8, 100, parseFunc)
+	if err != nil {
+		return nil, fmt.Errorf("unikmer: %s", err)
+	}
+
+	nodes := make(map[uint32]uint32, 1024)
+	var root uint32
+
+	var tax taxon
+	var data interface{}
+	var maxTaxid uint32
+
+	taxid2rankid := make(map[uint32]uint8, 1024)
+	ranks := make([]string, 0, 100)
+	rank2rankid := make(map[string]int, 100)
+	ranksMap := make(map[string]interface{}, 100)
+
+	var ok bool
+	var rankid int
+	for chunk := range reader.Ch {
+		if chunk.Err != nil {
+			return nil, fmt.Errorf("unikmer: %s", chunk.Err)
+		}
+		for _, data = range chunk.Data {
+			tax = data.(taxon)
+
+			nodes[tax.Taxid] = tax.Parent
+
+			if tax.Taxid == tax.Parent {
+				root = tax.Taxid
+			}
+			if tax.Taxid > maxTaxid {
+				maxTaxid = tax.Taxid
+			}
+
+			if rankid, ok = rank2rankid[tax.Rank]; ok {
+				taxid2rankid[tax.Taxid] = uint8(rankid)
+			} else {
+				ranks = append(ranks, tax.Rank)
+				if len(ranks) > 255 {
+					return nil, ErrTooManyRanks
+				}
+				rank2rankid[tax.Rank] = len(ranks) - 1
+				taxid2rankid[tax.Taxid] = uint8(len(ranks) - 1)
+				ranksMap[tax.Rank] = struct{}{}
+			}
+		}
+	}
+
+	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid,
+		taxid2rankid: taxid2rankid, ranks: ranks, hasRanks: true, Ranks: ranksMap}, nil
+}
+
+// Rank returns rank of a taxid.
+func (t *Taxonomy) Rank(taxid uint32) string {
+	if !t.hasRanks {
+		panic(ErrRankNotLoaded)
+	}
+	if i, ok := t.taxid2rankid[taxid]; ok {
+		return t.ranks[int(i)]
+	}
+	return "" // taxid not found int db
 }
 
 // LoadMergedNodesFromNCBI loads merged nodes from  NCBI merged.dmp.
@@ -170,7 +288,7 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 	var data interface{}
 	for chunk := range reader.Ch {
 		if chunk.Err != nil {
-			return fmt.Errorf("unikmer: %s", err)
+			return fmt.Errorf("unikmer: %s", chunk.Err)
 		}
 
 		for _, data = range chunk.Data {
@@ -216,7 +334,7 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 	var data interface{}
 	for chunk := range reader.Ch {
 		if chunk.Err != nil {
-			return fmt.Errorf("unikmer: %s", err)
+			return fmt.Errorf("unikmer: %s", chunk.Err)
 		}
 
 		for _, data = range chunk.Data {
@@ -361,4 +479,14 @@ func pack2uint32(a uint32, b uint32) uint64 {
 		return (uint64(a) << 32) | uint64(b)
 	}
 	return (uint64(b) << 32) | uint64(a)
+}
+
+func minInt(a int, vals ...int) int {
+	min := a
+	for _, v := range vals {
+		if v < min {
+			min = v
+		}
+	}
+	return min
 }

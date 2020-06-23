@@ -116,7 +116,7 @@ Tips:
 						if opt.Verbose {
 							log.Infof("taxids found in file: %s", file)
 						}
-						taxondb = loadTaxonomy(opt)
+						taxondb = loadTaxonomy(opt, false)
 					}
 				} else {
 					if k != reader.K {

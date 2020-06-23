@@ -187,7 +187,7 @@ Tips:
 								log.Infof("taxids found in file: %s", file)
 							}
 							mt = make([]unikmer.CodeTaxid, 0, listInitSize)
-							taxondb = loadTaxonomy(opt)
+							taxondb = loadTaxonomy(opt, false)
 						} else {
 							m = make([]uint64, 0, listInitSize)
 						}

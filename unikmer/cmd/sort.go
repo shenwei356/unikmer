@@ -190,7 +190,7 @@ Tips:
 						}
 						mt = make([]unikmer.CodeTaxid, 0, listInitSize)
 						if unique || repeated {
-							taxondb = loadTaxonomy(opt)
+							taxondb = loadTaxonomy(opt, false)
 						}
 					} else {
 						m = make([]uint64, 0, listInitSize)

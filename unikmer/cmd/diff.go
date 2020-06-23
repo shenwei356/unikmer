@@ -123,7 +123,7 @@ Tips:
 				if opt.Verbose {
 					log.Infof("taxids found in file: %s", file)
 				}
-				taxondb = loadTaxonomy(opt)
+				taxondb = loadTaxonomy(opt, false)
 			} else {
 				log.Warningf("not taxids found in file: %s, flag -t/--compare-taxid ignored", file)
 			}

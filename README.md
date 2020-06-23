@@ -112,8 +112,9 @@ repeated k-mers.
         tsplit          Split k-mers according to taxid
         merge           Merge k-mers from sorted chunk files
 
-        filter          Filter low-complexity k-mers
         sample          Sample k-mers from binary files
+        filter          Filter low-complexity k-mers
+        rfilter         Filter k-mers by taxonomic rank
 
 1. Searching
 

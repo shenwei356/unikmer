@@ -141,7 +141,7 @@ var countCmd = &cobra.Command{
 
 		if parseTaxid {
 			mt = make(map[uint64]uint32, mapInitSize)
-			taxondb = loadTaxonomy(opt)
+			taxondb = loadTaxonomy(opt, false)
 		} else {
 			m = make(map[uint64]struct{}, mapInitSize)
 		}
