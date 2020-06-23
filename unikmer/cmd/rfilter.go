@@ -48,6 +48,7 @@ Attentions:
      used along with -E/--equal-to which values can be different.
   2. a list of pre-ordered ranks is in ~/.unikmer/ranks.txt, you can give
      your list by -r/--rank-file, with one rank per line.
+  3. taxids with no rank will be discarded.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -200,7 +201,12 @@ Attentions:
 						}
 						checkError(err)
 					}
+
 					rank = taxondb.Rank(taxid)
+					if rank == "" {
+						continue
+					}
+
 					pass, err = filter.rankFilter(rank)
 					checkError(err)
 					if !pass {
