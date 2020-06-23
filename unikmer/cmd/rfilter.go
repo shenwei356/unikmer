@@ -76,6 +76,9 @@ Attentions:
 		rankFile := getFlagString(cmd, "rank-file")
 		discardNorank := getFlagBool(cmd, "discard-norank")
 
+		rootTaxid := getFlagUint32(cmd, "root-taxid")
+		discardRoot := getFlagBool(cmd, "discard-root")
+
 		higher := getFlagString(cmd, "higher-than")
 		lower := getFlagString(cmd, "lower-than")
 		equal := getFlagString(cmd, "equal-to")
@@ -202,6 +205,10 @@ Attentions:
 						checkError(err)
 					}
 
+					if discardRoot && taxid == rootTaxid {
+						continue
+					}
+
 					rank = taxondb.Rank(taxid)
 					if rank == "" {
 						continue
@@ -243,8 +250,10 @@ func init() {
 	rfilterCmd.Flags().BoolP("list-order", "", false, "list defined ranks in order")
 	rfilterCmd.Flags().BoolP("list-ranks", "", false, "list ordered ranks in taxonomy database")
 
-	rfilterCmd.Flags().BoolP("discard-norank", "n", false, `discard "no rank", defined by --no-rank`)
+	rfilterCmd.Flags().BoolP("discard-norank", "N", false, `discard "no rank", defined by --no-rank`)
 	rfilterCmd.Flags().StringP("no-rank", "", "no rank", `value of "no rank"`)
+	rfilterCmd.Flags().BoolP("discard-root", "R", false, `discard root taxid,defined by --root-taxid`)
+	rfilterCmd.Flags().Uint32P("root-taxid", "", 1, `root taxid`)
 
 	rfilterCmd.Flags().StringP("lower-than", "L", "", "output ranks lower than a rank, exclusive with --higher-than")
 	rfilterCmd.Flags().StringP("higher-than", "H", "", "output ranks higher than a rank, exclusive with --lower-than")
@@ -328,6 +337,10 @@ func getRankOrder(db *unikmer.Taxonomy, rankOrder map[string]int, rank string) (
 }
 
 func (f *rankFilter) rankFilter(rank string) (bool, error) {
+	if f.discardNoank && rank == f.noRank {
+		return false, nil
+	}
+
 	pass := false
 	order, err := getRankOrder(f.db, f.rankOrder, rank)
 	if err != nil {
@@ -350,10 +363,6 @@ func (f *rankFilter) rankFilter(rank string) (bool, error) {
 		pass = order > f.oHigher
 	} else {
 		pass = true // no any filter
-	}
-
-	if pass && f.discardNoank && rank == f.noRank {
-		pass = false
 	}
 
 	return pass, nil
