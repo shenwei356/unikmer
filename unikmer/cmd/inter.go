@@ -38,10 +38,9 @@ var interCmd = &cobra.Command{
 	Long: `Intersection of multiple binary files
 
 Attentions:
-  0. All input files should be sorted.
+  0. All input files should be sorted, and output file is sorted.
   1. The 'canonical' flags of all files should be consistent.
-  2. Input files should ALL have or don't have taxid information.
-  3. Output file is sorted.
+  2. Taxid information could be inconsistent when using flag --mix-taxid.
   
 Tips:
   1. For comparing TWO files with really huge number of k-mers,
@@ -72,6 +71,8 @@ Tips:
 		var nfiles = len(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
+		mixTaxid := getFlagBool(cmd, "mix-taxid")
+		var hasMixTaxid bool
 
 		var taxondb *unikmer.Taxonomy
 
@@ -126,7 +127,12 @@ Tips:
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						if reader.HasTaxidInfo() {
+						if mixTaxid {
+							hasMixTaxid = true
+							if opt.Verbose {
+								log.Infof("part of files have no taxid information")
+							}
+						} else if reader.HasTaxidInfo() {
 							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
 						} else {
 							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
@@ -190,9 +196,18 @@ Tips:
 						qCode = mc[ii].Code
 						qtaxid = mc[ii].Taxid
 					} else if qCode == code {
-						if hasTaxid {
+						if hasMixTaxid {
+							if qtaxid == 0 {
+								mc[ii].Taxid = taxid
+							} else if taxid == 0 {
+								mc[ii].Taxid = qtaxid
+							} else {
+								mc[ii].Taxid = taxondb.LCA(qtaxid, taxid)
+							}
+						} else if hasTaxid {
 							mc[ii].Taxid = taxondb.LCA(qtaxid, taxid)
 						}
+
 						m[ii] = true
 						n++
 
@@ -281,7 +296,7 @@ Tips:
 		if canonical {
 			mode |= unikmer.UNIK_CANONICAL
 		}
-		if hasTaxid {
+		if hasTaxid || hasMixTaxid {
 			mode |= unikmer.UNIK_INCLUDETAXID
 		}
 
@@ -291,7 +306,7 @@ Tips:
 
 		writer.Number = int64(len(mc))
 
-		if hasTaxid {
+		if hasTaxid || hasMixTaxid {
 			for _, ct := range mc {
 				writer.WriteCodeWithTaxid(ct.Code, ct.Taxid)
 			}
@@ -312,4 +327,5 @@ func init() {
 	RootCmd.AddCommand(interCmd)
 
 	interCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	interCmd.Flags().BoolP("mix-taxid", "m", false, `allow part of files being whithout taxids`)
 }

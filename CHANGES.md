@@ -1,5 +1,6 @@
 - v0.11.0
-    - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank
+    - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
+    - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.
 - v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:

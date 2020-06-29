@@ -50,6 +50,8 @@ Attentions:
 Tips:
   1. Increase value of '-j' for better performance when dealing with
      lots of files, especially on SDD.
+  2. For searching using binary .unik file, use 'unikmer inter --mix-taxid',
+     which is faster than 'unikmer grep' in single-thread mode.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
