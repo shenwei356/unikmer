@@ -316,9 +316,6 @@ var countCmd = &cobra.Command{
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
-			if taxid > 0 {
-				checkError(writer.SetGlobalTaxid(taxid))
-			}
 
 			if parseTaxid {
 				n = int64(len(mt))

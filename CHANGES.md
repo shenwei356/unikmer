@@ -2,7 +2,9 @@
     - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
     - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.
     - `unikmer dump`: fix a nil pointer bug.
-    - `unikmer count`: fix checking taxid in sequence header.
+    - `unikmer count`:
+        - fix checking taxid in sequence header.
+        - disable global taxid when using parsing taxid from sequence header.
 - v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:
