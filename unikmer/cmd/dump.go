@@ -175,8 +175,8 @@ Attentions:
 							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
-						writer.SetMaxTaxid(opt.MaxTaxid)
 						checkError(err)
+						writer.SetMaxTaxid(opt.MaxTaxid)
 						if !includeTaxid && hasGlobalTaxid {
 							checkError(writer.SetGlobalTaxid(taxid))
 						}

@@ -185,6 +185,9 @@ var countCmd = &cobra.Command{
 						checkError(fmt.Errorf("failed to parse taxid in header: %s", record.Name))
 					}
 					val, err = strconv.ParseUint(string(founds[0][1]), 10, 32)
+					if err != nil {
+						checkError(fmt.Errorf("failed to parse taxid '%s' in header: %s", founds[0][1], record.Name))
+					}
 					taxid = uint32(val)
 				}
 
