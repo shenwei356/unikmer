@@ -64,6 +64,11 @@ var countCmd = &cobra.Command{
 		parseTaxidRegexp := getFlagString(cmd, "parse-taxid-regexp")
 
 		repeated := getFlagBool(cmd, "repeated")
+		moreVerbose := getFlagBool(cmd, "more-verbose")
+
+		if moreVerbose {
+			opt.Verbose = true
+		}
 
 		var reParseTaxid *regexp.Regexp
 		if parseTaxid {
@@ -192,7 +197,7 @@ var countCmd = &cobra.Command{
 				}
 
 				nseq++
-				if opt.Verbose {
+				if opt.Verbose && moreVerbose {
 					if parseTaxid {
 						log.Infof("processing sequence #%d: %s, taxid: %d", nseq, record.ID, taxid)
 					} else {
@@ -335,24 +340,23 @@ var countCmd = &cobra.Command{
 			}
 		} else {
 			if parseTaxid {
-				codesTaxids := make([]unikmer.CodeTaxid, len(mt))
+				codes := make([]uint64, len(mt))
 
 				i := 0
-				for code, taxid := range mt {
-					codesTaxids[i] = unikmer.CodeTaxid{Code: code, Taxid: taxid}
+				for code = range mt {
+					codes[i] = code
 					i++
 				}
 
 				if opt.Verbose {
-					log.Infof("sorting %d k-mers", len(codesTaxids))
+					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+				sort.Sort(unikmer.CodeSlice(codes))
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}
-
-				for _, codeT := range codesTaxids {
-					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				for _, code = range codes {
+					writer.WriteCodeWithTaxid(code, mt[code])
 				}
 				n = int64(len(mt))
 			} else {
@@ -372,7 +376,7 @@ var countCmd = &cobra.Command{
 					log.Infof("done sorting")
 				}
 
-				for _, code := range codes {
+				for _, code = range codes {
 					writer.WriteCode(code)
 				}
 				n = int64(len(m))
@@ -398,4 +402,5 @@ func init() {
 	countCmd.Flags().BoolP("parse-taxid", "T", false, `parse taxid from FASTA/Q header`)
 	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
 	countCmd.Flags().BoolP("repeated", "d", false, `only count duplicated k-mers, for removing singleton in FASTQ`)
+	countCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 }

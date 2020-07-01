@@ -235,24 +235,23 @@ Tips:
 			}
 		} else {
 			if hasTaxid {
-				codesTaxids := make([]unikmer.CodeTaxid, len(mt))
+				codes := make([]uint64, len(mt))
 
 				i := 0
-				for code, taxid := range mt {
-					codesTaxids[i] = unikmer.CodeTaxid{Code: code, Taxid: taxid}
+				for code = range mt {
+					codes[i] = code
 					i++
 				}
 
 				if opt.Verbose {
-					log.Infof("sorting %d k-mers", len(codesTaxids))
+					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+				sort.Sort(unikmer.CodeSlice(codes))
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}
-
-				for _, codeT := range codesTaxids {
-					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+				for _, code = range codes {
+					writer.WriteCodeWithTaxid(code, mt[code])
 				}
 				n = len(mt)
 			} else {
@@ -272,7 +271,7 @@ Tips:
 					log.Infof("done sorting")
 				}
 
-				for _, code := range codes {
+				for _, code = range codes {
 					writer.WriteCode(code)
 				}
 				n = len(m)

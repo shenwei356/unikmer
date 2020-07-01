@@ -570,24 +570,27 @@ Tips:
 			checkError(writer.WriteHeader())
 		} else {
 			if sortKmers {
-				codes := make([]unikmer.CodeTaxid, len(m0))
+				codes := make([]uint64, len(m0))
+
 				i := 0
-				for code, taxid := range m0 {
-					codes[i] = unikmer.CodeTaxid{Code: code, Taxid: taxid}
+				for code = range m0 {
+					codes[i] = code
 					i++
 				}
+
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeTaxidSlice(codes))
+				sort.Sort(unikmer.CodeSlice(codes))
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}
-				for _, codeT := range codes {
-					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
+
+				for _, code = range codes {
+					writer.WriteCodeWithTaxid(code, m0[code])
 				}
 			} else {
-				for code, taxid := range m0 {
+				for code, taxid = range m0 {
 					writer.WriteCodeWithTaxid(code, taxid)
 				}
 			}
