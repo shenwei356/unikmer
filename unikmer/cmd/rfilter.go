@@ -74,7 +74,9 @@ Attentions:
 		outFile := getFlagString(cmd, "out-prefix")
 
 		rankFile := getFlagString(cmd, "rank-file")
-		discardNorank := getFlagBool(cmd, "discard-norank")
+
+		discardRanks := getFlagBool(cmd, "discard-ranks")
+		blackListRanks := getFlagStringSlice(cmd, "black-list")
 
 		rootTaxid := getFlagUint32(cmd, "root-taxid")
 		discardRoot := getFlagBool(cmd, "discard-root")
@@ -82,7 +84,6 @@ Attentions:
 		higher := getFlagString(cmd, "higher-than")
 		lower := getFlagString(cmd, "lower-than")
 		equal := getFlagString(cmd, "equal-to")
-		noRank := getFlagString(cmd, "no-rank")
 
 		listOrder := getFlagBool(cmd, "list-order")
 		listRanks := getFlagBool(cmd, "list-ranks")
@@ -109,6 +110,22 @@ Attentions:
 
 		taxondb := loadTaxonomy(opt, true)
 
+		if opt.Verbose {
+			log.Infof("checking defined taxonomic rank order")
+		}
+		notDefined := make([]string, 0, 10)
+		for rank := range taxondb.Ranks {
+			if _, ok := rankOrder[rank]; !ok {
+				notDefined = append(notDefined, rank)
+			}
+		}
+		if len(notDefined) > 0 {
+			checkError(fmt.Errorf("rank order not defined in rank file: %s", strings.Join(notDefined, ", ")))
+		}
+		if opt.Verbose {
+			log.Infof("checking defined taxonomic rank order passed")
+		}
+
 		if listRanks {
 			orders := make([]stringutil.StringCount, 0, len(taxondb.Ranks))
 			var ok bool
@@ -126,7 +143,7 @@ Attentions:
 			return
 		}
 
-		filter, err := newRankFilter(taxondb, rankOrder, lower, higher, equal, noRank, discardNorank)
+		filter, err := newRankFilter(taxondb, rankOrder, lower, higher, equal, blackListRanks, discardRanks)
 		checkError(err)
 
 		if !isStdout(outFile) {
@@ -214,7 +231,7 @@ Attentions:
 						continue
 					}
 
-					pass, err = filter.rankFilter(rank)
+					pass, err = filter.isPassed(rank)
 					checkError(err)
 					if !pass {
 						continue
@@ -250,8 +267,8 @@ func init() {
 	rfilterCmd.Flags().BoolP("list-order", "", false, "list defined ranks in order")
 	rfilterCmd.Flags().BoolP("list-ranks", "", false, "list ordered ranks in taxonomy database")
 
-	rfilterCmd.Flags().BoolP("discard-norank", "N", false, `discard "no rank", defined by --no-rank`)
-	rfilterCmd.Flags().StringP("no-rank", "", "no rank", `value of "no rank"`)
+	rfilterCmd.Flags().BoolP("discard-ranks", "N", false, `discard extra ranks, defined by --black-list`)
+	rfilterCmd.Flags().StringSliceP("black-list", "B", []string{"no rank", "clade"}, `black list of ranks to discard`)
 	rfilterCmd.Flags().BoolP("discard-root", "R", false, `discard root taxid,defined by --root-taxid`)
 	rfilterCmd.Flags().Uint32P("root-taxid", "", 1, `root taxid`)
 
@@ -276,13 +293,17 @@ type rankFilter struct {
 	limitHigher bool
 	limitEqual  bool
 
-	noRank       string
+	blackLists   map[string]interface{}
 	discardNoank bool
 }
 
-func newRankFilter(db *unikmer.Taxonomy, rankOrder map[string]int, lower, higher, equal, noRank string, discardNorank bool) (*rankFilter, error) {
+func newRankFilter(db *unikmer.Taxonomy, rankOrder map[string]int, lower, higher, equal string, blackList []string, discardRanks bool) (*rankFilter, error) {
 	if lower != "" && higher != "" {
 		return nil, fmt.Errorf("higher and lower can't be simultaneous given")
+	}
+	blackListMap := make(map[string]interface{})
+	for _, r := range blackList {
+		blackListMap[r] = struct{}{}
 	}
 	f := &rankFilter{
 		db:           db,
@@ -290,8 +311,8 @@ func newRankFilter(db *unikmer.Taxonomy, rankOrder map[string]int, lower, higher
 		lower:        lower,
 		higher:       higher,
 		equal:        equal,
-		noRank:       noRank,
-		discardNoank: discardNorank,
+		blackLists:   blackListMap,
+		discardNoank: discardRanks,
 	}
 	var err error
 	if lower != "" {
@@ -315,12 +336,6 @@ func newRankFilter(db *unikmer.Taxonomy, rankOrder map[string]int, lower, higher
 		}
 		f.limitEqual = true
 	}
-	if noRank != "" {
-		_, err = getRankOrder(db, rankOrder, noRank)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return f, nil
 }
 
@@ -336,16 +351,22 @@ func getRankOrder(db *unikmer.Taxonomy, rankOrder map[string]int, rank string) (
 	return rankOrder[rank], nil
 }
 
-func (f *rankFilter) rankFilter(rank string) (bool, error) {
-	if f.discardNoank && rank == f.noRank {
-		return false, nil
+func (f *rankFilter) isPassed(rank string) (bool, error) {
+	if f.discardNoank {
+		if _, ok := f.blackLists[rank]; ok {
+			return false, nil
+		}
 	}
 
 	pass := false
-	order, err := getRankOrder(f.db, f.rankOrder, rank)
-	if err != nil {
-		return false, fmt.Errorf("query rank: %s", err)
-	}
+
+	// Don't have to check rank again, because valid rank is assigned before calling isPassed.
+	//
+	// order, err := getRankOrder(f.db, f.rankOrder, rank)
+	// if err != nil {
+	// 	return false, fmt.Errorf("query rank: %s", err)
+	// }
+	order := f.rankOrder[rank]
 
 	if f.limitEqual {
 		if f.oEqual == order {
@@ -524,6 +545,15 @@ species subgroup
 superspecies
 species
 subspecies
+forma specialis
+
+pathogroup
+serogroup
+serotype
+genotype
+strain
+morph
+
 varietas
 variety
 subvarietas
@@ -533,6 +563,10 @@ form
 subforma
 subform
 
+isolate
+biotype
+
 no rank
+clade
 
 `
