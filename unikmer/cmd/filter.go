@@ -69,6 +69,8 @@ Attentions:
 		threshold := getFlagNonNegativeInt(cmd, "threshold")
 		invert := getFlagBool(cmd, "invert")
 		window := getFlagPositiveInt(cmd, "window")
+		penaltyS := getFlagInt(cmd, "penalty-s")
+		penaltyD := getFlagInt(cmd, "penalty-d")
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -141,7 +143,7 @@ Attentions:
 						checkError(err)
 					}
 
-					hit = filterCode(code, k, threshold, window, scores)
+					hit = filterCode(code, k, penaltyS, penaltyD, threshold, window, &scores)
 
 					if invert {
 						if !hit {
@@ -176,13 +178,14 @@ func init() {
 	RootCmd.AddCommand(filterCmd)
 
 	filterCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	filterCmd.Flags().IntP("threshold", "t", 14, `score threshold for filter`)
-	filterCmd.Flags().IntP("window", "w", 10, `window size for checking score`)
 	filterCmd.Flags().BoolP("invert", "v", false, `invert result, i.e., output low-complexity k-mers`)
+	filterCmd.Flags().IntP("threshold", "t", 15, `penalty threshold for filter, higher is stricter`)
+	filterCmd.Flags().IntP("window", "w", 7, `window size for checking penalty`)
+	filterCmd.Flags().IntP("penalty-s", "s", 3, `penalty for successive bases`)
+	filterCmd.Flags().IntP("penalty-d", "d", 1, `penalty for different bases`)
 }
 
-func filterCode(code uint64, k int, threshold int, window int, scores []int) bool {
-	// code0 := code
+func filterCode(code uint64, k int, penaltyS int, penaltyD int, threshold int, window int, scores *[]int) bool {
 	// compute scores
 	var last, c uint64
 	last = 356
@@ -190,16 +193,17 @@ func filterCode(code uint64, k int, threshold int, window int, scores []int) boo
 		c = code & 3
 		if i > 0 {
 			if c == last {
-				scores[i] = 2
+				(*scores)[i] = penaltyS // successive
 			} else {
-				scores[i] = -1
+				(*scores)[i] = penaltyD // different
 			}
 		} else {
-			scores[i] = 1
+			(*scores)[i] = penaltyD
 		}
 		last = c
 		code >>= 2
 	}
+
 	// check score in sliding window
 	var s, pre int
 	iLast := k - window - 1
@@ -209,16 +213,16 @@ func filterCode(code uint64, k int, threshold int, window int, scores []int) boo
 	for i := 0; i <= iLast; i++ {
 		if i == 0 {
 			for j := 0; j < window; j++ {
-				s += scores[j]
+				s += (*scores)[j]
 			}
 		} else { // update score
-			s = s - pre + scores[i+window-1]
+			s = s - pre + (*scores)[i+window-1]
 		}
-		pre = scores[i]
-		// fmt.Printf("%s, %d, %d\n", unikmer.KmerCode{code0, k}, i, s)
+		pre = (*scores)[i]
 		if s >= threshold {
 			return true
 		}
 	}
+
 	return false
 }
