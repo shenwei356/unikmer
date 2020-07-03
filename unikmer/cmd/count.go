@@ -59,6 +59,7 @@ var countCmd = &cobra.Command{
 		sortKmers := getFlagBool(cmd, "sort")
 
 		taxid := getFlagUint32(cmd, "taxid")
+		var setGlobalTaxid bool
 
 		parseTaxid := getFlagBool(cmd, "parse-taxid")
 		parseTaxidRegexp := getFlagString(cmd, "parse-taxid-regexp")
@@ -86,6 +87,8 @@ var countCmd = &cobra.Command{
 			if err != nil {
 				checkError(fmt.Errorf("invalid regular express: %s", parseTaxidRegexp))
 			}
+		} else if taxid > 0 {
+			setGlobalTaxid = true
 		}
 
 		if opt.Verbose {
@@ -116,6 +119,10 @@ var countCmd = &cobra.Command{
 		var mode uint32
 		var writer *unikmer.Writer
 
+		if setGlobalTaxid && opt.Verbose {
+			log.Infof("set global taxid: %d", taxid)
+		}
+
 		if !parseTaxid && !sortKmers {
 			if sortKmers {
 				mode |= unikmer.UNIK_SORTED
@@ -131,7 +138,7 @@ var countCmd = &cobra.Command{
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
-			if taxid > 0 {
+			if setGlobalTaxid {
 				checkError(writer.SetGlobalTaxid(taxid))
 			}
 		}
@@ -309,18 +316,23 @@ var countCmd = &cobra.Command{
 
 		if sortKmers || parseTaxid {
 			var mode uint32
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			} else if opt.Compact {
+				mode |= unikmer.UNIK_COMPACT
+			}
 			if canonical {
 				mode |= unikmer.UNIK_CANONICAL
 			}
 			if parseTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
 			}
-			if sortKmers {
-				mode |= unikmer.UNIK_SORTED
-			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
+			if setGlobalTaxid {
+				checkError(writer.SetGlobalTaxid(taxid))
+			}
 
 			if parseTaxid {
 				n = int64(len(mt))
@@ -328,6 +340,7 @@ var countCmd = &cobra.Command{
 				n = int64(len(m))
 			}
 			writer.Number = int64(n)
+
 		}
 
 		var code uint64
