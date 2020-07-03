@@ -104,7 +104,7 @@ func init() {
 	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller taxids, we can use less space to store taxids. default value is 1<<32-1, that's enough for NCBI Taxonomy taxids")
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
 	RootCmd.PersistentFlags().StringP("data-dir", "", defaultDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
-	// RootCmd.PersistentFlags().BoolP("cache-lca", "", false, "cache LCA queries")
+
 }
 
 const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overwrites global flag -c/--compact"

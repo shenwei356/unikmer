@@ -140,7 +140,6 @@ Tips:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader *unikmer.Reader
-		// var nUnequalK, nNotConsC, nNotSorted int
 		var k int = -1
 		var canonical bool
 		var hasTaxid bool
@@ -203,9 +202,6 @@ Tips:
 
 			}()
 		}
-		// if nNotSorted > 0 || nUnequalK > 0 || nNotConsC > 0 {
-		// 	checkError(fmt.Errorf("please check chunk files: %d with different K, %d with different canonical flag, %d not sorted", nUnequalK, nNotConsC, nNotSorted))
-		// }
 
 		files = _files
 
