@@ -6,6 +6,7 @@
         - fix checking taxid in sequence header.
         - fix setting global taxid.
     - `unikmer count/diff/union`: slightly reduce memory and speedup when sorting k-mers.
+    - `unikmer filter`: change scoring.
 - v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:
