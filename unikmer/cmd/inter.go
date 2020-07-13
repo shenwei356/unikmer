@@ -91,6 +91,30 @@ Tips:
 		var taxid uint32
 		var flag int
 
+		if len(files) == 1 {
+			log.Infof("directly copy the only one input file to output file")
+			infh, r, _, err = inStream(files[0])
+			checkError(err)
+			defer r.Close()
+
+			if !isStdout(outFile) {
+				outFile += extDataFile
+			}
+			outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
+			checkError(err)
+			defer func() {
+				outfh.Flush()
+				if gw != nil {
+					gw.Close()
+				}
+				w.Close()
+			}()
+
+			_, err = io.Copy(outfh, infh)
+			checkError(err)
+			return
+		}
+
 		// checking files
 		for _, file := range files {
 			if isStdin(file) {
