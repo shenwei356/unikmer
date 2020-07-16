@@ -116,7 +116,7 @@ Attentions:
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					var mode uint32
-					if sortedKmers {
+					if sortedKmers { // || (len(files) == 1 && reader.IsSorted()) {
 						mode |= unikmer.UNIK_SORTED
 					} else if opt.Compact {
 						mode |= unikmer.UNIK_COMPACT

@@ -94,7 +94,9 @@ Tips:
 		var r *os.File
 
 		if len(files) == 1 {
-			log.Infof("directly copy the only one input file to output file")
+			if opt.Verbose {
+				log.Infof("directly copy the only one input file to output file")
+			}
 			infh, r, _, err = inStream(files[0])
 			checkError(err)
 			defer r.Close()

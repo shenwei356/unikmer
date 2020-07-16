@@ -47,8 +47,14 @@ Attentions:
   1. flag -L/--lower-than and -H/--higher-than are exclusive, and can be
      used along with -E/--equal-to which values can be different.
   2. a list of pre-ordered ranks is in ~/.unikmer/ranks.txt, you can give
-     your list by -r/--rank-file, with one rank per line.
+     your list by -r/--rank-file, the format specification is below.
   3. taxids with no rank will be discarded.
+
+Rank file:
+  1. Blank lines or lines starting with "#" are ignored.
+  2. Ranks are in decending order and case ignored.
+  3. Ranks with same order should be in one line separated with comma (",", no space).
+  4. Ranks without order should be assigning a prefix symbol "!" for each rank.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -75,15 +81,15 @@ Attentions:
 
 		rankFile := getFlagString(cmd, "rank-file")
 
-		discardRanks := getFlagBool(cmd, "discard-ranks")
+		discardNoRank := getFlagBool(cmd, "discard-noranks")
 		blackListRanks := getFlagStringSlice(cmd, "black-list")
 
 		rootTaxid := getFlagUint32(cmd, "root-taxid")
 		discardRoot := getFlagBool(cmd, "discard-root")
 
-		higher := getFlagString(cmd, "higher-than")
-		lower := getFlagString(cmd, "lower-than")
-		equal := getFlagString(cmd, "equal-to")
+		higher := strings.ToLower(getFlagString(cmd, "higher-than"))
+		lower := strings.ToLower(getFlagString(cmd, "lower-than"))
+		equal := strings.ToLower(getFlagString(cmd, "equal-to"))
 
 		listOrder := getFlagBool(cmd, "list-order")
 		listRanks := getFlagBool(cmd, "list-ranks")
@@ -92,7 +98,7 @@ Attentions:
 			checkError(fmt.Errorf("-H/--higher-than and -L/--lower-than can't be simultaneous given"))
 		}
 
-		rankOrder, err := readRankOrder(opt, rankFile)
+		rankOrder, noRanks, err := readRankOrder(opt, rankFile)
 		checkError(err)
 
 		if listOrder {
@@ -101,10 +107,20 @@ Attentions:
 				orders = append(orders, stringutil.StringCount{Key: r, Count: o})
 			}
 			sort.Sort(stringutil.ReversedStringCountList{orders})
+			preOrder := -1
 			for _, order := range orders {
 				// fmt.Printf("%d\t%s\n", order.Count, order.Key)
-				fmt.Printf("%s\n", order.Key)
+				if order.Count == preOrder {
+					fmt.Printf(",%s", order.Key)
+				} else {
+					if preOrder != -1 {
+						fmt.Println()
+					}
+					fmt.Printf("%s", order.Key)
+					preOrder = order.Count
+				}
 			}
+			fmt.Println()
 			return
 		}
 
@@ -116,7 +132,9 @@ Attentions:
 		notDefined := make([]string, 0, 10)
 		for rank := range taxondb.Ranks {
 			if _, ok := rankOrder[rank]; !ok {
-				notDefined = append(notDefined, rank)
+				if _, ok := noRanks[rank]; !ok {
+					notDefined = append(notDefined, rank)
+				}
 			}
 		}
 		if len(notDefined) > 0 {
@@ -131,7 +149,9 @@ Attentions:
 			var ok bool
 			for rank := range taxondb.Ranks {
 				if _, ok = rankOrder[rank]; !ok {
-					checkError(fmt.Errorf("rank order not defined: %s", rank))
+					if _, ok := noRanks[rank]; !ok {
+						checkError(fmt.Errorf("rank order not defined: %s", rank))
+					}
 				}
 				orders = append(orders, stringutil.StringCount{Key: rank, Count: rankOrder[rank]})
 			}
@@ -143,7 +163,7 @@ Attentions:
 			return
 		}
 
-		filter, err := newRankFilter(taxondb, rankOrder, lower, higher, equal, blackListRanks, discardRanks)
+		filter, err := newRankFilter(taxondb.Ranks, rankOrder, noRanks, lower, higher, equal, blackListRanks, discardNoRank)
 		checkError(err)
 
 		if !isStdout(outFile) {
@@ -263,13 +283,13 @@ func init() {
 	RootCmd.AddCommand(rfilterCmd)
 
 	rfilterCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	rfilterCmd.Flags().StringP("rank-file", "r", "", "user-defined ordered taxonomic ranks")
+	rfilterCmd.Flags().StringP("rank-file", "r", "", `user-defined ordered taxonomic ranks, type "unikmer rfilter --help" for details`)
 	rfilterCmd.Flags().BoolP("list-order", "", false, "list defined ranks in order")
 	rfilterCmd.Flags().BoolP("list-ranks", "", false, "list ordered ranks in taxonomy database")
 
-	rfilterCmd.Flags().BoolP("discard-ranks", "N", false, `discard extra ranks, defined by --black-list`)
+	rfilterCmd.Flags().BoolP("discard-noranks", "N", false, `discard ranks without order, type "unikmer rfilter --help" for details`)
 	rfilterCmd.Flags().StringSliceP("black-list", "B", []string{"no rank", "clade"}, `black list of ranks to discard`)
-	rfilterCmd.Flags().BoolP("discard-root", "R", false, `discard root taxid,defined by --root-taxid`)
+	rfilterCmd.Flags().BoolP("discard-root", "R", false, `discard root taxid, defined by --root-taxid`)
 	rfilterCmd.Flags().Uint32P("root-taxid", "", 1, `root taxid`)
 
 	rfilterCmd.Flags().StringP("lower-than", "L", "", "output ranks lower than a rank, exclusive with --higher-than")
@@ -278,7 +298,7 @@ func init() {
 }
 
 type rankFilter struct {
-	db        *unikmer.Taxonomy
+	dbRanks   map[string]interface{}
 	rankOrder map[string]int
 
 	lower  string
@@ -293,44 +313,53 @@ type rankFilter struct {
 	limitHigher bool
 	limitEqual  bool
 
-	blackLists   map[string]interface{}
-	discardNoank bool
+	noRanks    map[string]interface{}
+	blackLists map[string]interface{}
+
+	discardNorank bool
+
+	cache map[string]bool
 }
 
-func newRankFilter(db *unikmer.Taxonomy, rankOrder map[string]int, lower, higher, equal string, blackList []string, discardRanks bool) (*rankFilter, error) {
+func newRankFilter(dbRanks map[string]interface{}, rankOrder map[string]int, noRanks map[string]interface{},
+	lower, higher, equal string, blackList []string, discardNorank bool) (*rankFilter, error) {
+
 	if lower != "" && higher != "" {
 		return nil, fmt.Errorf("higher and lower can't be simultaneous given")
 	}
+
 	blackListMap := make(map[string]interface{})
 	for _, r := range blackList {
 		blackListMap[r] = struct{}{}
 	}
 	f := &rankFilter{
-		db:           db,
-		rankOrder:    rankOrder,
-		lower:        lower,
-		higher:       higher,
-		equal:        equal,
-		blackLists:   blackListMap,
-		discardNoank: discardRanks,
+		dbRanks:       dbRanks,
+		rankOrder:     rankOrder,
+		lower:         lower,
+		higher:        higher,
+		equal:         equal,
+		noRanks:       noRanks,
+		blackLists:    blackListMap,
+		discardNorank: discardNorank,
+		cache:         make(map[string]bool, 1024),
 	}
 	var err error
 	if lower != "" {
-		f.oLower, err = getRankOrder(db, rankOrder, lower)
+		f.oLower, err = getRankOrder(dbRanks, rankOrder, lower)
 		if err != nil {
 			return nil, err
 		}
 		f.limitLower = true
 	}
 	if higher != "" {
-		f.oHigher, err = getRankOrder(db, rankOrder, higher)
+		f.oHigher, err = getRankOrder(dbRanks, rankOrder, higher)
 		if err != nil {
 			return nil, err
 		}
 		f.limitHigher = true
 	}
 	if equal != "" {
-		f.oEqual, err = getRankOrder(db, rankOrder, equal)
+		f.oEqual, err = getRankOrder(dbRanks, rankOrder, equal)
 		if err != nil {
 			return nil, err
 		}
@@ -339,12 +368,12 @@ func newRankFilter(db *unikmer.Taxonomy, rankOrder map[string]int, lower, higher
 	return f, nil
 }
 
-func getRankOrder(db *unikmer.Taxonomy, rankOrder map[string]int, rank string) (int, error) {
+func getRankOrder(dbRanks map[string]interface{}, rankOrder map[string]int, rank string) (int, error) {
 	var ok bool
 	if _, ok = rankOrder[rank]; !ok {
 		return -1, fmt.Errorf("rank order not defined in rank file: %s", rank)
 	}
-	if _, ok = db.Ranks[rank]; !ok {
+	if _, ok = dbRanks[rank]; !ok {
 		return -1, fmt.Errorf("rank order not found in taxonomy database: %s", rank)
 	}
 
@@ -352,21 +381,30 @@ func getRankOrder(db *unikmer.Taxonomy, rankOrder map[string]int, rank string) (
 }
 
 func (f *rankFilter) isPassed(rank string) (bool, error) {
-	if f.discardNoank {
-		if _, ok := f.blackLists[rank]; ok {
+	rank = strings.ToLower(rank)
+
+	if v, ok := f.cache[rank]; ok {
+		return v, nil
+	}
+
+	if f.discardNorank {
+		if _, ok := f.noRanks[rank]; ok {
+			f.cache[rank] = false
 			return false, nil
 		}
 	}
 
+	if _, ok := f.blackLists[rank]; ok {
+		f.cache[rank] = false
+		return false, nil
+	}
+
 	pass := false
 
-	// Don't have to check rank again, because valid rank is assigned before calling isPassed.
-	//
-	// order, err := getRankOrder(f.db, f.rankOrder, rank)
-	// if err != nil {
-	// 	return false, fmt.Errorf("query rank: %s", err)
-	// }
-	order := f.rankOrder[rank]
+	order, ok := f.rankOrder[rank]
+	if !ok {
+		return false, fmt.Errorf("rank order not defined in rank file: %s", rank)
+	}
 
 	if f.limitEqual {
 		if f.oEqual == order {
@@ -386,48 +424,71 @@ func (f *rankFilter) isPassed(rank string) (bool, error) {
 		pass = true // no any filter
 	}
 
+	f.cache[rank] = pass
 	return pass, nil
 }
 
-func readRankOrderFromFile(file string) (map[string]int, error) {
+func readRankOrderFromFile(file string) (map[string]int, map[string]interface{}, error) {
 	fh, err := os.Open(file)
 	if err != nil {
-		return nil, fmt.Errorf("read rank order list from '%s': %s", file, err)
+		return nil, nil, fmt.Errorf("read rank order list from '%s': %s", file, err)
 	}
 
-	ranks := make([]string, 0, 100)
+	ranks := make([][]string, 0, 128)
+	noranks := make(map[string]interface{}, 10)
 
 	scanner := bufio.NewScanner(fh)
-	var rank string
+	var record, item string
 	for scanner.Scan() {
-		rank = strings.TrimSpace(scanner.Text())
-		if rank == "" || rank[0] == '#' {
+		record = strings.TrimSpace(scanner.Text())
+		if record == "" || record[0] == '#' {
 			continue
 		}
 
-		ranks = append(ranks, rank)
+		items := make([]string, 0, 1)
+
+		for _, item = range strings.Split(record, ",") {
+			if len(item) == 0 {
+				continue
+			}
+			item = strings.ToLower(strings.TrimSpace(item))
+
+			if item[0] == '!' {
+				noranks[item[1:]] = struct{}{}
+			} else {
+				items = append(items, item)
+			}
+		}
+
+		if len(items) > 0 {
+			ranks = append(ranks, items)
+		}
 	}
 	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("read rank order list from '%s': %s", file, err)
+		return nil, nil, fmt.Errorf("read rank order list from '%s': %s", file, err)
 	}
 
 	if len(ranks) == 0 {
-		return nil, fmt.Errorf("no ranks found in file: %s", file)
+		return nil, nil, fmt.Errorf("no ranks found in file: %s", file)
 	}
+
 	rankOrder := make(map[string]int, len(ranks))
-	order := 0
+	order := 1
 	var ok bool
+	var rank string
 	for i := len(ranks) - 1; i >= 0; i-- {
-		if _, ok = rankOrder[ranks[i]]; ok {
-			return nil, fmt.Errorf("duplicated rank: %s", ranks[i])
+		for _, rank = range ranks[i] {
+			if _, ok = rankOrder[rank]; ok {
+				return nil, nil, fmt.Errorf("duplicated rank: %s", ranks[i])
+			}
+			rankOrder[rank] = order
 		}
-		rankOrder[ranks[i]] = order
 		order++
 	}
-	return rankOrder, nil
+	return rankOrder, noranks, nil
 }
 
-func readRankOrder(opt *Options, rankFile string) (map[string]int, error) {
+func readRankOrder(opt *Options, rankFile string) (map[string]int, map[string]interface{}, error) {
 	if rankFile != "" {
 		if opt.Verbose {
 			log.Infof("read rank order from: %s", rankFile)
@@ -438,7 +499,7 @@ func readRankOrder(opt *Options, rankFile string) (map[string]int, error) {
 	defaultRankFile := filepath.Join(opt.DataDir, defaultRanksFile)
 	existed, err := pathutil.Exists(defaultRankFile)
 	if err != nil {
-		return nil, fmt.Errorf("check default rank file: %s", defaultRankFile)
+		return nil, nil, fmt.Errorf("check default rank file: %s", defaultRankFile)
 	}
 	if !existed {
 		if opt.Verbose {
@@ -446,7 +507,7 @@ func readRankOrder(opt *Options, rankFile string) (map[string]int, error) {
 		}
 		err = writeDefaltRankOrderFile(defaultRankFile)
 		if err != nil {
-			return nil, fmt.Errorf("write default rank file: %s", defaultRankFile)
+			return nil, nil, fmt.Errorf("write default rank file: %s", defaultRankFile)
 		}
 	}
 
@@ -462,30 +523,42 @@ func writeDefaltRankOrderFile(file string) error {
 
 const defaultRanksFile = "ranks.txt"
 const defaultRanksText = `
-# Ref: https://en.wikipedia.org/wiki/Taxonomic_rank
-hyperkingdom
-superkingdom
+# This file defines taxonomic rank order for unikmer/taxonkit.
+# 
+# Here'are the rules:
+#     1. Blank lines or lines starting with "#" are ignored.
+#     2. Ranks are in decending order and case ignored.
+#     3. Ranks with same order should be in one line separated with comma (",", no space).
+#     4. Ranks without order should be assigning a prefix symbol "!" for each rank.
+# 
+# Deault ranks reference from https://en.wikipedia.org/wiki/Taxonomic_rank ,
+# and contains some ranks from NCIB Taxonomy database.
+#
+
+!no rank
+!clade
+
+
+life
+
+domain,superkingdom,realm,empire
+
 kingdom
 subkingdom
 infrakingdom
 parvkingdom
 
-superphylum
-phylum
-subphylum
-infraphylum
-microphylum
+superphylum,superdivision
+phylum,division
+subphylum,subdivision
+infraphylum,infradivision
+microphylum,microdivision
 
 superclass
 class
 subclass
 infraclass
 parvclass
-
-superdivision
-division
-subdivision
-infradivision
 
 superlegion
 legion
@@ -498,9 +571,9 @@ subcohort
 infracohort
 
 gigaorder
-magnorder
-grandorder
-mirorder
+magnorder,megaorder
+grandorder,capaxorder
+mirorder,hyperorder
 superorder
 # series
 order
@@ -539,34 +612,21 @@ subsection
 series
 subseries
 
-species group
+
+superspecies,species group
 species subgroup
-
-superspecies
 species
-subspecies
-forma specialis
 
-pathogroup
-serogroup
-serotype
-genotype
+subspecies,forma specialis,pathovar
+
+pathogroup,serogroup
+biotype,serotype,genotype
+
+variety,varietas,morph,aberration
+subvariety,subvarietas,submorph,subaberration
+form,forma
+subform,subforma
+
 strain
-morph
-
-varietas
-variety
-subvarietas
-subvariety
-forma
-form
-subforma
-subform
-
 isolate
-biotype
-
-no rank
-clade
-
 `

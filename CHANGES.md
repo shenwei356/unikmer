@@ -1,6 +1,7 @@
-- v0.11.1
+- v0.12.0
     - `unikmer inter/union`: speedup for single input file.
     - `unikmer concat`: new flag `-t/--taxid` to set global taxid, this can slightly reduce file size.
+    - `unikmer rfilter`: change format of rank order file.
 - v0.11.0
     - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
     - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.
