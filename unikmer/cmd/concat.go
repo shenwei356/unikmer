@@ -64,6 +64,12 @@ Attentions:
 
 		outFile := getFlagString(cmd, "out-prefix")
 		sortedKmers := getFlagBool(cmd, "sorted")
+		globalTaxid := getFlagUint32(cmd, "taxid")
+		hasGlobalTaxid := globalTaxid > 0
+
+		if hasGlobalTaxid && opt.Verbose {
+			log.Warningf("discarding all taxids and assigning new global taxid: %d", globalTaxid)
+		}
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -118,12 +124,15 @@ Attentions:
 					if canonical {
 						mode |= unikmer.UNIK_CANONICAL
 					}
-					if hasTaxid {
+					if hasTaxid && !hasGlobalTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
+					if hasGlobalTaxid {
+						writer.SetGlobalTaxid(globalTaxid)
+					}
 				} else {
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
@@ -131,7 +140,7 @@ Attentions:
 					if reader.IsCanonical() != canonical {
 						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
 					}
-					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+					if !hasGlobalTaxid && !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						if reader.HasTaxidInfo() {
 							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
 						} else {
@@ -139,6 +148,23 @@ Attentions:
 						}
 
 					}
+				}
+
+				if hasGlobalTaxid {
+					for {
+						code, _, err = reader.ReadCodeWithTaxid()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						checkError(writer.WriteCode(code))
+						n++
+					}
+
+					return flagContinue
 				}
 
 				for {
@@ -176,4 +202,5 @@ func init() {
 
 	concatCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	concatCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
+	concatCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")
 }

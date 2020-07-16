@@ -411,7 +411,7 @@ func init() {
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	countCmd.Flags().BoolP("sort", "s", false, helpSort)
-	countCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
+	countCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")
 	countCmd.Flags().BoolP("parse-taxid", "T", false, `parse taxid from FASTA/Q header`)
 	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
 	countCmd.Flags().BoolP("repeated", "d", false, `only count duplicated k-mers, for removing singleton in FASTQ`)

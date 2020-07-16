@@ -232,5 +232,5 @@ func init() {
 	dumpCmd.Flags().BoolP("canonical", "K", false, "save the canonical k-mers")
 	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This flag overides -K/--canonical")
 	dumpCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
-	dumpCmd.Flags().Uint32P("taxid", "t", 0, "taxid")
+	dumpCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")
 }
