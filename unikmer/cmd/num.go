@@ -23,6 +23,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -40,7 +41,7 @@ var numCmd = &cobra.Command{
 
 Attention:
   1. This command is designed to quickly inspect the number of k-mers in binary file,
-  2. For non-sorted file, it returns '-1'. You can use 'unikmer stats -a' for these files.
+  2. For non-sorted file, it returns '-1' unless switching on flag '-f/--force'.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -66,6 +67,7 @@ Attention:
 		outFile := getFlagString(cmd, "out-file")
 		showFile := getFlagBool(cmd, "file-name")
 		basename := getFlagBool(cmd, "basename")
+		force := getFlagBool(cmd, "force")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -90,6 +92,22 @@ Attention:
 				reader, err = unikmer.NewReader(infh)
 				checkError(err)
 
+				if reader.Number < 0 && force {
+					var n int64
+					for {
+						_, _, err = reader.ReadCodeWithTaxid()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(err)
+						}
+
+						n++
+					}
+					reader.Number = n
+				}
+
 				if showFile {
 					if basename {
 						outfh.WriteString(fmt.Sprintf("%d\t%s\n", reader.Number, filepath.Base(file)))
@@ -111,4 +129,5 @@ func init() {
 	numCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	numCmd.Flags().BoolP("file-name", "n", false, `show file name`)
 	numCmd.Flags().BoolP("basename", "b", false, "only output basename of files")
+	numCmd.Flags().BoolP("force", "f", false, "read whole file and count k-mers")
 }

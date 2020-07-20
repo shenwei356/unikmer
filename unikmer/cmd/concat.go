@@ -66,6 +66,7 @@ Attentions:
 		sortedKmers := getFlagBool(cmd, "sorted")
 		globalTaxid := getFlagUint32(cmd, "taxid")
 		hasGlobalTaxid := globalTaxid > 0
+		number := getFlagInt64(cmd, "number")
 
 		if hasGlobalTaxid && opt.Verbose {
 			log.Warningf("discarding all taxids and assigning new global taxid: %d", globalTaxid)
@@ -132,6 +133,9 @@ Attentions:
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 					if hasGlobalTaxid {
 						writer.SetGlobalTaxid(globalTaxid)
+					}
+					if number > 0 {
+						writer.Number = number
 					}
 				} else {
 					if k != reader.K {
@@ -203,4 +207,5 @@ func init() {
 	concatCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	concatCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
 	concatCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")
+	concatCmd.Flags().Int64P("number", "n", -1, "number of k-mers")
 }
