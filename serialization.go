@@ -283,7 +283,7 @@ func (reader *Reader) ReadCodeWithTaxid() (code uint64, taxid uint32, err error)
 	if err != nil {
 		return 0, 0, err
 	}
-	if reader.IsIncludeTaxid() {
+	if reader.includeTaxid {
 		taxid, err = reader.ReadTaxid()
 		if err != nil {
 			return 0, 0, err
