@@ -105,6 +105,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
 	RootCmd.PersistentFlags().StringP("data-dir", "", defaultDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
 
+	RootCmd.PersistentFlags().BoolP("nocheck-file", "S", false, "do not check binary file, when using process substitution/named pipe")
 }
 
 const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overwrites global flag -c/--compact"

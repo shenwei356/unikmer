@@ -70,7 +70,7 @@ Tips:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		var nfiles = len(files)
 

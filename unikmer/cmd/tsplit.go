@@ -79,7 +79,7 @@ Tips:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		var err error
 

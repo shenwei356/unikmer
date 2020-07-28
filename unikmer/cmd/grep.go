@@ -72,7 +72,7 @@ Tips:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		queries := getFlagStringSlice(cmd, "query")

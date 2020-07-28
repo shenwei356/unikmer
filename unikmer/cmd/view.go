@@ -61,7 +61,7 @@ Attentions:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-file")
 		showCode := getFlagBool(cmd, "show-code")

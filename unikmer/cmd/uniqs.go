@@ -63,7 +63,7 @@ Attention:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular")

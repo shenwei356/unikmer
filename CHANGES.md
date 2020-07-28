@@ -1,4 +1,5 @@
 - v0.12.0
+    - `unikmer`: new flag `-S/-nocheck-file` for not checking binary file.
     - `unikmer rfilter`: change format of rank order file.
     - `unikmer inter/union`: speedup for single input file.
     - `unikmer concat`:

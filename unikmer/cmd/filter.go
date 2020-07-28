@@ -63,7 +63,7 @@ Attentions:
 			checkError(fmt.Errorf("no more than one file should be given"))
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
 		threshold := getFlagNonNegativeInt(cmd, "threshold")

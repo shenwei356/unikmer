@@ -65,7 +65,7 @@ Attention:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		if len(files) == 1 && isStdin(files[0]) {
 			checkError(fmt.Errorf("stdin not supported, please give me .unik files"))

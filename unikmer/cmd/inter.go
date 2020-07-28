@@ -67,7 +67,7 @@ Tips:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 		var nfiles = len(files)
 
 		outFile := getFlagString(cmd, "out-prefix")
@@ -119,6 +119,10 @@ Tips:
 
 		// checking files
 		for _, file := range files {
+			if opt.NoCheckFile {
+				break
+			}
+
 			if isStdin(file) {
 				continue
 			}

@@ -98,7 +98,7 @@ Tips:
 			}
 		}
 
-		checkFileSuffix(extDataFile, files...)
+		checkFileSuffix(opt, extDataFile, files...)
 
 		var m []uint64
 		var taxondb *unikmer.Taxonomy
