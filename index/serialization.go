@@ -116,7 +116,7 @@ func (reader *Reader) readHeader() (err error) {
 		return ErrInvalidIndexFileFormat
 	}
 
-	// read metadata
+	// 4 bytes meta info
 	var meta [4]uint8
 	err = binary.Read(r, be, &meta)
 	if err != nil {
@@ -133,11 +133,13 @@ func (reader *Reader) readHeader() (err error) {
 	}
 	reader.NumHashes = meta[3]
 
+	// 8 bytes signature size
 	err = binary.Read(r, be, &reader.NumSigs)
 	if err != nil {
 		return err
 	}
 
+	// 4 bytes length of Names
 	var n uint32
 	err = binary.Read(r, be, &n)
 	if err != nil {
@@ -162,7 +164,7 @@ func (reader *Reader) Read() ([]byte, error) {
 	nReaded, err := io.ReadFull(reader.r, data)
 	if err != nil {
 		if err == io.EOF {
-			// fmt.Println(reader.count, reader.NumSigs)
+			fmt.Println(reader.nRowBytes, reader.count, reader.NumSigs)
 			if reader.count != reader.NumSigs {
 				return nil, ErrTruncateIndexFile
 			}
@@ -238,6 +240,7 @@ func (writer *Writer) WriteHeader() (err error) {
 	for _, name := range writer.Names {
 		n += len(name) + 1
 	}
+
 	err = binary.Write(w, be, uint32(n))
 	if err != nil {
 		return err

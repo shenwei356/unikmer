@@ -166,6 +166,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 				if err != nil {
 					if err == io.EOF {
 						close(ch)
+						r.Close()
 						wg.Done()
 						break
 					}

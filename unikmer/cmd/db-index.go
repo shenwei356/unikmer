@@ -299,6 +299,9 @@ Attentions:
 						}
 
 						checkError(writer.WriteBatch(sigs, len(sigs)))
+						if opt.Verbose {
+							log.Infof("[block #%d] batch #%dd: wrote %d signatures", b, bb, len(sigs))
+						}
 
 					}(files[ii:jj], bb, maxElements, numSigs, outFile)
 				}
@@ -308,7 +311,7 @@ Attentions:
 					log.Infof("[block #%d] merging %d index files", b, len(batchFiles))
 				}
 
-				blockFile := filepath.Join(tmpDir, fmt.Sprintf("block%d_%s", b, extIndex))
+				blockFile := filepath.Join(tmpDir, fmt.Sprintf("block%d%s", b, extIndex))
 				checkError(MergeUnikIndex(opt, fmt.Sprintf("[block #%d]", b), batchFiles, blockFile))
 
 			}(fileInfos[i:j], b)
