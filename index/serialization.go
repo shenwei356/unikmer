@@ -162,6 +162,7 @@ func (reader *Reader) Read() ([]byte, error) {
 	nReaded, err := io.ReadFull(reader.r, data)
 	if err != nil {
 		if err == io.EOF {
+			// fmt.Println(reader.count, reader.NumSigs)
 			if reader.count != reader.NumSigs {
 				return nil, ErrTruncateIndexFile
 			}
@@ -273,6 +274,26 @@ func (writer *Writer) Write(data []byte) (err error) {
 	}
 
 	writer.count++
+	return nil
+}
+
+// WriteBatch writes a batch of data
+func (writer *Writer) WriteBatch(data []byte, n int) (err error) {
+	// lazily write header
+	if !writer.wroteHeader {
+		err = writer.WriteHeader()
+		if err != nil {
+			return err
+		}
+		writer.wroteHeader = true
+	}
+
+	_, err = writer.w.Write(data)
+	if err != nil {
+		return err
+	}
+
+	writer.count += uint64(n)
 	return nil
 }
 

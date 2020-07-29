@@ -20,7 +20,24 @@
 
 package cmd
 
-// https://gist.github.com/badboy/6267743
+// get the two basic hash function values for data.
+// Based on early version of https://github.com/willf/bloom/blob/master/bloom.go .
+func baseHashes(key uint64) (uint32, uint32) {
+	hash := hash64(key)
+	return uint32(hash >> 32), uint32(hash)
+}
+
+func hashLocations(key uint64, numHashes int, numSigs uint64) []int {
+	locs := make([]int, numHashes)
+	a, b := baseHashes(key)
+	for i := uint32(0); i < uint32(numHashes); i++ {
+		locs[i] = int(uint64(a+b*i) % numSigs)
+	}
+	return locs
+}
+
+// https://gist.github.com/badboy/6267743 .
+// version with mask: https://gist.github.com/lh3/974ced188be2f90422cc .
 func hash64(key uint64) uint64 {
 	key = (^key) + (key << 21) // key = (key << 21) - key - 1
 	key = key ^ (key >> 24)
