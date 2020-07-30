@@ -46,6 +46,12 @@ var ErrTruncateIndexFile = errors.New("unikmer/index: truncated index file")
 // ErrWrongWriteDataSize means the size of data to write is invalid
 var ErrWrongWriteDataSize = errors.New("unikmer/index: write data with wrong size")
 
+// ErrVersionMismatch means version mismatch between files and program
+var ErrVersionMismatch = errors.New("unikmer/index: version mismatch")
+
+// ErrNameAndSizeMismatch means size of names and sizes are not equal.
+var ErrNameAndSizeMismatch = errors.New("unikmer/index: size of names and sizes unequal")
+
 var be = binary.BigEndian
 
 // Header contains metadata
@@ -56,6 +62,7 @@ type Header struct {
 	NumHashes uint8 // uint8
 	NumSigs   uint64
 	Names     []string
+	Sizes     []uint64
 
 	NumRowBytes int // length of bytes for storing one row of signiture for n names
 }
@@ -124,7 +131,7 @@ func (reader *Reader) readHeader() (err error) {
 	}
 	// check compatibility
 	if Version != meta[0] {
-		return fmt.Errorf("unikmer: index format compatibility error, please recreate with newest version")
+		return ErrVersionMismatch
 	}
 	reader.Version = meta[0]
 	reader.K = int(meta[1])
@@ -146,6 +153,7 @@ func (reader *Reader) readHeader() (err error) {
 		return err
 	}
 
+	// Names
 	namesData := make([]byte, n)
 	err = binary.Read(r, be, &namesData)
 	if err != nil {
@@ -154,6 +162,14 @@ func (reader *Reader) readHeader() (err error) {
 	names := strings.Split(string(namesData), "\n")
 	names = names[0 : len(names)-1]
 	reader.Names = names
+
+	// Sizes
+	sizesData := make([]uint64, len(names))
+	err = binary.Read(r, be, &sizesData)
+	if err != nil {
+		return err
+	}
+	reader.Sizes = sizesData
 
 	return nil
 }
@@ -187,8 +203,10 @@ type Writer struct {
 }
 
 // NewWriter creates a Writer.
-func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint64, names []string) (*Writer, error) {
-
+func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint64, names []string, sizes []uint64) (*Writer, error) {
+	if len(names) != len(sizes) {
+		return nil, ErrNameAndSizeMismatch
+	}
 	writer := &Writer{
 		Header: Header{
 			Version:   Version,
@@ -197,6 +215,7 @@ func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint
 			NumHashes: numHashes,
 			NumSigs:   numSigs,
 			Names:     names,
+			Sizes:     sizes,
 		},
 		w: w,
 	}
@@ -244,11 +263,19 @@ func (writer *Writer) WriteHeader() (err error) {
 	if err != nil {
 		return err
 	}
+
+	// Names
 	for _, name := range writer.Names {
 		err = binary.Write(w, be, []byte(name+"\n"))
 		if err != nil {
 			return err
 		}
+	}
+
+	// Sizes
+	err = binary.Write(w, be, writer.Sizes)
+	if err != nil {
+		return err
 	}
 
 	writer.wroteHeader = true

@@ -126,6 +126,7 @@ Attentions:
 		var name string
 		var found [][]string
 		names0 := make([]string, 0, len(files))
+		sizes0 := make([]uint64, 0, len(files))
 		for _, file := range files {
 			// if opt.Verbose {
 			// 	log.Infof("checking file (%d/%d): %s", i+1, nfiles, file)
@@ -167,12 +168,14 @@ Attentions:
 			fileInfos = append(fileInfos, UnikFileInfo{Path: file, Name: name, Kmers: reader.Number})
 			n += reader.Number
 			r.Close()
-
-			names0 = append(names0, name)
 		}
 
 		sort.Sort(UnikFileInfos(fileInfos))
-		// fmt.Println(fileInfos)
+
+		for _, info := range fileInfos {
+			names0 = append(names0, info.Name)
+			sizes0 = append(sizes0, uint64(info.Kmers))
+		}
 
 		// ------------------------------------------------------------------------------------
 
@@ -188,6 +191,7 @@ Attentions:
 
 		if opt.Verbose {
 			log.Infof("block size: %d", sBlock)
+			log.Infof("number of cpu to use: %d", opt.NumCPUs)
 		}
 
 		nIndexFiles := int((len(files) + sBlock - 1) / sBlock)
@@ -270,11 +274,13 @@ Attentions:
 						}()
 
 						names := make([]string, 0, 8)
+						sizes := make([]uint64, 0, 8)
 						for _, info := range _files {
 							names = append(names, info.Name)
+							sizes = append(sizes, uint64(info.Kmers))
 						}
 
-						writer, err := index.NewWriter(outfh, k, canonical, uint8(numHashes), numSigs, names)
+						writer, err := index.NewWriter(outfh, k, canonical, uint8(numHashes), numSigs, names, sizes)
 						checkError(err)
 						defer func() {
 							checkError(writer.Flush())
@@ -352,6 +358,7 @@ Attentions:
 		dbInfo.Kmers = int(n)
 		dbInfo.FPR = fpr
 		dbInfo.Names = names0
+		dbInfo.Sizes = sizes0
 		dbInfo.NumHashes = numHashes
 		dbInfo.Canonical = canonical
 		checkError(dbInfo.WriteTo(filepath.Join(outDir, dbInfoFile)))
@@ -359,9 +366,8 @@ Attentions:
 		// ------------------------------------------------------------------------------------
 
 		if opt.Verbose {
-			log.Infof("index with %d k-mers saved to %s", n, outDir)
+			log.Infof("unikmer index database with %d k-mers saved to %s", n, outDir)
 		}
-
 	},
 }
 
@@ -376,5 +382,4 @@ func init() {
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from file name")
-
 }

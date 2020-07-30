@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"sort"
+	"strings"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
@@ -50,6 +52,15 @@ var searchCmd = &cobra.Command{
 			checkError(fmt.Errorf("flag -d/--db-dir needed"))
 		}
 		outFile := getFlagString(cmd, "out-prefix")
+		queryCov := getFlagFloat64(cmd, "query-cov")
+		targetCov := getFlagFloat64(cmd, "target-cov")
+
+		if queryCov < 0 {
+			checkError(fmt.Errorf("value of -t/--query-cov should be positive"))
+		}
+		if targetCov < 0 {
+			checkError(fmt.Errorf("value of -T/-target-cov should not be negative"))
+		}
 
 		moreVerbose := getFlagBool(cmd, "more-verbose")
 
@@ -80,6 +91,8 @@ var searchCmd = &cobra.Command{
 
 		if opt.Verbose {
 			log.Infof("db loaded: %s", db)
+			log.Infof("query coverage threshold: %f", queryCov)
+			log.Infof("target coverage threshold: %f", targetCov)
 		}
 		k := db.Header.K
 		canonical := db.Header.Canonical
@@ -179,8 +192,20 @@ var searchCmd = &cobra.Command{
 						kmerList = append(kmerList, code)
 					}
 
-					result := db.Search(kmerList, opt.NumCPUs)
-					outfh.WriteString(fmt.Sprintf("%s: %s", record.ID, result))
+					matched := db.Search(kmerList, opt.NumCPUs, queryCov, targetCov)
+
+					targets := make([]string, 0, len(matched))
+					for m := range matched {
+						targets = append(targets, m)
+					}
+					sort.Slice(targets, func(i, j int) bool { return matched[targets[i]][0] > matched[targets[j]][0] })
+
+					tmp := make([]string, len(targets))
+					for i, k := range targets {
+						tmp[i] = fmt.Sprintf("%s(#:%.0f, qcov:%0.4f, tcov:%0.4f)", k, matched[k][0], matched[k][1], matched[k][2])
+					}
+
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%s\n", record.ID, l, strings.Join(tmp, ", ")))
 				}
 			}
 		}
@@ -195,5 +220,7 @@ func init() {
 	searchCmd.Flags().StringP("db-dir", "d", "", `database directory created by "unikmer db index"`)
 	searchCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	searchCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
+	searchCmd.Flags().Float64P("query-cov", "t", 0.5, `query coverage threshold`)
+	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold`)
 
 }

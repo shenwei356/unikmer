@@ -78,6 +78,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 
 	var header index.Header
 	names := make([]string, 0, len(files)*8)
+	sizes := make([]uint64, 0, len(files)*8)
 
 	// retrieve header of the first file, and names in all files
 	// if opt.Verbose {
@@ -96,6 +97,8 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 		}
 
 		names = append(names, _reader.Names...)
+		sizes = append(sizes, _reader.Sizes...)
+
 		r.Close()
 	}
 	// if opt.Verbose {
@@ -151,7 +154,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 			w.Close()
 		}()
 
-		writer, err := index.NewWriter(outfh, header.K, header.Canonical, header.NumHashes, header.NumSigs, names)
+		writer, err := index.NewWriter(outfh, header.K, header.Canonical, header.NumHashes, header.NumSigs, names, sizes)
 		checkError(err)
 		defer func() {
 			checkError(writer.Flush())

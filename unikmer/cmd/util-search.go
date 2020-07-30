@@ -41,9 +41,10 @@ type UnikIndexDBInfo struct {
 	Canonical bool     `yaml:"canonical"`
 	NumHashes int      `yaml:"hashes"`
 	FPR       float64  `yaml:"fpr"`
-	Kmers     int      `yaml:"kmers"`
+	Kmers     int      `yaml:"totalKmers"`
 	Files     []string `yaml:"files"`
 	Names     []string `yaml:"names"`
+	Sizes     []uint64 `yaml:"kmers"`
 
 	path string
 }
@@ -158,7 +159,7 @@ func NewUnikIndexDB(path string) (*UnikIndexDB, error) {
 	checkError(err)
 	indices = append(indices, idx1)
 
-	db := &UnikIndexDB{Info: info, Header: idx1.Header, Indices: indices, path: path}
+	db := &UnikIndexDB{Info: info, Header: idx1.Header, path: path}
 	if len(info.Files) == 1 {
 		return db, nil
 	}
@@ -194,6 +195,8 @@ func NewUnikIndexDB(path string) (*UnikIndexDB, error) {
 	close(ch)
 	<-done
 
+	db.Indices = indices
+
 	return db, nil
 }
 
@@ -208,17 +211,19 @@ func (db *UnikIndexDB) Close() error {
 	return err0
 }
 
-func (db *UnikIndexDB) Search(kmers []uint64, threads int) []string {
+func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][]float64 {
 	if threads <= 0 {
 		threads = len(db.Indices)
 	}
-	result := make([]string, 0, 8)
+	m := make(map[string][]float64, 8)
 
-	ch := make(chan []string, len(db.Indices))
+	ch := make(chan map[string][]float64, len(db.Indices))
 	done := make(chan int)
 	go func() {
-		for r := range ch {
-			result = append(result, r...)
+		for _m := range ch {
+			for k, v := range _m {
+				m[k] = v
+			}
 		}
 		done <- 1
 	}()
@@ -229,7 +234,7 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int) []string {
 		wg.Add(1)
 		tokens <- 1
 		go func(idx *UnikIndex) {
-			ch <- idx.Search(kmers)
+			ch <- idx.Search(kmers, queryCov, targetCov)
 			wg.Done()
 			<-tokens
 		}(idx)
@@ -238,7 +243,8 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int) []string {
 	wg.Wait()
 	close(ch)
 	<-done
-	return result
+
+	return m
 }
 
 // ------------------------------------------------------------------
@@ -278,14 +284,24 @@ func NewUnixIndex(file string) (*UnikIndex, error) {
 	h.Canonical = reader.Canonical
 	h.NumHashes = reader.NumHashes
 	h.Names = reader.Names
+	h.Sizes = reader.Sizes
 	h.NumRowBytes = reader.NumRowBytes
 	h.NumSigs = reader.NumSigs
 	idx := &UnikIndex{Path: file, Header: h, fh: fh, reader: reader, offset0: offset}
 	return idx, nil
 }
 
-func (idx *UnikIndex) Search(kmers []uint64) []string {
-	m := make(map[string]int, 8)
+// type Filter struct {
+// 	threshold float64
+// }
+
+// type (f Filter) Passed() bool{
+
+// 	return true
+// }
+
+func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64) map[string][]float64 {
+	m := make(map[int]int, 8)
 
 	numHashes := int(idx.Header.NumHashes)
 	numRowBytes := idx.Header.NumRowBytes
@@ -293,6 +309,7 @@ func (idx *UnikIndex) Search(kmers []uint64) []string {
 	offset0 := idx.offset0
 	fh := idx.fh
 	names := idx.Header.Names
+	sizes := idx.Header.Sizes
 
 	data := make([][]uint8, numHashes)
 	var row []byte
@@ -324,17 +341,25 @@ func (idx *UnikIndex) Search(kmers []uint64) []string {
 			}
 			for j := 0; j < 8; j++ {
 				if b&(1<<j) > 0 { // jth bit is 1
-					m[names[i*8+7-j]]++
+					m[i*8+7-j]++
 				}
 			}
 		}
-
 	}
 
-	result := make([]string, 0, len(m))
-	for r := range m {
-		// fmt.Printf("%s, %d\n", r, n)
-		result = append(result, r)
+	result := make(map[string][]float64, len(m))
+	var t, T float64
+	for i, v := range m {
+		t = float64(v) / float64(len(kmers))
+		if t < queryCov {
+			continue
+		}
+		T = float64(v) / float64(sizes[i])
+		if T < targetCov {
+			continue
+		}
+
+		result[names[i]] = []float64{float64(v), t, T}
 	}
 
 	return result
