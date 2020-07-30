@@ -32,7 +32,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/pathutil"
@@ -53,7 +52,6 @@ Attentions:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
-		seq.ValidateSeq = false
 
 		var err error
 
@@ -102,7 +100,7 @@ Attentions:
 				if force {
 					checkError(os.RemoveAll(outDir))
 				} else {
-					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use --force to overwrite", outDir))
+					checkError(fmt.Errorf("dir not empty: %s, choose another one or use --force to overwrite", outDir))
 				}
 			} else {
 				checkError(os.RemoveAll(outDir))
@@ -127,6 +125,7 @@ Attentions:
 		// var nfiles = len(files)
 		var name string
 		var found [][]string
+		names0 := make([]string, 0, len(files))
 		for _, file := range files {
 			// if opt.Verbose {
 			// 	log.Infof("checking file (%d/%d): %s", i+1, nfiles, file)
@@ -168,6 +167,8 @@ Attentions:
 			fileInfos = append(fileInfos, UnikFileInfo{Path: file, Name: name, Kmers: reader.Number})
 			n += reader.Number
 			r.Close()
+
+			names0 = append(names0, name)
 		}
 
 		sort.Sort(UnikFileInfos(fileInfos))
@@ -189,11 +190,23 @@ Attentions:
 			log.Infof("block size: %d", sBlock)
 		}
 
+		nIndexFiles := int((len(files) + sBlock - 1) / sBlock)
+		indexFiles := make([]string, 0, nIndexFiles)
+		ch := make(chan string, nIndexFiles)
+		done := make(chan int)
+		go func() {
+			for f := range ch {
+				indexFiles = append(indexFiles, f)
+			}
+			done <- 1
+		}()
+
 		var prefix string
 
 		var b, j int
 		var wg0 sync.WaitGroup
 		tokens0 := make(chan int, opt.NumCPUs)
+		tokensOpenFiles := make(chan int, 512)
 		for i := 0; i < nFiles; i += sBlock {
 			j = i + sBlock
 			if j > nFiles {
@@ -269,13 +282,14 @@ Attentions:
 
 						sigs := make([]byte, numSigs)
 
-						for k, info := range _files {
+						for _k, info := range _files {
 							var infh *bufio.Reader
 							var r *os.File
 							var reader *unikmer.Reader
 							var err error
 							var code uint64
 
+							tokensOpenFiles <- 1
 							infh, r, _, err = inStream(info.Path)
 							checkError(err)
 
@@ -292,17 +306,19 @@ Attentions:
 								}
 
 								for _, loc := range hashLocations(code, numHashes, numSigs) {
-									sigs[loc] |= 1 << k
+									sigs[loc] |= 1 << (7 - _k)
 								}
 
 							}
 
 							r.Close()
+
+							<-tokensOpenFiles
 						}
 
 						checkError(writer.WriteBatch(sigs, len(sigs)))
 						if opt.Verbose {
-							log.Infof("%s batch #%dd: wrote %d signatures", prefix, bb, len(sigs))
+							log.Infof("%s batch #%03d: wrote %d signatures", prefix, bb, len(sigs))
 						}
 
 					}(files[ii:jj], bb, maxElements, numSigs, outFile)
@@ -316,12 +332,29 @@ Attentions:
 				blockFile := filepath.Join(outDir, fmt.Sprintf("block%03d%s", b, extIndex))
 				checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
 
+				if opt.Verbose {
+					log.Infof("%s finished merging", prefix)
+				}
+
 				wg0.Done()
+				ch <- filepath.Base(blockFile)
 				<-tokens0
 			}(fileInfos[i:j], b, prefix)
 		}
 
 		wg0.Wait()
+		close(ch)
+		<-done
+
+		sort.Strings(indexFiles)
+		dbInfo := NewUnikIndexDBInfo(int(index.Version), indexFiles)
+		dbInfo.K = k
+		dbInfo.Kmers = int(n)
+		dbInfo.FPR = fpr
+		dbInfo.Names = names0
+		dbInfo.NumHashes = numHashes
+		dbInfo.Canonical = canonical
+		checkError(dbInfo.WriteTo(filepath.Join(outDir, dbInfoFile)))
 
 		// ------------------------------------------------------------------------------------
 

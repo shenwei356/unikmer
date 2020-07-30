@@ -57,11 +57,11 @@ type Header struct {
 	NumSigs   uint64
 	Names     []string
 
-	nRowBytes int // length of bytes for storing one row of signiture for n names
+	NumRowBytes int // length of bytes for storing one row of signiture for n names
 }
 
 func (h Header) String() string {
-	return fmt.Sprintf("unikmer index file v%d with K=%d, Canonical=%v, NumHashes=%d, NumSigs=%d, and Names: %s",
+	return fmt.Sprintf("unikmer index file v%d: k: %d, canonical: %v, #hashes: %d, #signatures: %d, names: %s",
 		h.Version, h.K, h.Canonical, h.NumHashes, h.NumSigs, strings.Join(h.Names, ", "))
 }
 
@@ -93,7 +93,7 @@ func NewReader(r io.Reader) (reader *Reader, err error) {
 		return nil, err
 	}
 
-	reader.nRowBytes = int((len(reader.Names) + 7) / 8)
+	reader.NumRowBytes = int((len(reader.Names) + 7) / 8)
 	return reader, nil
 }
 
@@ -160,7 +160,7 @@ func (reader *Reader) readHeader() (err error) {
 
 // Read reads one code.
 func (reader *Reader) Read() ([]byte, error) {
-	data := make([]byte, reader.nRowBytes)
+	data := make([]byte, reader.NumRowBytes)
 	nReaded, err := io.ReadFull(reader.r, data)
 	if err != nil {
 		if err == io.EOF {
@@ -170,7 +170,7 @@ func (reader *Reader) Read() ([]byte, error) {
 		}
 		return nil, err
 	}
-	if nReaded < reader.nRowBytes {
+	if nReaded < reader.NumRowBytes {
 		return nil, ErrTruncateIndexFile
 	}
 	reader.count++
@@ -200,7 +200,7 @@ func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint
 		},
 		w: w,
 	}
-	writer.nRowBytes = int((len(names) + 7) / 8)
+	writer.NumRowBytes = int((len(names) + 7) / 8)
 
 	return writer, nil
 }
@@ -257,7 +257,7 @@ func (writer *Writer) WriteHeader() (err error) {
 
 // Write writes some thing
 func (writer *Writer) Write(data []byte) (err error) {
-	if len(data) != writer.nRowBytes {
+	if len(data) != writer.NumRowBytes {
 		return ErrWrongWriteDataSize
 	}
 
