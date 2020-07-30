@@ -23,7 +23,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"sync"
 
@@ -31,11 +30,6 @@ import (
 )
 
 const extIndex = ".uniki"
-
-func CalcSignatureSize(numElements uint64, numHashes int, falsePositiveRate float64) uint64 {
-	ratio := float64(-numHashes) / (math.Log(1 - math.Pow(falsePositiveRate, float64(1/numHashes))))
-	return uint64(math.Ceil(float64(numElements) * ratio))
-}
 
 type UnikFileInfo struct {
 	Path  string
@@ -55,7 +49,23 @@ func (l UnikFileInfos) Swap(i int, j int)      { l[i], l[j] = l[j], l[i] }
 
 func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string) error {
 	if len(files) == 1 {
-		os.Rename(files[0], outFile)
+		file := files[0]
+		// os.Rename(files[0], outFile)
+		infh, r, _, err := inStream(file)
+		checkError(err)
+		defer r.Close()
+
+		outfh, gw, w, err := outStream(outFile, false, -1)
+		checkError(err)
+		defer func() {
+			outfh.Flush()
+			if gw != nil {
+				gw.Close()
+			}
+			w.Close()
+		}()
+		io.Copy(outfh, infh)
+		os.Remove(file)
 		return nil
 	}
 
@@ -89,62 +99,11 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 		r.Close()
 	}
 	if opt.Verbose {
-		log.Infof("%s # of names: %d", prefix, len(names))
+		log.Infof("%s number of names: %d", prefix, len(names))
 	}
+	nRowBytes := int((len(names) + 7) / 8)
 
 	chs := make([]chan []byte, 0, len(files))
-
-	done := make(chan int)
-	go func() {
-		outfh, gw, w, err := outStream(outFile, false, -1)
-		checkError(err)
-		defer func() {
-			outfh.Flush()
-			if gw != nil {
-				gw.Close()
-			}
-			w.Close()
-		}()
-
-		writer, err := index.NewWriter(w, header.K, header.Canonical, header.NumHashes, header.NumSigs, names)
-		checkError(err)
-		defer func() {
-			checkError(writer.Flush())
-		}()
-
-		var ok bool
-		var closed bool
-		first := true
-		var nNames int
-		var _data []byte
-		for {
-			var row []byte
-			if first {
-				row = make([]byte, 0, 8*len(files))
-			} else {
-				row = make([]byte, 0, nNames)
-			}
-			for _, ch := range chs {
-				_data, ok = <-ch
-				if !ok {
-					closed = true
-				}
-				row = append(row, _data...)
-			}
-
-			checkError(writer.Write(row))
-
-			if first {
-				nNames = len(row)
-				first = false
-			}
-			if closed {
-				break
-			}
-		}
-
-		done <- 1
-	}()
 
 	var wg sync.WaitGroup
 	for _, file := range files {
@@ -165,19 +124,70 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 				_data, err = reader.Read()
 				if err != nil {
 					if err == io.EOF {
-						close(ch)
-						r.Close()
-						wg.Done()
 						break
 					}
 					checkError(err)
 				}
 				ch <- _data
 			}
+
+			close(ch)
+			r.Close()
+			wg.Done()
 		}()
 	}
 
+	done := make(chan int)
+	go func() {
+		outfh, gw, w, err := outStream(outFile, false, -1)
+		checkError(err)
+		defer func() {
+			outfh.Flush()
+			if gw != nil {
+				gw.Close()
+			}
+			w.Close()
+		}()
+
+		writer, err := index.NewWriter(outfh, header.K, header.Canonical, header.NumHashes, header.NumSigs, names)
+		checkError(err)
+		defer func() {
+			checkError(writer.Flush())
+		}()
+
+		var ok bool
+		var closed bool
+		var _data []byte
+		for {
+			row := make([]byte, 0, nRowBytes)
+			for _, ch := range chs {
+				_data, ok = <-ch
+				if !ok {
+					closed = true
+				}
+				row = append(row, _data...)
+			}
+
+			if closed {
+				break
+			}
+
+			checkError(writer.Write(row))
+		}
+
+		done <- 1
+	}()
+
 	wg.Wait()
-	done <- 1
+	<-done
+
+	for _, file := range files {
+		checkError(os.Remove(file))
+	}
+
+	if opt.Verbose {
+		log.Infof("%s finished merging", prefix)
+	}
+
 	return nil
 }

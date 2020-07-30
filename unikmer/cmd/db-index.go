@@ -57,7 +57,7 @@ Attentions:
 
 		var err error
 
-		outFile := getFlagString(cmd, "out-prefix")
+		// outFile := getFlagString(cmd, "out-prefix")
 
 		nameRegexp := getFlagString(cmd, "name-regexp")
 		extractName := nameRegexp != ""
@@ -78,8 +78,7 @@ Attentions:
 			checkError(fmt.Errorf("value of -n/--num-hash too big: %d", numHashes))
 		}
 
-		tmpDir := getFlagString(cmd, "tmp-dir")
-		keepTmpDir := getFlagBool(cmd, "keep-tmp-dir")
+		outDir := getFlagString(cmd, "out-dir")
 		force := getFlagBool(cmd, "force")
 
 		if opt.Verbose {
@@ -94,28 +93,22 @@ Attentions:
 			}
 		}
 
-		if isStdout(outFile) {
-			tmpDir = filepath.Join(tmpDir, "stdout.tmp")
-		} else {
-			tmpDir = filepath.Join(tmpDir, filepath.Base(outFile)+".tmp")
-		}
-
-		existed, err := pathutil.DirExists(tmpDir)
+		existed, err := pathutil.DirExists(outDir)
 		checkError(err)
 		if existed {
-			empty, err := pathutil.IsEmpty(tmpDir)
+			empty, err := pathutil.IsEmpty(outDir)
 			checkError(err)
 			if !empty {
 				if force {
-					checkError(os.RemoveAll(tmpDir))
+					checkError(os.RemoveAll(outDir))
 				} else {
-					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use --force to overwrite", tmpDir))
+					checkError(fmt.Errorf("tmp dir not empty: %s, choose another one or use --force to overwrite", outDir))
 				}
 			} else {
-				checkError(os.RemoveAll(tmpDir))
+				checkError(os.RemoveAll(outDir))
 			}
 		}
-		checkError(os.MkdirAll(tmpDir, 0777))
+		checkError(os.MkdirAll(outDir, 0777))
 
 		// numSigs := CalcSignatureSize(61738843, nHash, fpr)
 		// data := make([]byte, numSigs)
@@ -157,8 +150,8 @@ Attentions:
 				}
 			}
 
-			if reader.Number < -1 {
-				checkError(fmt.Errorf("binary file not sorted: %s", file))
+			if reader.Number < 0 {
+				checkError(fmt.Errorf("binary file not sorted or no k-mers number found: %s", file))
 			}
 
 			if extractName {
@@ -171,8 +164,9 @@ Attentions:
 			} else {
 				name = filepath.Base(file)
 			}
-			fileInfos = append(fileInfos, UnikFileInfo{Path: file, Name: name, Kmers: reader.Number})
 
+			fileInfos = append(fileInfos, UnikFileInfo{Path: file, Name: name, Kmers: reader.Number})
+			n += reader.Number
 			r.Close()
 		}
 
@@ -195,7 +189,11 @@ Attentions:
 			log.Infof("block size: %d", sBlock)
 		}
 
+		var prefix string
+
 		var b, j int
+		var wg0 sync.WaitGroup
+		tokens0 := make(chan int, opt.NumCPUs)
 		for i := 0; i < nFiles; i += sBlock {
 			j = i + sBlock
 			if j > nFiles {
@@ -204,10 +202,14 @@ Attentions:
 
 			b++
 
+			prefix = fmt.Sprintf("[block #%03d]", b)
 			if opt.Verbose {
-				log.Infof("[block #%d] processing file #%d-#%d", b, i+1, j)
+				log.Infof("%s processing file #%d-#%d", prefix, i+1, j)
 			}
-			func(files []UnikFileInfo, b int) {
+
+			wg0.Add(1)
+			tokens0 <- 1
+			go func(files []UnikFileInfo, b int, prefix string) {
 				var wg sync.WaitGroup
 				tokens := make(chan int, opt.NumCPUs)
 
@@ -222,7 +224,7 @@ Attentions:
 
 				numSigs := CalcSignatureSize(uint64(maxElements), numHashes, fpr)
 				if opt.Verbose {
-					log.Infof("[block #%d] max #k-mers: %d, number of signatures: %d", b, maxElements, numSigs)
+					log.Infof("%s max number of k-mers: %d, number of signatures: %d", prefix, maxElements, numSigs)
 				}
 
 				var bb, jj int
@@ -235,7 +237,7 @@ Attentions:
 					tokens <- 1
 					bb++
 
-					outFile := filepath.Join(tmpDir, fmt.Sprintf("block%d_batch%d%s", b, bb, extIndex))
+					outFile := filepath.Join(outDir, fmt.Sprintf("block%03d_batch%03d%s", b, bb, extIndex))
 					batchFiles = append(batchFiles, outFile)
 
 					go func(_files []UnikFileInfo, bb int, maxElements int64, numSigs uint64, outFile string) {
@@ -259,7 +261,7 @@ Attentions:
 							names = append(names, info.Name)
 						}
 
-						writer, err := index.NewWriter(w, k, canonical, uint8(numHashes), numSigs, names)
+						writer, err := index.NewWriter(outfh, k, canonical, uint8(numHashes), numSigs, names)
 						checkError(err)
 						defer func() {
 							checkError(writer.Flush())
@@ -300,7 +302,7 @@ Attentions:
 
 						checkError(writer.WriteBatch(sigs, len(sigs)))
 						if opt.Verbose {
-							log.Infof("[block #%d] batch #%dd: wrote %d signatures", b, bb, len(sigs))
+							log.Infof("%s batch #%dd: wrote %d signatures", prefix, bb, len(sigs))
 						}
 
 					}(files[ii:jj], bb, maxElements, numSigs, outFile)
@@ -308,47 +310,37 @@ Attentions:
 
 				wg.Wait()
 				if opt.Verbose {
-					log.Infof("[block #%d] merging %d index files", b, len(batchFiles))
+					log.Infof("%s merging %d index files", prefix, len(batchFiles))
 				}
 
-				blockFile := filepath.Join(tmpDir, fmt.Sprintf("block%d%s", b, extIndex))
-				checkError(MergeUnikIndex(opt, fmt.Sprintf("[block #%d]", b), batchFiles, blockFile))
+				blockFile := filepath.Join(outDir, fmt.Sprintf("block%03d%s", b, extIndex))
+				checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
 
-			}(fileInfos[i:j], b)
+				wg0.Done()
+				<-tokens0
+			}(fileInfos[i:j], b, prefix)
 		}
+
+		wg0.Wait()
 
 		// ------------------------------------------------------------------------------------
 
 		if opt.Verbose {
-			log.Infof("index with %d k-mers saved to %s", n, outFile)
+			log.Infof("index with %d k-mers saved to %s", n, outDir)
 		}
 
-		// cleanning
-
-		if keepTmpDir {
-			return
-		}
-
-		// if opt.Verbose {
-		// 	log.Infof("removing tmp dir: %s", tmpDir)
-		// }
-		// err = os.Remove(tmpDir)
-		// if err != nil {
-		// 	checkError(fmt.Errorf("fail to remove temp directory, please manually delete it: %s", tmpDir))
-		// }
 	},
 }
 
 func init() {
 	dbCmd.AddCommand(indexCmd)
 
-	indexCmd.Flags().StringP("out-prefix", "o", "-", `index file prefix ("-" for stdout)`)
+	// indexCmd.Flags().StringP("out-prefix", "o", "-", `index file prefix ("-" for stdout)`)
+	indexCmd.Flags().StringP("out-dir", "O", "", `output directory`)
 	indexCmd.Flags().Float64P("false-positive-rate", "f", 0.3, `false positive rate of single bloom filter`)
 	indexCmd.Flags().IntP("num-hash", "n", 1, `number of hashes`)
 	indexCmd.Flags().IntP("block-size", "b", 0, `block size, default: sqrt(#.files)`)
 
-	indexCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
-	indexCmd.Flags().BoolP("keep-tmp-dir", "k", false, `keep tmp dir`)
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from file name")
 

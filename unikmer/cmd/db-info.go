@@ -22,7 +22,7 @@ package cmd
 
 import (
 	"fmt"
-	"io"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -46,6 +46,7 @@ var infoCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-prefix")
 		all := getFlagBool(cmd, "all")
+		basename := getFlagBool(cmd, "basename")
 
 		if opt.Verbose {
 			log.Info("checking input files ...")
@@ -71,7 +72,11 @@ var infoCmd = &cobra.Command{
 			w.Close()
 		}()
 
-		outfh.WriteString(fmt.Sprintf("file\tk\tcanonical\tnum-hashes\tnum-sigs\tnum-names\n"))
+		if all {
+			outfh.WriteString(fmt.Sprintf("file\tk\tcanonical\tnum-hashes\tnum-sigs\tnum-names\tnames\n"))
+		} else {
+			outfh.WriteString(fmt.Sprintf("file\tk\tcanonical\tnum-hashes\tnum-sigs\tnum-names\n"))
+		}
 		for _, file := range files {
 			infh, r, _, err := inStream(file)
 			checkError(err)
@@ -81,26 +86,16 @@ var infoCmd = &cobra.Command{
 
 			h := reader.Header
 
-			outfh.WriteString(fmt.Sprintf("%s\t%d\t%v\t%d\t%d\t%d\n", file, h.K, h.Canonical, h.NumHashes, h.NumSigs, len(h.Names)))
-			outfh.Flush()
-
-			var n int64
-			for {
-				_, err = reader.Read()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					checkError(err)
-				}
-				n++
+			if basename {
+				file = filepath.Base(file)
 			}
 
 			if all {
-				outfh.WriteString(strings.Join(h.Names, ","))
-				outfh.WriteString("\n")
-				outfh.WriteString(fmt.Sprintf("%d\n", n))
+				outfh.WriteString(fmt.Sprintf("%s\t%d\t%v\t%d\t%d\t%d\t%s\n", file, h.K, h.Canonical, h.NumHashes, h.NumSigs, len(h.Names), strings.Join(h.Names, ";")))
+			} else {
+				outfh.WriteString(fmt.Sprintf("%s\t%d\t%v\t%d\t%d\t%d\n", file, h.K, h.Canonical, h.NumHashes, h.NumSigs, len(h.Names)))
 			}
+			outfh.Flush()
 
 			r.Close()
 		}
@@ -113,4 +108,5 @@ func init() {
 
 	infoCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	infoCmd.Flags().BoolP("all", "a", false, "all information")
+	infoCmd.Flags().BoolP("basename", "b", false, "only output basename of files")
 }

@@ -122,7 +122,7 @@ func (reader *Reader) readHeader() (err error) {
 	if err != nil {
 		return err
 	}
-	// check compatibility？
+	// check compatibility
 	if Version != meta[0] {
 		return fmt.Errorf("unikmer: index format compatibility error, please recreate with newest version")
 	}
@@ -164,7 +164,6 @@ func (reader *Reader) Read() ([]byte, error) {
 	nReaded, err := io.ReadFull(reader.r, data)
 	if err != nil {
 		if err == io.EOF {
-			fmt.Println(reader.nRowBytes, reader.count, reader.NumSigs)
 			if reader.count != reader.NumSigs {
 				return nil, ErrTruncateIndexFile
 			}

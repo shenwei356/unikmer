@@ -20,6 +20,16 @@
 
 package cmd
 
+import (
+	"math"
+)
+
+// From https://github.com/bingmann/cobs/blob/master/cobs/util/calc_signature_size.cpp
+func CalcSignatureSize(numElements uint64, numHashes int, falsePositiveRate float64) uint64 {
+	ratio := float64(-numHashes) / (math.Log(1 - math.Pow(falsePositiveRate, 1/float64(numHashes))))
+	return uint64(math.Ceil(float64(numElements) * ratio))
+}
+
 // get the two basic hash function values for data.
 // Based on early version of https://github.com/willf/bloom/blob/master/bloom.go .
 func baseHashes(key uint64) (uint32, uint32) {
