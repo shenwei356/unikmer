@@ -217,7 +217,14 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, tar
 	if threads <= 0 {
 		threads = len(db.Indices)
 	}
+
 	m := make(map[string][]float64, 8)
+
+	numHashes := db.Info.NumHashes
+	hashes := make([][]int, len(kmers))
+	for i, kmer := range kmers {
+		hashes[i] = hashValues(kmer, numHashes)
+	}
 
 	ch := make(chan map[string][]float64, len(db.Indices))
 	done := make(chan int)
@@ -236,7 +243,7 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, tar
 		wg.Add(1)
 		tokens <- 1
 		go func(idx *UnikIndex) {
-			ch <- idx.Search(kmers, queryCov, targetCov)
+			ch <- idx.Search(hashes, queryCov, targetCov)
 			wg.Done()
 			<-tokens
 		}(idx)
@@ -303,8 +310,8 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	return idx, nil
 }
 
-func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64) map[string][]float64 {
-	m := make(map[int]int, 8)
+func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64) map[string][]float64 {
+	m := make([]int, len(idx.Header.Names))
 
 	numHashes := int(idx.Header.NumHashes)
 	numRowBytes := idx.Header.NumRowBytes
@@ -323,11 +330,14 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 
 	var and []byte
 	var offset int
-	for _, kmer := range kmers {
-		for i, loc := range hashLocations(kmer, numHashes, numSigs) {
+	var loc int
+	for _, hs := range hashes {
+		for i, h := range hs {
+			loc = h % int(numSigs)
 			if useMmap {
 				offset = int(offset0 + int64(loc*numRowBytes))
-				copy(data[i], sigs[offset:offset+numRowBytes])
+				// copy(data[i], sigs[offset:offset+numRowBytes])
+				data[i] = sigs[offset : offset+numRowBytes]
 			} else {
 				fh.Seek(offset0+int64(loc*numRowBytes), 0)
 				io.ReadFull(fh, data[i])
@@ -351,7 +361,8 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 			}
 			for j := 0; j < 8; j++ {
 				if b&(1<<j) > 0 { // jth bit is 1
-					m[i*8+7-j]++
+					// m[i*8+7-j]++
+					m[i<<3+7-j]++
 				}
 			}
 		}
@@ -360,7 +371,11 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 	result := make(map[string][]float64, len(m))
 	var t, T float64
 	for i, v := range m {
-		t = float64(v) / float64(len(kmers))
+		if v == 0 {
+			continue
+		}
+
+		t = float64(v) / float64(len(hashes))
 		if t < queryCov {
 			continue
 		}

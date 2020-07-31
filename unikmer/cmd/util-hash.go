@@ -46,6 +46,15 @@ func hashLocations(key uint64, numHashes int, numSigs uint64) []int {
 	return locs
 }
 
+func hashValues(key uint64, numHashes int) []int {
+	locs := make([]int, numHashes)
+	a, b := baseHashes(key)
+	for i := uint32(0); i < uint32(numHashes); i++ {
+		locs[i] = int(uint64(a + b*i))
+	}
+	return locs
+}
+
 // https://gist.github.com/badboy/6267743 .
 // version with mask: https://gist.github.com/lh3/974ced188be2f90422cc .
 func hash64(key uint64) uint64 {
