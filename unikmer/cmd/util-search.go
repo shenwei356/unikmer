@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/edsrzf/mmap-go"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/pathutil"
 	"gopkg.in/yaml.v2"
@@ -132,7 +133,7 @@ func (db *UnikIndexDB) String() string {
 		db.Info.Version, len(db.Info.Files), db.Header.K, db.Info.Kmers, db.Header.NumHashes, db.Header.NumSigs)
 }
 
-func NewUnikIndexDB(path string) (*UnikIndexDB, error) {
+func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 	info, err := UnikIndexDBInfoFromFile(filepath.Join(path, dbInfoFile))
 	if err != nil {
 		return nil, err
@@ -146,7 +147,7 @@ func NewUnikIndexDB(path string) (*UnikIndexDB, error) {
 	indices := make([]*UnikIndex, 0, len(info.Files))
 
 	// first idx
-	idx1, err := NewUnixIndex(filepath.Join(path, info.Files[0]))
+	idx1, err := NewUnixIndex(filepath.Join(path, info.Files[0]), useMmap)
 
 	if info.Version == int(idx1.Header.Version) &&
 		info.K == idx1.Header.K &&
@@ -181,7 +182,7 @@ func NewUnikIndexDB(path string) (*UnikIndexDB, error) {
 		go func(f string) {
 			defer wg.Done()
 
-			idx, err := NewUnixIndex(f)
+			idx, err := NewUnixIndex(f, useMmap)
 			checkError(err)
 
 			if !idx.Header.Compatible(idx1.Header) {
@@ -256,13 +257,16 @@ type UnikIndex struct {
 	fh      *os.File
 	reader  *index.Reader
 	offset0 int64
+
+	useMmap bool
+	sigs    mmap.MMap // mapped sigatures
 }
 
 func (idx *UnikIndex) String() string {
 	return fmt.Sprintf("%s: %s", idx.Path, idx.Header.String())
 }
 
-func NewUnixIndex(file string) (*UnikIndex, error) {
+func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	fh, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open unikmer index file: %s", file)
@@ -288,17 +292,15 @@ func NewUnixIndex(file string) (*UnikIndex, error) {
 	h.NumRowBytes = reader.NumRowBytes
 	h.NumSigs = reader.NumSigs
 	idx := &UnikIndex{Path: file, Header: h, fh: fh, reader: reader, offset0: offset}
+	idx.useMmap = useMmap
+	if useMmap {
+		idx.sigs, err = mmap.Map(fh, mmap.RDONLY, 0)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return idx, nil
 }
-
-// type Filter struct {
-// 	threshold float64
-// }
-
-// type (f Filter) Passed() bool{
-
-// 	return true
-// }
 
 func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64) map[string][]float64 {
 	m := make(map[int]int, 8)
@@ -310,6 +312,8 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 	fh := idx.fh
 	names := idx.Header.Names
 	sizes := idx.Header.Sizes
+	useMmap := idx.useMmap
+	sigs := []byte(idx.sigs)
 
 	data := make([][]uint8, numHashes)
 	var row []byte
@@ -318,8 +322,12 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 		for i, loc := range hashLocations(kmer, numHashes, numSigs) {
 			row = make([]byte, numRowBytes)
 
-			fh.Seek(offset0+int64(loc*numRowBytes), 0)
-			io.ReadFull(fh, row)
+			if useMmap {
+				copy(row, sigs[int(offset0+int64(loc*numRowBytes)):int(offset0+int64(loc*numRowBytes))+len(row)])
+			} else {
+				fh.Seek(offset0+int64(loc*numRowBytes), 0)
+				io.ReadFull(fh, row)
+			}
 
 			data[i] = row
 		}
@@ -366,5 +374,11 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 }
 
 func (idx *UnikIndex) Close() error {
+	if idx.useMmap {
+		err := idx.sigs.Unmap()
+		if err != nil {
+			return err
+		}
+	}
 	return idx.fh.Close()
 }

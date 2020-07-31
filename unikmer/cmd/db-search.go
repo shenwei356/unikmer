@@ -54,6 +54,7 @@ var searchCmd = &cobra.Command{
 		outFile := getFlagString(cmd, "out-prefix")
 		queryCov := getFlagFloat64(cmd, "query-cov")
 		targetCov := getFlagFloat64(cmd, "target-cov")
+		useMmap := getFlagBool(cmd, "use-mmap")
 
 		if queryCov < 0 {
 			checkError(fmt.Errorf("value of -t/--query-cov should be positive"))
@@ -83,7 +84,7 @@ var searchCmd = &cobra.Command{
 		if opt.Verbose {
 			log.Info("loading database ...")
 		}
-		db, err := NewUnikIndexDB(dbDir)
+		db, err := NewUnikIndexDB(dbDir, useMmap)
 		checkError(err)
 		defer func() {
 			checkError(db.Close())
@@ -222,5 +223,6 @@ func init() {
 	searchCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 	searchCmd.Flags().Float64P("query-cov", "t", 0.5, `query coverage threshold`)
 	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold`)
+	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching`)
 
 }
