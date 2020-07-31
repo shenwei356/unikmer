@@ -36,7 +36,6 @@ var infoCmd = &cobra.Command{
 	Short: "information of index file",
 	Long: `information of index file
 
-
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)

@@ -81,9 +81,6 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 	sizes := make([]uint64, 0, len(files)*8)
 
 	// retrieve header of the first file, and names in all files
-	if opt.Verbose {
-		log.Infof("%s checking %d index files", prefix, len(files))
-	}
 	for i, file := range files {
 		infh, r, _, err := inStream(file)
 		checkError(err)
@@ -99,11 +96,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 		names = append(names, _reader.Names...)
 		sizes = append(sizes, _reader.Sizes...)
 
-		r.Close()
-	}
-
-	if opt.Verbose {
-		log.Infof("creating index...")
+		checkError(r.Close())
 	}
 
 	nRowBytes := int((len(names) + 7) / 8)

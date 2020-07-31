@@ -47,6 +47,8 @@ var indexCmd = &cobra.Command{
 Attentions:
   0. All input files should be sorted, and output file is sorted.
   1. The 'canonical' flags of all files should be consistent.
+  2. Increase value of -j/--threads for acceleratation in cost of more
+     memory occupation, sqrt(#cpus) is recommended.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -54,8 +56,6 @@ Attentions:
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
 		var err error
-
-		// outFile := getFlagString(cmd, "out-prefix")
 
 		nameRegexp := getFlagString(cmd, "name-regexp")
 		extractName := nameRegexp != ""
@@ -75,11 +75,15 @@ Attentions:
 		if numHashes > 255 {
 			checkError(fmt.Errorf("value of -n/--num-hash too big: %d", numHashes))
 		}
+		maxOpenFiles := getFlagPositiveInt(cmd, "max-open-files")
 
 		outDir := getFlagString(cmd, "out-dir")
 		force := getFlagBool(cmd, "force")
 
 		if opt.Verbose {
+			log.Infof("number of CPUs to use: %d", opt.NumCPUs)
+			log.Infof("number of hashes: %d", numHashes)
+			log.Infof("false positive rate: %f", fpr)
 			log.Info("checking input files ...")
 		}
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
@@ -108,37 +112,31 @@ Attentions:
 		}
 		checkError(os.MkdirAll(outDir, 0777))
 
-		// numSigs := CalcSignatureSize(61738843, nHash, fpr)
-		// data := make([]byte, numSigs)
-
 		// ------------------------------------------------------------------------------------
 		// check unik files and read k-mers numbers
+
+		if opt.Verbose {
+			log.Info("checking .unik files ...")
+		}
+
 		fileInfos := make([]UnikFileInfo, 0, len(files))
 
-		var infh *bufio.Reader
-		var r *os.File
-		var reader *unikmer.Reader
-		// var code uint64
 		var k int = -1
 		var canonical bool
 		var n int64
-		// var nfiles = len(files)
-		var name string
-		var found [][]string
+		var nfiles = len(files)
 		names0 := make([]string, 0, len(files))
 		sizes0 := make([]uint64, 0, len(files))
-		for _, file := range files {
-			// if opt.Verbose {
-			// 	log.Infof("checking file (%d/%d): %s", i+1, nfiles, file)
-			// }
 
-			infh, r, _, err = inStream(file)
+		getInfo := func(file string, first bool) UnikFileInfo {
+			infh, r, _, err := inStream(file)
+			checkError(err)
+			defer checkError(r.Close())
+
+			reader, err := unikmer.NewReader(infh)
 			checkError(err)
 
-			reader, err = unikmer.NewReader(infh)
-			checkError(err)
-
-			if k == -1 {
+			if first {
 				k = reader.K
 				canonical = reader.IsCanonical()
 			} else {
@@ -153,9 +151,9 @@ Attentions:
 			if reader.Number < 0 {
 				checkError(fmt.Errorf("binary file not sorted or no k-mers number found: %s", file))
 			}
-
+			var name string
 			if extractName {
-				found = reName.FindAllStringSubmatch(filepath.Base(file), -1)
+				found := reName.FindAllStringSubmatch(filepath.Base(file), -1)
 				if len(found) > 0 {
 					name = found[0][1]
 				} else {
@@ -165,11 +163,58 @@ Attentions:
 				name = filepath.Base(file)
 			}
 
-			fileInfos = append(fileInfos, UnikFileInfo{Path: file, Name: name, Kmers: reader.Number})
-			n += reader.Number
-			r.Close()
+			return UnikFileInfo{Path: file, Name: name, Kmers: reader.Number}
 		}
 
+		// fisrt file
+		if opt.Verbose {
+			log.Infof("checking file: %d/%d", 1, nfiles)
+		}
+		file := files[0]
+		info := getInfo(file, true)
+		fileInfos = append(fileInfos, info)
+		n += info.Kmers
+		names0 = append(names0, info.Name)
+		sizes0 = append(sizes0, uint64(info.Kmers))
+
+		// left files
+		var wgGetInfo sync.WaitGroup
+		chInfos := make(chan UnikFileInfo, opt.NumCPUs)
+		tokensGetInfo := make(chan int, opt.NumCPUs)
+		doneGetInfo := make(chan int)
+		go func() {
+			for info := range chInfos {
+				fileInfos = append(fileInfos, info)
+				n += info.Kmers
+				names0 = append(names0, info.Name)
+				sizes0 = append(sizes0, uint64(info.Kmers))
+			}
+			doneGetInfo <- 1
+		}()
+		for i, file := range files[1:] {
+			if opt.Verbose {
+				if i < 98 || (i+2)%100 == 0 {
+					log.Infof("checking file: %d/%d", i+2, nfiles)
+				}
+			}
+			wgGetInfo.Add(1)
+			tokensGetInfo <- 1
+			go func(file string) {
+				defer func() {
+					wgGetInfo.Done()
+					<-tokensGetInfo
+				}()
+				chInfos <- getInfo(file, false)
+			}(file)
+		}
+
+		wgGetInfo.Wait()
+		close(chInfos)
+		<-doneGetInfo
+
+		if opt.Verbose {
+			log.Infof("analyzing ...")
+		}
 		sort.Sort(UnikFileInfos(fileInfos))
 
 		for _, info := range fileInfos {
@@ -178,7 +223,11 @@ Attentions:
 		}
 
 		// ------------------------------------------------------------------------------------
+		// begin creating index
 
+		if opt.Verbose {
+			log.Infof("indexing ...")
+		}
 		nFiles := len(fileInfos)
 		if sBlock <= 0 {
 			sBlock = int((math.Sqrt(float64(nFiles))+7)/8) * 8
@@ -191,7 +240,6 @@ Attentions:
 
 		if opt.Verbose {
 			log.Infof("block size: %d", sBlock)
-			log.Infof("number of cpu to use: %d", opt.NumCPUs)
 		}
 
 		nIndexFiles := int((len(files) + sBlock - 1) / sBlock)
@@ -210,7 +258,7 @@ Attentions:
 		var b, j int
 		var wg0 sync.WaitGroup
 		tokens0 := make(chan int, opt.NumCPUs)
-		tokensOpenFiles := make(chan int, 512)
+		tokensOpenFiles := make(chan int, maxOpenFiles)
 		for i := 0; i < nFiles; i += sBlock {
 			j = i + sBlock
 			if j > nFiles {
@@ -324,7 +372,7 @@ Attentions:
 
 						checkError(writer.WriteBatch(sigs, len(sigs)))
 						if opt.Verbose {
-							log.Infof("%s batch #%03d: wrote %d signatures", prefix, bb, len(sigs))
+							log.Infof("%s batch #%03d: %d signatures saved", prefix, bb, len(sigs))
 						}
 
 					}(files[ii:jj], bb, maxElements, numSigs, outFile)
@@ -357,6 +405,7 @@ Attentions:
 		dbInfo.K = k
 		dbInfo.Kmers = int(n)
 		dbInfo.FPR = fpr
+		dbInfo.BlockSize = sBlock
 		dbInfo.Names = names0
 		dbInfo.Sizes = sizes0
 		dbInfo.NumHashes = numHashes
@@ -381,5 +430,6 @@ func init() {
 	indexCmd.Flags().IntP("block-size", "b", 0, `block size, default: sqrt(#.files)`)
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
-	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from file name")
+	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
+	indexCmd.Flags().IntP("max-open-files", "m", 512, "maximum number of opened files")
 }

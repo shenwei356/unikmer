@@ -36,8 +36,14 @@ import (
 // searchCmd represents
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "search sequence",
-	Long: `search sequence
+	Short: "search sequence from index database",
+	Long: `search sequence from index database
+
+Attentions:
+  0. Input format should be (gzipped) FASTA or FASTQ from file or stdin.
+  1. Increase value of -j/--threads for acceleratation.
+  2. Switch on -m/--use-mmap to load index files into memory to 
+     accelerate searching, memory usage is roughly equal to size of index files.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -55,6 +61,7 @@ var searchCmd = &cobra.Command{
 		queryCov := getFlagFloat64(cmd, "query-cov")
 		targetCov := getFlagFloat64(cmd, "target-cov")
 		useMmap := getFlagBool(cmd, "use-mmap")
+		nameMappingFile := getFlagString(cmd, "name-map")
 
 		if queryCov < 0 {
 			checkError(fmt.Errorf("value of -t/--query-cov should be positive"))
@@ -67,6 +74,16 @@ var searchCmd = &cobra.Command{
 
 		if moreVerbose {
 			opt.Verbose = true
+		}
+
+		var namesMap map[string]string
+		mappingNames := nameMappingFile != ""
+		if mappingNames {
+			namesMap, err = readKVs(nameMappingFile, false)
+			checkError(err)
+			if opt.Verbose {
+				log.Infof("%d pairs of name mapping values loaded", len(namesMap))
+			}
 		}
 
 		if opt.Verbose {
@@ -82,7 +99,11 @@ var searchCmd = &cobra.Command{
 		}
 
 		if opt.Verbose {
-			log.Info("loading database ...")
+			if useMmap {
+				log.Info("loading database with mmap enabled ...")
+			} else {
+				log.Info("loading database ...")
+			}
 		}
 		db, err := NewUnikIndexDB(dbDir, useMmap)
 		checkError(err)
@@ -95,6 +116,19 @@ var searchCmd = &cobra.Command{
 			log.Infof("query coverage threshold: %f", queryCov)
 			log.Infof("target coverage threshold: %f", targetCov)
 		}
+		if mappingNames {
+			var ok bool
+			var _n int
+			for _, name := range db.Info.Names {
+				if _, ok = namesMap[name]; !ok {
+					_n++
+				}
+			}
+			if _n > 0 {
+				log.Warningf("%d names are not defined in name mapping file: %s", _n, nameMappingFile)
+			}
+		}
+
 		k := db.Header.K
 		canonical := db.Header.Canonical
 
@@ -202,13 +236,22 @@ var searchCmd = &cobra.Command{
 					sort.Slice(targets, func(i, j int) bool { return matched[targets[i]][0] > matched[targets[j]][0] })
 
 					tmp := make([]string, len(targets))
+					var t string
 					for i, k := range targets {
-						tmp[i] = fmt.Sprintf("%s(#:%.0f, qcov:%0.4f, tcov:%0.4f)", k, matched[k][0], matched[k][1], matched[k][2])
+						if mappingNames {
+							t = namesMap[k]
+						} else {
+							t = k
+						}
+						tmp[i] = fmt.Sprintf("%s(#:%.0f, qcov:%0.4f, tcov:%0.4f)", t, matched[k][0], matched[k][1], matched[k][2])
 					}
 
 					outfh.WriteString(fmt.Sprintf("%s\t%d\t%s\n", record.ID, l, strings.Join(tmp, ", ")))
 				}
 			}
+		}
+		if opt.Verbose && moreVerbose {
+			log.Infof("done searching")
 		}
 
 	},
@@ -224,5 +267,6 @@ func init() {
 	searchCmd.Flags().Float64P("query-cov", "t", 0.5, `query coverage threshold`)
 	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold`)
 	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching`)
+	searchCmd.Flags().StringP("name-map", "M", "", `tabular two-column file mapping names to user-defined values`)
 
 }

@@ -42,6 +42,7 @@ type UnikIndexDBInfo struct {
 	Canonical bool     `yaml:"canonical"`
 	NumHashes int      `yaml:"hashes"`
 	FPR       float64  `yaml:"fpr"`
+	BlockSize int      `yaml:"blocksize"`
 	Kmers     int      `yaml:"totalKmers"`
 	Files     []string `yaml:"files"`
 	Names     []string `yaml:"names"`
@@ -51,8 +52,8 @@ type UnikIndexDBInfo struct {
 }
 
 func (i UnikIndexDBInfo) String() string {
-	return fmt.Sprintf("unikmer index db v%d: k: %d, canonical: %v, #hashes: %d, fpr:%f, #blocks: %d, #%d-mers: %d",
-		i.Version, i.K, i.Canonical, i.NumHashes, i.FPR, len(i.Files), i.K, i.Kmers)
+	return fmt.Sprintf("unikmer index db v%d: k: %d, canonical: %v, #hashes: %d, fpr:%f, #blocksize: %d, #blocks: %d, #%d-mers: %d",
+		i.Version, i.K, i.Canonical, i.NumHashes, i.FPR, i.BlockSize, len(i.Files), i.K, i.Kmers)
 }
 
 func NewUnikIndexDBInfo(version int, files []string) UnikIndexDBInfo {
@@ -129,8 +130,8 @@ type UnikIndexDB struct {
 }
 
 func (db *UnikIndexDB) String() string {
-	return fmt.Sprintf("unikmer index db v%d: #blocks: %d, #%d-mers: %d, #hashes: %d, #signatures: %d",
-		db.Info.Version, len(db.Info.Files), db.Header.K, db.Info.Kmers, db.Header.NumHashes, db.Header.NumSigs)
+	return fmt.Sprintf("unikmer index db v%d: #blocksize: %d, #blocks: %d, #%d-mers: %d, #hashes: %d, #signatures: %d",
+		db.Info.Version, db.Info.BlockSize, len(db.Info.Files), db.Header.K, db.Info.Kmers, db.Header.NumHashes, db.Header.NumSigs)
 }
 
 func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
@@ -316,20 +317,21 @@ func (idx *UnikIndex) Search(kmers []uint64, queryCov float64, targetCov float64
 	sigs := []byte(idx.sigs)
 
 	data := make([][]uint8, numHashes)
-	var row []byte
+	for i := 0; i < numHashes; i++ {
+		data[i] = make([]byte, numRowBytes)
+	}
+
 	var and []byte
+	var offset int
 	for _, kmer := range kmers {
 		for i, loc := range hashLocations(kmer, numHashes, numSigs) {
-			row = make([]byte, numRowBytes)
-
 			if useMmap {
-				copy(row, sigs[int(offset0+int64(loc*numRowBytes)):int(offset0+int64(loc*numRowBytes))+len(row)])
+				offset = int(offset0 + int64(loc*numRowBytes))
+				copy(data[i], sigs[offset:offset+numRowBytes])
 			} else {
 				fh.Seek(offset0+int64(loc*numRowBytes), 0)
-				io.ReadFull(fh, row)
+				io.ReadFull(fh, data[i])
 			}
-
-			data[i] = row
 		}
 
 		// AND
