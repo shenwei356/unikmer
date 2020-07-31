@@ -37,6 +37,7 @@ func baseHashes(key uint64) (uint32, uint32) {
 	return uint32(hash >> 32), uint32(hash)
 }
 
+// return locations in bitset for a key
 func hashLocations(key uint64, numHashes int, numSigs uint64) []int {
 	locs := make([]int, numHashes)
 	a, b := baseHashes(key)
@@ -46,6 +47,7 @@ func hashLocations(key uint64, numHashes int, numSigs uint64) []int {
 	return locs
 }
 
+// return hashes for a key
 func hashValues(key uint64, numHashes int) []int {
 	locs := make([]int, numHashes)
 	a, b := baseHashes(key)

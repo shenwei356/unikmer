@@ -125,8 +125,6 @@ Attentions:
 		var canonical bool
 		var n int64
 		var nfiles = len(files)
-		names0 := make([]string, 0, len(files))
-		sizes0 := make([]uint64, 0, len(files))
 
 		getInfo := func(file string, first bool) UnikFileInfo {
 			infh, r, _, err := inStream(file)
@@ -173,9 +171,6 @@ Attentions:
 		file := files[0]
 		info := getInfo(file, true)
 		fileInfos = append(fileInfos, info)
-		n += info.Kmers
-		names0 = append(names0, info.Name)
-		sizes0 = append(sizes0, uint64(info.Kmers))
 
 		// left files
 		var wgGetInfo sync.WaitGroup
@@ -186,8 +181,6 @@ Attentions:
 			for info := range chInfos {
 				fileInfos = append(fileInfos, info)
 				n += info.Kmers
-				names0 = append(names0, info.Name)
-				sizes0 = append(sizes0, uint64(info.Kmers))
 			}
 			doneGetInfo <- 1
 		}()
@@ -215,9 +208,13 @@ Attentions:
 		if opt.Verbose {
 			log.Infof("analyzing ...")
 		}
+
 		sort.Sort(UnikFileInfos(fileInfos))
 
+		names0 := make([]string, 0, len(files))
+		sizes0 := make([]uint64, 0, len(files))
 		for _, info := range fileInfos {
+			n += info.Kmers
 			names0 = append(names0, info.Name)
 			sizes0 = append(sizes0, uint64(info.Kmers))
 		}

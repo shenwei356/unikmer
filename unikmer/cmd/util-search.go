@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -398,4 +399,8 @@ func (idx *UnikIndex) Close() error {
 		}
 	}
 	return idx.fh.Close()
+}
+
+func maxFPR(p float64, k float64, l int) float64 {
+	return math.Exp(-float64(l) * (k - p) * (k - p) / 2 / (1 - p))
 }
