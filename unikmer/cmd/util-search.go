@@ -269,6 +269,7 @@ type UnikIndex struct {
 
 	useMmap bool
 	sigs    mmap.MMap // mapped sigatures
+	sigsB   []byte
 }
 
 func (idx *UnikIndex) String() string {
@@ -307,6 +308,7 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 		if err != nil {
 			return nil, err
 		}
+		idx.sigsB = []byte(idx.sigs)
 	}
 	return idx, nil
 }
@@ -321,8 +323,8 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	fh := idx.fh
 	names := idx.Header.Names
 	sizes := idx.Header.Sizes
+	sigs := idx.sigsB
 	useMmap := idx.useMmap
-	sigs := []byte(idx.sigs)
 
 	data := make([][]uint8, numHashes)
 	for i := 0; i < numHashes; i++ {
@@ -332,14 +334,22 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	var and []byte
 	var offset int
 	var loc int
-	for _, hs := range hashes {
-		for i, h := range hs {
-			loc = h % int(numSigs)
-			if useMmap {
+	var i, j int
+	var hs []int
+	var h int
+	var row []byte
+	var b byte
+	var ix8 int
+	for _, hs = range hashes {
+		if useMmap {
+			for i, h = range hs {
+				loc = h % int(numSigs)
 				offset = int(offset0 + int64(loc*numRowBytes))
-				// copy(data[i], sigs[offset:offset+numRowBytes])
 				data[i] = sigs[offset : offset+numRowBytes]
-			} else {
+			}
+		} else {
+			for i, h = range hs {
+				loc = h % int(numSigs)
 				fh.Seek(offset0+int64(loc*numRowBytes), 0)
 				io.ReadFull(fh, data[i])
 			}
@@ -348,23 +358,21 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 		// AND
 		and = data[0]
 		if numHashes > 1 {
-			for _, row := range data[1:] {
-				for i, b := range row {
+			for _, row = range data[1:] {
+				for i, b = range row {
 					and[i] &= b
 				}
 			}
 		}
 
-		// retrieve info
-		for i, b := range and {
+		// ADD
+		for i, b = range and {
 			if b == 0 {
 				continue
 			}
-			for j := 0; j < 8; j++ {
-				if b&(1<<j) > 0 { // jth bit is 1
-					// m[i*8+7-j]++
-					m[i<<3+7-j]++
-				}
+			ix8 = i << 3
+			for _, j = range _byte_ones_loc[b] {
+				m[ix8+7-j]++
 			}
 		}
 	}
@@ -403,4 +411,263 @@ func (idx *UnikIndex) Close() error {
 
 func maxFPR(p float64, k float64, l int) float64 {
 	return math.Exp(-float64(l) * (k - p) * (k - p) / 2 / (1 - p))
+}
+
+var _byte_ones_loc = [][]int{
+	[]int{},
+	[]int{0},
+	[]int{1},
+	[]int{0, 1},
+	[]int{2},
+	[]int{0, 2},
+	[]int{1, 2},
+	[]int{0, 1, 2},
+	[]int{3},
+	[]int{0, 3},
+	[]int{1, 3},
+	[]int{0, 1, 3},
+	[]int{2, 3},
+	[]int{0, 2, 3},
+	[]int{1, 2, 3},
+	[]int{0, 1, 2, 3},
+	[]int{4},
+	[]int{0, 4},
+	[]int{1, 4},
+	[]int{0, 1, 4},
+	[]int{2, 4},
+	[]int{0, 2, 4},
+	[]int{1, 2, 4},
+	[]int{0, 1, 2, 4},
+	[]int{3, 4},
+	[]int{0, 3, 4},
+	[]int{1, 3, 4},
+	[]int{0, 1, 3, 4},
+	[]int{2, 3, 4},
+	[]int{0, 2, 3, 4},
+	[]int{1, 2, 3, 4},
+	[]int{0, 1, 2, 3, 4},
+	[]int{5},
+	[]int{0, 5},
+	[]int{1, 5},
+	[]int{0, 1, 5},
+	[]int{2, 5},
+	[]int{0, 2, 5},
+	[]int{1, 2, 5},
+	[]int{0, 1, 2, 5},
+	[]int{3, 5},
+	[]int{0, 3, 5},
+	[]int{1, 3, 5},
+	[]int{0, 1, 3, 5},
+	[]int{2, 3, 5},
+	[]int{0, 2, 3, 5},
+	[]int{1, 2, 3, 5},
+	[]int{0, 1, 2, 3, 5},
+	[]int{4, 5},
+	[]int{0, 4, 5},
+	[]int{1, 4, 5},
+	[]int{0, 1, 4, 5},
+	[]int{2, 4, 5},
+	[]int{0, 2, 4, 5},
+	[]int{1, 2, 4, 5},
+	[]int{0, 1, 2, 4, 5},
+	[]int{3, 4, 5},
+	[]int{0, 3, 4, 5},
+	[]int{1, 3, 4, 5},
+	[]int{0, 1, 3, 4, 5},
+	[]int{2, 3, 4, 5},
+	[]int{0, 2, 3, 4, 5},
+	[]int{1, 2, 3, 4, 5},
+	[]int{0, 1, 2, 3, 4, 5},
+	[]int{6},
+	[]int{0, 6},
+	[]int{1, 6},
+	[]int{0, 1, 6},
+	[]int{2, 6},
+	[]int{0, 2, 6},
+	[]int{1, 2, 6},
+	[]int{0, 1, 2, 6},
+	[]int{3, 6},
+	[]int{0, 3, 6},
+	[]int{1, 3, 6},
+	[]int{0, 1, 3, 6},
+	[]int{2, 3, 6},
+	[]int{0, 2, 3, 6},
+	[]int{1, 2, 3, 6},
+	[]int{0, 1, 2, 3, 6},
+	[]int{4, 6},
+	[]int{0, 4, 6},
+	[]int{1, 4, 6},
+	[]int{0, 1, 4, 6},
+	[]int{2, 4, 6},
+	[]int{0, 2, 4, 6},
+	[]int{1, 2, 4, 6},
+	[]int{0, 1, 2, 4, 6},
+	[]int{3, 4, 6},
+	[]int{0, 3, 4, 6},
+	[]int{1, 3, 4, 6},
+	[]int{0, 1, 3, 4, 6},
+	[]int{2, 3, 4, 6},
+	[]int{0, 2, 3, 4, 6},
+	[]int{1, 2, 3, 4, 6},
+	[]int{0, 1, 2, 3, 4, 6},
+	[]int{5, 6},
+	[]int{0, 5, 6},
+	[]int{1, 5, 6},
+	[]int{0, 1, 5, 6},
+	[]int{2, 5, 6},
+	[]int{0, 2, 5, 6},
+	[]int{1, 2, 5, 6},
+	[]int{0, 1, 2, 5, 6},
+	[]int{3, 5, 6},
+	[]int{0, 3, 5, 6},
+	[]int{1, 3, 5, 6},
+	[]int{0, 1, 3, 5, 6},
+	[]int{2, 3, 5, 6},
+	[]int{0, 2, 3, 5, 6},
+	[]int{1, 2, 3, 5, 6},
+	[]int{0, 1, 2, 3, 5, 6},
+	[]int{4, 5, 6},
+	[]int{0, 4, 5, 6},
+	[]int{1, 4, 5, 6},
+	[]int{0, 1, 4, 5, 6},
+	[]int{2, 4, 5, 6},
+	[]int{0, 2, 4, 5, 6},
+	[]int{1, 2, 4, 5, 6},
+	[]int{0, 1, 2, 4, 5, 6},
+	[]int{3, 4, 5, 6},
+	[]int{0, 3, 4, 5, 6},
+	[]int{1, 3, 4, 5, 6},
+	[]int{0, 1, 3, 4, 5, 6},
+	[]int{2, 3, 4, 5, 6},
+	[]int{0, 2, 3, 4, 5, 6},
+	[]int{1, 2, 3, 4, 5, 6},
+	[]int{0, 1, 2, 3, 4, 5, 6},
+	[]int{7},
+	[]int{0, 7},
+	[]int{1, 7},
+	[]int{0, 1, 7},
+	[]int{2, 7},
+	[]int{0, 2, 7},
+	[]int{1, 2, 7},
+	[]int{0, 1, 2, 7},
+	[]int{3, 7},
+	[]int{0, 3, 7},
+	[]int{1, 3, 7},
+	[]int{0, 1, 3, 7},
+	[]int{2, 3, 7},
+	[]int{0, 2, 3, 7},
+	[]int{1, 2, 3, 7},
+	[]int{0, 1, 2, 3, 7},
+	[]int{4, 7},
+	[]int{0, 4, 7},
+	[]int{1, 4, 7},
+	[]int{0, 1, 4, 7},
+	[]int{2, 4, 7},
+	[]int{0, 2, 4, 7},
+	[]int{1, 2, 4, 7},
+	[]int{0, 1, 2, 4, 7},
+	[]int{3, 4, 7},
+	[]int{0, 3, 4, 7},
+	[]int{1, 3, 4, 7},
+	[]int{0, 1, 3, 4, 7},
+	[]int{2, 3, 4, 7},
+	[]int{0, 2, 3, 4, 7},
+	[]int{1, 2, 3, 4, 7},
+	[]int{0, 1, 2, 3, 4, 7},
+	[]int{5, 7},
+	[]int{0, 5, 7},
+	[]int{1, 5, 7},
+	[]int{0, 1, 5, 7},
+	[]int{2, 5, 7},
+	[]int{0, 2, 5, 7},
+	[]int{1, 2, 5, 7},
+	[]int{0, 1, 2, 5, 7},
+	[]int{3, 5, 7},
+	[]int{0, 3, 5, 7},
+	[]int{1, 3, 5, 7},
+	[]int{0, 1, 3, 5, 7},
+	[]int{2, 3, 5, 7},
+	[]int{0, 2, 3, 5, 7},
+	[]int{1, 2, 3, 5, 7},
+	[]int{0, 1, 2, 3, 5, 7},
+	[]int{4, 5, 7},
+	[]int{0, 4, 5, 7},
+	[]int{1, 4, 5, 7},
+	[]int{0, 1, 4, 5, 7},
+	[]int{2, 4, 5, 7},
+	[]int{0, 2, 4, 5, 7},
+	[]int{1, 2, 4, 5, 7},
+	[]int{0, 1, 2, 4, 5, 7},
+	[]int{3, 4, 5, 7},
+	[]int{0, 3, 4, 5, 7},
+	[]int{1, 3, 4, 5, 7},
+	[]int{0, 1, 3, 4, 5, 7},
+	[]int{2, 3, 4, 5, 7},
+	[]int{0, 2, 3, 4, 5, 7},
+	[]int{1, 2, 3, 4, 5, 7},
+	[]int{0, 1, 2, 3, 4, 5, 7},
+	[]int{6, 7},
+	[]int{0, 6, 7},
+	[]int{1, 6, 7},
+	[]int{0, 1, 6, 7},
+	[]int{2, 6, 7},
+	[]int{0, 2, 6, 7},
+	[]int{1, 2, 6, 7},
+	[]int{0, 1, 2, 6, 7},
+	[]int{3, 6, 7},
+	[]int{0, 3, 6, 7},
+	[]int{1, 3, 6, 7},
+	[]int{0, 1, 3, 6, 7},
+	[]int{2, 3, 6, 7},
+	[]int{0, 2, 3, 6, 7},
+	[]int{1, 2, 3, 6, 7},
+	[]int{0, 1, 2, 3, 6, 7},
+	[]int{4, 6, 7},
+	[]int{0, 4, 6, 7},
+	[]int{1, 4, 6, 7},
+	[]int{0, 1, 4, 6, 7},
+	[]int{2, 4, 6, 7},
+	[]int{0, 2, 4, 6, 7},
+	[]int{1, 2, 4, 6, 7},
+	[]int{0, 1, 2, 4, 6, 7},
+	[]int{3, 4, 6, 7},
+	[]int{0, 3, 4, 6, 7},
+	[]int{1, 3, 4, 6, 7},
+	[]int{0, 1, 3, 4, 6, 7},
+	[]int{2, 3, 4, 6, 7},
+	[]int{0, 2, 3, 4, 6, 7},
+	[]int{1, 2, 3, 4, 6, 7},
+	[]int{0, 1, 2, 3, 4, 6, 7},
+	[]int{5, 6, 7},
+	[]int{0, 5, 6, 7},
+	[]int{1, 5, 6, 7},
+	[]int{0, 1, 5, 6, 7},
+	[]int{2, 5, 6, 7},
+	[]int{0, 2, 5, 6, 7},
+	[]int{1, 2, 5, 6, 7},
+	[]int{0, 1, 2, 5, 6, 7},
+	[]int{3, 5, 6, 7},
+	[]int{0, 3, 5, 6, 7},
+	[]int{1, 3, 5, 6, 7},
+	[]int{0, 1, 3, 5, 6, 7},
+	[]int{2, 3, 5, 6, 7},
+	[]int{0, 2, 3, 5, 6, 7},
+	[]int{1, 2, 3, 5, 6, 7},
+	[]int{0, 1, 2, 3, 5, 6, 7},
+	[]int{4, 5, 6, 7},
+	[]int{0, 4, 5, 6, 7},
+	[]int{1, 4, 5, 6, 7},
+	[]int{0, 1, 4, 5, 6, 7},
+	[]int{2, 4, 5, 6, 7},
+	[]int{0, 2, 4, 5, 6, 7},
+	[]int{1, 2, 4, 5, 6, 7},
+	[]int{0, 1, 2, 4, 5, 6, 7},
+	[]int{3, 4, 5, 6, 7},
+	[]int{0, 3, 4, 5, 6, 7},
+	[]int{1, 3, 4, 5, 6, 7},
+	[]int{0, 1, 3, 4, 5, 6, 7},
+	[]int{2, 3, 4, 5, 6, 7},
+	[]int{0, 2, 3, 4, 5, 6, 7},
+	[]int{1, 2, 3, 4, 5, 6, 7},
+	[]int{0, 1, 2, 3, 4, 5, 6, 7},
 }
