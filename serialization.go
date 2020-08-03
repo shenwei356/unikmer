@@ -57,8 +57,11 @@ var ErrCallLate = errors.New("unikmer: SetMaxTaxid/SetGlobalTaxid should be call
 // ErrCallReadWriteTaxid means flag UNIK_INCLUDETAXID is off, but you call ReadTaxid/WriteTaxid
 var ErrCallReadWriteTaxid = errors.New("unikmer: can not call ReadTaxid/WriteTaxid when flag UNIK_INCLUDETAXID is off")
 
-// ErrInvalidTaxid means zero given for a taxid
+// ErrInvalidTaxid means zero given for a taxid.
 var ErrInvalidTaxid = errors.New("unikmer: invalid taxid, 0 not allowed")
+
+// ErrVersionMismatch means version mismatch between files and program
+var ErrVersionMismatch = errors.New("unikmer: version mismatch")
 
 var be = binary.BigEndian
 
@@ -196,7 +199,7 @@ func (reader *Reader) readHeader() (err error) {
 	// check compatibility？
 	if (meta[0] == 0 && meta[1] == 0) ||
 		MainVersion != meta[0] {
-		return fmt.Errorf("unikmer: .unik format compatibility error, please recreate with newest version")
+		return ErrVersionMismatch
 	}
 	reader.MainVersion = meta[0]
 	reader.MinorVersion = meta[1]

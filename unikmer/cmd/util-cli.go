@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/shenwei356/breader"
 	"github.com/shenwei356/go-logging"
 	"github.com/shenwei356/util/stringutil"
 	"github.com/spf13/cobra"
@@ -51,6 +52,12 @@ func isStdout(file string) bool {
 
 func getFlagInt(cmd *cobra.Command, flag string) int {
 	value, err := cmd.Flags().GetInt(flag)
+	checkError(err)
+	return value
+}
+
+func getFlagUint8(cmd *cobra.Command, flag string) uint8 {
+	value, err := cmd.Flags().GetUint8(flag)
 	checkError(err)
 	return value
 }
@@ -247,4 +254,39 @@ func getFileListFromArgsAndFile(cmd *cobra.Command, args []string, checkFileFrom
 		files = append(files, _files...)
 	}
 	return files
+}
+
+func readKVs(file string, allLeftAsValue bool) (map[string]string, error) {
+	type KV [2]string
+	fn := func(line string) (interface{}, bool, error) {
+		line = strings.TrimRight(line, "\r\n")
+		if line == "" {
+			return nil, false, nil
+		}
+		items := strings.Split(line, "\t")
+		if len(items) < 2 {
+			return nil, false, nil
+		}
+
+		if allLeftAsValue {
+			return KV([2]string{items[0], strings.Join(items[1:], "\t")}), true, nil
+		}
+		return KV([2]string{items[0], items[1]}), true, nil
+	}
+	kvs := make(map[string]string)
+	reader, err := breader.NewBufferedReader(file, 2, 10, fn)
+	if err != nil {
+		return kvs, err
+	}
+	var items KV
+	for chunk := range reader.Ch {
+		if chunk.Err != nil {
+			return kvs, err
+		}
+		for _, data := range chunk.Data {
+			items = data.(KV)
+			kvs[items[0]] = items[1]
+		}
+	}
+	return kvs, nil
 }
