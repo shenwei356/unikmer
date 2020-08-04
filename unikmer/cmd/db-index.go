@@ -339,6 +339,7 @@ Attentions:
 							var reader *unikmer.Reader
 							var err error
 							var code uint64
+							var loc int
 
 							tokensOpenFiles <- 1
 							infh, r, _, err = inStream(info.Path)
@@ -356,10 +357,9 @@ Attentions:
 									checkError(err)
 								}
 
-								for _, loc := range hashLocations(code, numHashes, numSigs) {
+								for _, loc = range hashLocations(code, numHashes, numSigs) {
 									sigs[loc] |= 1 << (7 - _k)
 								}
-
 							}
 
 							r.Close()

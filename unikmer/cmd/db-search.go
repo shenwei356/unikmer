@@ -70,12 +70,6 @@ Attentions:
 			checkError(fmt.Errorf("value of -T/-target-cov should not be negative"))
 		}
 
-		moreVerbose := getFlagBool(cmd, "more-verbose")
-
-		if moreVerbose {
-			opt.Verbose = true
-		}
-
 		var namesMap map[string]string
 		mappingNames := nameMappingFile != ""
 		if mappingNames {
@@ -135,9 +129,9 @@ Attentions:
 		k := db.Header.K
 		canonical := db.Header.Canonical
 
-		if !isStdout(outFile) {
-			outFile += ".txt"
-		}
+		// if !isStdout(outFile) {
+		// 	outFile += ".txt"
+		// }
 		outfh, gw, w, err := outStream(outFile, false, opt.CompressionLevel)
 		checkError(err)
 		defer func() {
@@ -173,9 +167,6 @@ Attentions:
 				}
 
 				nseq++
-				if opt.Verbose && moreVerbose {
-					log.Infof("searching sequence #%d: %s", nseq, record.ID)
-				}
 
 				if canonical {
 					iters = 1
@@ -254,7 +245,7 @@ Attentions:
 				}
 			}
 		}
-		if opt.Verbose && moreVerbose {
+		if opt.Verbose {
 			log.Infof("done searching")
 		}
 
@@ -266,11 +257,9 @@ func init() {
 
 	searchCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	searchCmd.Flags().StringP("db-dir", "d", "", `database directory created by "unikmer db index"`)
-	searchCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
-	searchCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 	searchCmd.Flags().Float64P("query-cov", "t", 0.6, `query coverage threshold, i.e., ratio of matched k-mers in unique k-mers of a query`)
 	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., ratio of matched k-mers in unique k-mers of a target`)
-	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching`)
+	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching (recommended)`)
 	searchCmd.Flags().StringP("name-map", "M", "", `tabular two-column file mapping names to user-defined values`)
 
 }

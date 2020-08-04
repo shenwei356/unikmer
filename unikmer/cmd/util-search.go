@@ -270,6 +270,8 @@ type UnikIndex struct {
 	useMmap bool
 	sigs    mmap.MMap // mapped sigatures
 	sigsB   []byte
+
+	_data [][]uint8
 }
 
 func (idx *UnikIndex) String() string {
@@ -310,6 +312,10 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 		}
 		idx.sigsB = []byte(idx.sigs)
 	}
+	idx._data = make([][]uint8, reader.NumHashes)
+	for i := 0; i < int(reader.NumHashes); i++ {
+		idx._data[i] = make([]byte, reader.NumHashes)
+	}
 	return idx, nil
 }
 
@@ -325,11 +331,7 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	sizes := idx.Header.Sizes
 	sigs := idx.sigsB
 	useMmap := idx.useMmap
-
-	data := make([][]uint8, numHashes)
-	for i := 0; i < numHashes; i++ {
-		data[i] = make([]byte, numRowBytes)
-	}
+	data := idx._data
 
 	var and []byte
 	var offset int
