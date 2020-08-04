@@ -314,7 +314,7 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	}
 	idx._data = make([][]uint8, reader.NumHashes)
 	for i := 0; i < int(reader.NumHashes); i++ {
-		idx._data[i] = make([]byte, reader.NumHashes)
+		idx._data[i] = make([]byte, reader.NumRowBytes)
 	}
 	return idx, nil
 }
