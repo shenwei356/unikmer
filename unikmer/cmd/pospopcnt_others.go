@@ -1,4 +1,4 @@
-// +build gc
+// +build !amd64
 
 // Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
 //
@@ -22,5 +22,10 @@
 
 package cmd
 
-//go:noescape
-func __mm_add_epi32(x, y [8]int32) [8]int32
+func Pospopcnt(counts *[8]int32, buf []byte) {
+	for i := 0; i < len(buf); i++ {
+		for j := 0; j < 8; j++ {
+			(*counts)[7-j] += int32(buf[i]) >> j & 1
+		}
+	}
+}
