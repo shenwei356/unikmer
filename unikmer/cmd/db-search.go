@@ -262,6 +262,6 @@ func init() {
 	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., ratio of matched k-mers in unique k-mers of a target`)
 	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching (recommended)`)
 	searchCmd.Flags().StringP("name-map", "M", "", `tabular two-column file mapping names to user-defined values`)
-	searchCmd.Flags().IntP("batch-size", "b", 32, `batch size of quering k-mers`)
+	searchCmd.Flags().IntP("batch-size", "b", 40, `batch size of quering k-mers, do not change this`)
 
 }
