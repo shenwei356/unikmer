@@ -424,7 +424,7 @@ func init() {
 	indexCmd.Flags().StringP("out-dir", "O", "", `output directory`)
 	indexCmd.Flags().Float64P("false-positive-rate", "f", 0.3, `false positive rate of single bloom filter`)
 	indexCmd.Flags().IntP("num-hash", "n", 1, `number of hashes`)
-	indexCmd.Flags().IntP("block-size", "b", 0, `block size, default: sqrt(#.files)`)
+	indexCmd.Flags().IntP("block-size", "b", 0, `block size, better be multiple of 64. default: sqrt(#.files)`)
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
