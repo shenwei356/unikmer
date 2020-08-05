@@ -351,7 +351,7 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 		buffs[i] = make([]byte, numRowBytes)
 	}
 	bufIdx := 0
-	var buf [64]byte
+	var buf *[64]byte
 
 	// transpose of buffs
 	buffsT := make([][64]byte, numRowBytes)
@@ -394,14 +394,15 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 
 		if bufIdx == 64 {
 			// transpose
-			for i := 0; i < numRowBytes; i++ {
-				buf = buffsT[i]
+			for i = 0; i < numRowBytes; i++ { // every column in matrix
+				buf = &buffsT[i]
 				for j = 0; j < 64; j++ {
-					buf[j] = buffs[j][i]
+					(*buf)[j] = buffs[j][i]
 				}
 			}
 
-			for i = 0; i < numRowBytes; i++ {
+			// count
+			for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
 				Pospopcnt(&counts[i], buffsT[i][:])
 			}
 
@@ -410,14 +411,16 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	}
 	// left data in buffer
 	if bufIdx > 0 {
-		for i := 0; i < numRowBytes; i++ {
-			buf = buffsT[i]
-			for j = 0; j < bufIdx; j++ {
-				buf[j] = buffs[j][i]
+		// transpose
+		for i = 0; i < numRowBytes; i++ { // every column in matrix
+			buf = &buffsT[i]
+			for j = 0; j < 64; j++ {
+				(*buf)[j] = buffs[j][i]
 			}
 		}
 
-		for i = 0; i < numRowBytes; i++ {
+		// count
+		for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
 			Pospopcnt(&counts[i], buffsT[i][0:bufIdx])
 		}
 	}
