@@ -62,7 +62,6 @@ Attentions:
 		targetCov := getFlagFloat64(cmd, "target-cov")
 		useMmap := getFlagBool(cmd, "use-mmap")
 		nameMappingFile := getFlagString(cmd, "name-map")
-		batchSize := getFlagPositiveInt(cmd, "batch-size")
 
 		if queryCov < 0 {
 			checkError(fmt.Errorf("value of -t/--query-cov should be positive"))
@@ -222,7 +221,7 @@ Attentions:
 						kmerList = append(kmerList, code)
 					}
 
-					matched := db.Search(kmerList, opt.NumCPUs, batchSize, queryCov, targetCov)
+					matched := db.Search(kmerList, opt.NumCPUs, queryCov, targetCov)
 
 					targets := make([]string, 0, len(matched))
 					for m := range matched {
@@ -262,6 +261,4 @@ func init() {
 	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., ratio of matched k-mers in unique k-mers of a target`)
 	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching (recommended)`)
 	searchCmd.Flags().StringP("name-map", "M", "", `tabular two-column file mapping names to user-defined values`)
-	searchCmd.Flags().IntP("batch-size", "b", 32, `batch size of quering k-mers`)
-
 }

@@ -214,7 +214,7 @@ func (db *UnikIndexDB) Close() error {
 	return err0
 }
 
-func (db *UnikIndexDB) Search(kmers []uint64, threads int, batchSize int, queryCov float64, targetCov float64) map[string][]float64 {
+func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][]float64 {
 	if threads <= 0 {
 		threads = len(db.Indices)
 	}
@@ -244,7 +244,7 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, batchSize int, queryC
 		wg.Add(1)
 		tokens <- 1
 		go func(idx *UnikIndex) {
-			ch <- idx.Search(hashes, batchSize, queryCov, targetCov)
+			ch <- idx.Search(hashes, queryCov, targetCov)
 			wg.Done()
 			<-tokens
 		}(idx)
@@ -319,7 +319,7 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	return idx, nil
 }
 
-func (idx *UnikIndex) Search(hashes [][]int, batchSize int, queryCov float64, targetCov float64) map[string][]float64 {
+func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64) map[string][]float64 {
 	numNames := len(idx.Header.Names)
 
 	numHashes := int(idx.Header.NumHashes)
@@ -346,17 +346,17 @@ func (idx *UnikIndex) Search(hashes [][]int, batchSize int, queryCov float64, ta
 
 	// perfermance decrease for batchSize >= 512 or < 32
 	// byte matrix
-	buffs := make([][]byte, batchSize)
-	for i = 0; i < batchSize; i++ {
+	buffs := make([][]byte, 64)
+	for i = 0; i < 64; i++ {
 		buffs[i] = make([]byte, numRowBytes)
 	}
 	bufIdx := 0
-	var buf []byte
+	var buf *[64]byte
 
 	// transpose of buffs
-	buffsT := make([][]byte, numRowBytes)
+	buffsT := make([][64]byte, numRowBytes)
 	for i = 0; i < numRowBytes; i++ {
-		buffsT[i] = make([]byte, batchSize)
+		buffsT[i] = [64]byte{} // 64 is the cache line size
 	}
 
 	for _, hs = range hashes {
@@ -392,17 +392,18 @@ func (idx *UnikIndex) Search(hashes [][]int, batchSize int, queryCov float64, ta
 		buffs[bufIdx] = and
 		bufIdx++
 
-		if bufIdx == batchSize {
+		if bufIdx == 64 {
 			// transpose
-			for i := 0; i < numRowBytes; i++ {
-				buf = buffsT[i]
-				for j = 0; j < batchSize; j++ {
-					buf[j] = buffs[j][i]
+			for i = 0; i < numRowBytes; i++ { // every column in matrix
+				buf = &buffsT[i]
+				for j = 0; j < 64; j++ {
+					(*buf)[j] = buffs[j][i]
 				}
 			}
 
-			for i = 0; i < numRowBytes; i++ {
-				Pospopcnt(&counts[i], buffsT[i])
+			// count
+			for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
+				Pospopcnt(&counts[i], buffsT[i][:])
 			}
 
 			bufIdx = 0
@@ -410,14 +411,16 @@ func (idx *UnikIndex) Search(hashes [][]int, batchSize int, queryCov float64, ta
 	}
 	// left data in buffer
 	if bufIdx > 0 {
-		for i := 0; i < numRowBytes; i++ {
-			buf = buffsT[i]
-			for j = 0; j < bufIdx; j++ {
-				buf[j] = buffs[j][i]
+		// transpose
+		for i = 0; i < numRowBytes; i++ { // every column in matrix
+			buf = &buffsT[i]
+			for j = 0; j < 64; j++ {
+				(*buf)[j] = buffs[j][i]
 			}
 		}
 
-		for i = 0; i < numRowBytes; i++ {
+		// count
+		for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
 			Pospopcnt(&counts[i], buffsT[i][0:bufIdx])
 		}
 	}
