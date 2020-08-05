@@ -21,7 +21,6 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -345,11 +344,13 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	var row []byte
 	var b byte
 
-	buffs := make([]bytes.Buffer, numRowBytes)
+	buffLimit := 128 // perfermance decrease for >= 512
+	buffs := make([][]byte, numRowBytes)
 	for i = 0; i < numRowBytes; i++ {
-		buffs[i] = bytes.Buffer{}
+		buffs[i] = make([]byte, buffLimit)
 	}
-	buffLimit := 1024
+	bufIdx := 0
+	var buf []byte
 
 	for _, hs = range hashes {
 		if useMmap {
@@ -377,20 +378,25 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 		}
 
 		// add to buffer for counting
-		for i, b = range and {
-			buffs[i].WriteByte(b)
+		for i = 0; i < numRowBytes; i++ {
+			// buffs[i][bufIdx] = and[i]
+			b = and[i]
+			buf = buffs[i]
+			buf[bufIdx] = b
 		}
+		bufIdx++
 
-		if buffs[0].Len() == buffLimit {
+		if bufIdx == buffLimit {
 			for i = 0; i < numRowBytes; i++ {
-				Pospopcnt(&counts[i], buffs[i].Bytes())
-				buffs[i].Reset()
+				Pospopcnt(&counts[i], buffs[i])
 			}
+			bufIdx = 0
 		}
 	}
-	for i = 0; i < numRowBytes; i++ {
-		Pospopcnt(&counts[i], buffs[i].Bytes())
-		buffs[i].Reset()
+	if bufIdx > 0 {
+		for i = 0; i < numRowBytes; i++ {
+			Pospopcnt(&counts[i], buffs[i][0:bufIdx])
+		}
 	}
 
 	var _counts [8]int32

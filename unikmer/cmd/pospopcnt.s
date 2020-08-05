@@ -10,14 +10,14 @@ TEXT ·Pospopcnt(SB),NOSPLIT,$0-32
 	MOVQ buf_len+16(FP), CX		// CX = len(buf)
 
 	// load counts into register R8--R15
-	MOVL 4*0(DI), R8
-	MOVL 4*1(DI), R9
-	MOVL 4*2(DI), R10
-	MOVL 4*3(DI), R11
-	MOVL 4*4(DI), R12
-	MOVL 4*5(DI), R13
-	MOVL 4*6(DI), R14
-	MOVL 4*7(DI), R15
+	MOVL 4*7(DI), R8
+	MOVL 4*6(DI), R9
+	MOVL 4*5(DI), R10
+	MOVL 4*4(DI), R11
+	MOVL 4*3(DI), R12
+	MOVL 4*2(DI), R13
+	MOVL 4*1(DI), R14
+	MOVL 4*0(DI), R15
 
 	SUBQ $32, CX			// pre-subtract 32 bit from CX
 	JL scalar

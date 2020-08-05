@@ -25,7 +25,13 @@ package cmd
 func Pospopcnt(counts *[8]int32, buf []byte) {
 	for i := 0; i < len(buf); i++ {
 		for j := 0; j < 8; j++ {
-			(*counts)[7-j] += int32(buf[i]) >> j & 1
+			(*counts)[7-j] += buf[i] >> j & 1
 		}
+	}
+}
+
+func PospopcntByte(counts *[8]int32, b byte) {
+	for j := 0; j < 8; j++ {
+		(*counts)[7-j] += b >> j & 1
 	}
 }
