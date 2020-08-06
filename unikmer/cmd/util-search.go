@@ -214,12 +214,12 @@ func (db *UnikIndexDB) Close() error {
 	return err0
 }
 
-func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][]float64 {
+func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][3]float64 {
 	if threads <= 0 {
 		threads = len(db.Indices)
 	}
 
-	m := make(map[string][]float64, 8)
+	m := make(map[string][3]float64, 8)
 
 	numHashes := db.Info.NumHashes
 	hashes := make([][]int, len(kmers))
@@ -227,7 +227,7 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, tar
 		hashes[i] = hashValues(kmer, numHashes)
 	}
 
-	ch := make(chan map[string][]float64, len(db.Indices))
+	ch := make(chan map[string][3]float64, len(db.Indices))
 	done := make(chan int)
 	go func() {
 		for _m := range ch {
@@ -271,7 +271,9 @@ type UnikIndex struct {
 	sigs    mmap.MMap // mapped sigatures
 	sigsB   []byte
 
-	_data [][]uint8
+	_data  [][]uint8
+	buffs  [][]byte
+	buffsT [][64]byte // 64 is the cache line size
 }
 
 func (idx *UnikIndex) String() string {
@@ -316,10 +318,24 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	for i := 0; i < int(reader.NumHashes); i++ {
 		idx._data[i] = make([]byte, reader.NumRowBytes)
 	}
+
+	// byte matrix for counting
+	buffs := make([][]byte, 64)
+	for i := 0; i < 64; i++ {
+		buffs[i] = make([]byte, reader.NumRowBytes)
+	}
+
+	// transpose of buffs
+	buffsT := make([][64]byte, reader.NumRowBytes)
+	for i := 0; i < reader.NumRowBytes; i++ {
+		buffsT[i] = [64]byte{}
+	}
+	idx.buffs = buffs
+	idx.buffsT = buffsT
 	return idx, nil
 }
 
-func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64) map[string][]float64 {
+func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64) map[string][3]float64 {
 	numNames := len(idx.Header.Names)
 
 	numHashes := int(idx.Header.NumHashes)
@@ -344,20 +360,10 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	var row []byte
 	var b byte
 
-	// perfermance decrease for batchSize >= 512 or < 32
-	// byte matrix
-	buffs := make([][]byte, 64)
-	for i = 0; i < 64; i++ {
-		buffs[i] = make([]byte, numRowBytes)
-	}
+	buffs := idx.buffs
+	buffsT := idx.buffsT
 	bufIdx := 0
 	var buf *[64]byte
-
-	// transpose of buffs
-	buffsT := make([][64]byte, numRowBytes)
-	for i = 0; i < numRowBytes; i++ {
-		buffsT[i] = [64]byte{} // 64 is the cache line size
-	}
 
 	for _, hs = range hashes {
 		if useMmap {
@@ -448,7 +454,7 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 		}
 	}
 
-	result := make(map[string][]float64, nTargets)
+	result := make(map[string][3]float64, nTargets)
 	var t, T float64
 	for i, v := range m {
 		if v == 0 {
@@ -464,7 +470,7 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 			continue
 		}
 
-		result[names[i]] = []float64{float64(v), t, T}
+		result[names[i]] = [3]float64{float64(v), t, T}
 	}
 
 	return result
