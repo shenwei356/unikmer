@@ -227,34 +227,30 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, tar
 		hashes[i] = hashValues(kmer, numHashes)
 	}
 
-	ch := make(chan map[string][3]float64, len(db.Indices))
-	done := make(chan int)
-	go func() {
-		var k string
-		var v [3]float64
-		for _m := range ch {
-			for k, v = range _m {
-				m[k] = v
-			}
-		}
-		done <- 1
-	}()
+	ch := make([]*map[string][3]float64, len(db.Indices))
 
 	var wg sync.WaitGroup
 	tokens := make(chan int, threads)
-	for _, idx := range db.Indices {
+	for i, idx := range db.Indices {
 		wg.Add(1)
 		tokens <- 1
-		go func(idx *UnikIndex) {
-			ch <- idx.Search(hashes, queryCov, targetCov)
+		go func(idx *UnikIndex, ch []*map[string][3]float64, i int) {
+			_m := idx.Search(hashes, queryCov, targetCov)
+			ch[i] = &_m
+
 			wg.Done()
 			<-tokens
-		}(idx)
+		}(idx, ch, i)
 	}
-
 	wg.Wait()
-	close(ch)
-	<-done
+
+	var k string
+	var v [3]float64
+	for _, _m := range ch {
+		for k, v = range *_m {
+			m[k] = v
+		}
+	}
 
 	return m
 }
