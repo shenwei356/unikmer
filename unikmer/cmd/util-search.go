@@ -230,8 +230,10 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, tar
 	ch := make(chan map[string][3]float64, len(db.Indices))
 	done := make(chan int)
 	go func() {
+		var k string
+		var v [3]float64
 		for _m := range ch {
-			for k, v := range _m {
+			for k, v = range _m {
 				m[k] = v
 			}
 		}
