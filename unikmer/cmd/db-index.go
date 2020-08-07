@@ -121,6 +121,9 @@ Attentions:
 				log.Infof("%d input file(s) given", len(files))
 			}
 		}
+		if len(files) < 2 {
+			checkError(fmt.Errorf("at least two .unik files needed"))
+		}
 
 		existed, err := pathutil.DirExists(outDir)
 		checkError(err)
@@ -330,6 +333,10 @@ Attentions:
 					}
 				}
 
+			}
+
+			if len(batch) == 0 {
+				break
 			}
 
 			prefix = fmt.Sprintf("[block #%03d]", b)

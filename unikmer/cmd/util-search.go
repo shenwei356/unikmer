@@ -164,7 +164,9 @@ func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 	indices = append(indices, idx1)
 
 	db := &UnikIndexDB{Info: info, Header: idx1.Header, path: path}
+
 	if len(info.Files) == 1 {
+		db.Indices = indices
 		return db, nil
 	}
 
@@ -200,7 +202,6 @@ func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 	<-done
 
 	db.Indices = indices
-
 	return db, nil
 }
 
@@ -223,7 +224,7 @@ func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, tar
 	m := make(map[string][3]float64, 8)
 
 	numHashes := db.Info.NumHashes
-	hashes := make([][]int, len(kmers))
+	hashes := make([][]uint64, len(kmers))
 	for i, kmer := range kmers {
 		hashes[i] = hashValues(kmer, numHashes)
 	}
@@ -340,12 +341,13 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	return idx, nil
 }
 
-func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64) map[string][3]float64 {
+func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov float64) map[string][3]float64 {
 	numNames := len(idx.Header.Names)
 
 	numHashes := int(idx.Header.NumHashes)
 	numRowBytes := idx.Header.NumRowBytes
 	numSigs := idx.Header.NumSigs
+	numSigsInt := uint64(numSigs)
 	offset0 := idx.offset0
 	fh := idx.fh
 	names := idx.Header.Names
@@ -358,12 +360,13 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 
 	// var and []byte
 	var offset int
+	var offset2 int64
 	var loc int
 	var i, j int
-	var hs []int
-	var h int
+	var hs []uint64
 	var row []byte
 	var b byte
+	var h uint64
 
 	buffs := idx.buffs
 	buffsT := idx.buffsT
@@ -373,14 +376,18 @@ func (idx *UnikIndex) Search(hashes [][]int, queryCov float64, targetCov float64
 	for _, hs = range hashes {
 		if useMmap {
 			for i, h = range hs {
-				loc = h % int(numSigs)
+				loc = int(h % numSigsInt)
 				offset = int(offset0 + int64(loc*numRowBytes))
-				data[i] = sigs[offset : offset+numRowBytes]
+
+				// data[i] = sigs[offset : offset+numRowBytes] // buggy
+				copy(data[i], sigs[offset:offset+numRowBytes])
 			}
 		} else {
 			for i, h = range hs {
-				loc = h % int(numSigs)
-				fh.Seek(offset0+int64(loc*numRowBytes), 0)
+				loc = int(h % numSigsInt)
+				offset2 = offset0 + int64(loc*numRowBytes)
+
+				fh.Seek(offset2, 0)
 				io.ReadFull(fh, data[i])
 			}
 		}

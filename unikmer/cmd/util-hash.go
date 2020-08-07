@@ -48,13 +48,13 @@ func hashLocations(key uint64, numHashes int, numSigs uint64) []int {
 }
 
 // return hashes for a key
-func hashValues(key uint64, numHashes int) []int {
-	locs := make([]int, numHashes)
+func hashValues(key uint64, numHashes int) []uint64 {
+	hashes := make([]uint64, numHashes)
 	a, b := baseHashes(key)
 	for i := uint32(0); i < uint32(numHashes); i++ {
-		locs[i] = int(uint64(a + b*i))
+		hashes[i] = uint64(a + b*i)
 	}
-	return locs
+	return hashes
 }
 
 // https://gist.github.com/badboy/6267743 .
