@@ -377,7 +377,11 @@ Attentions:
 							<-tokens
 						}()
 
-						outfh, gw, w, err := outStream(outFile, true, opt.CompressionLevel)
+						var outGzip bool
+						if len(_files) > 1 {
+							outGzip = true
+						}
+						outfh, gw, w, err := outStream(outFile, outGzip, opt.CompressionLevel)
 						checkError(err)
 						defer func() {
 							outfh.Flush()
@@ -445,15 +449,21 @@ Attentions:
 				}
 
 				wg.Wait()
-				if opt.Verbose {
-					log.Infof("%s merging %d index files", prefix, len(batchFiles))
-				}
 
 				blockFile := filepath.Join(outDir, fmt.Sprintf("block%03d%s", b, extIndex))
-				checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
 
-				if opt.Verbose {
-					log.Infof("%s finished merging", prefix)
+				if len(files) == 1 { // do not have to merge
+					checkError(os.Rename(batchFiles[0], blockFile))
+				} else {
+					if opt.Verbose {
+						log.Infof("%s merging %d index files", prefix, len(batchFiles))
+					}
+
+					checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
+
+					if opt.Verbose {
+						log.Infof("%s finished merging", prefix)
+					}
 				}
 
 				wg0.Done()
