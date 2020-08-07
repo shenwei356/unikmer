@@ -240,7 +240,7 @@ Attentions:
 						tmp[i] = fmt.Sprintf("%s(#:%.0f, qcov:%0.4f, tcov:%0.4f)", t, matched[k][0], matched[k][1], matched[k][2])
 					}
 
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%f\t%s\n",
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%.10f\t%s\n",
 						record.ID, l, maxFPR(db.Info.FPR, queryCov, l), strings.Join(tmp, ", ")))
 				}
 			}
