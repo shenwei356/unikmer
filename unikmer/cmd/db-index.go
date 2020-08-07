@@ -56,14 +56,24 @@ Attentions:
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
-		maxKmersS := getFlagString(cmd, "block-max-kmers")
-		maxKmersF, err := bytesize.Parse([]byte(maxKmersS))
+		kmerThreshold8Str := getFlagString(cmd, "block-max-kmers-t1")
+		kmerThreshold8Float, err := bytesize.Parse([]byte(kmerThreshold8Str))
 		if err != nil {
-			checkError(fmt.Errorf("invalid size: %s", maxKmersF))
+			checkError(fmt.Errorf("invalid size: %s", kmerThreshold8Float))
 		}
-		maxKmers := int64(maxKmersF)
-		if maxKmers <= 0 {
-			checkError(fmt.Errorf("value of flag -B/--block-max-kmers should be positive: %d", maxKmers))
+		kmerThreshold8 := int64(kmerThreshold8Float)
+		if kmerThreshold8 <= 0 {
+			checkError(fmt.Errorf("value of flag -m/--block-max-kmers-t1 should be positive: %d", kmerThreshold8))
+		}
+
+		kmerThresholdSStr := getFlagString(cmd, "block-max-kmers-t2")
+		kmerThresholdSFloat, err := bytesize.Parse([]byte(kmerThresholdSStr))
+		if err != nil {
+			checkError(fmt.Errorf("invalid size: %s", kmerThresholdSFloat))
+		}
+		kmerThresholdS := int64(kmerThresholdSFloat)
+		if kmerThresholdS <= 0 {
+			checkError(fmt.Errorf("value of flag -M/--block-max-kmers-t2 should be positive: %d", kmerThresholdS))
 		}
 
 		nameRegexp := getFlagString(cmd, "name-regexp")
@@ -77,6 +87,10 @@ Attentions:
 			checkError(err)
 		}
 
+		if kmerThreshold8 >= kmerThresholdS {
+			checkError(fmt.Errorf("value of flag -m/--block-max-kmers-t1 (%d) should be small than -M/--block-max-kmers-t2 (%d)", kmerThreshold8, kmerThresholdS))
+		}
+
 		sBlock := getFlagInt(cmd, "block-size")
 
 		fpr := getFlagPositiveFloat64(cmd, "false-positive-rate")
@@ -87,6 +101,10 @@ Attentions:
 		maxOpenFiles := getFlagPositiveInt(cmd, "max-open-files")
 
 		outDir := getFlagString(cmd, "out-dir")
+		if outDir == "" {
+			checkError(fmt.Errorf("value of -O/--out-dir can not be empty"))
+		}
+
 		force := getFlagBool(cmd, "force")
 
 		if opt.Verbose {
@@ -266,8 +284,10 @@ Attentions:
 		tokens0 := make(chan int, opt.NumCPUs)
 		tokensOpenFiles := make(chan int, maxOpenFiles)
 
+		sBlock0 := sBlock
+
 		batch := make([]*UnikFileInfo, 0, sBlock)
-		var flag bool
+		var flag8, flag bool
 		var lastInfo *UnikFileInfo
 		for i := 0; i <= nFiles; i++ {
 			if i == nFiles { // process lastInfo
@@ -278,16 +298,33 @@ Attentions:
 			} else {
 				info := fileInfos[i]
 
-				if flag {
-					batch = append(batch, lastInfo)
-					lastInfo = &info
-				} else if info.Kmers > maxKmers { // meet a big file the first time
-					flag = true      // mark
-					lastInfo = &info // leave this file process in the next round
+				if flag || flag8 {
+					if flag {
+						batch = append(batch, lastInfo)
+						lastInfo = &info
+					} else if info.Kmers > kmerThresholdS { // meet a very big file the first time
+						flag = true      // mark
+						lastInfo = &info // leave this file process in the next round
+						// and we have to process files aleady in batch
+					} else { // flag8 && !flag
+						if lastInfo != nil { // right after found the first file > kmerThreshold8
+							batch = append(batch, lastInfo)
+							lastInfo = nil
+						}
+
+						batch = append(batch, &info)
+						if len(batch) < sBlock { // not filled
+							continue
+						}
+					}
+				} else if info.Kmers > kmerThreshold8 {
+					// meet a big file > kmerThreshold8
+					sBlock = 8
+					flag8 = true     // mark
+					lastInfo = &info // leave this file process in the next batch
 					// and we have to process files aleady in batch
 				} else {
 					batch = append(batch, &info)
-
 					if len(batch) < sBlock { // not filled
 						continue
 					}
@@ -436,7 +473,7 @@ Attentions:
 		dbInfo.K = k
 		dbInfo.Kmers = int(n)
 		dbInfo.FPR = fpr
-		dbInfo.BlockSize = sBlock
+		dbInfo.BlockSize = sBlock0
 		dbInfo.Names = names0
 		dbInfo.Sizes = sizes0
 		dbInfo.NumHashes = numHashes
@@ -455,13 +492,14 @@ func init() {
 	dbCmd.AddCommand(indexCmd)
 
 	// indexCmd.Flags().StringP("out-prefix", "o", "-", `index file prefix ("-" for stdout)`)
-	indexCmd.Flags().StringP("out-dir", "O", "", `output directory`)
+	indexCmd.Flags().StringP("out-dir", "O", "unikmer-db", `output directory`)
 	indexCmd.Flags().Float64P("false-positive-rate", "f", 0.3, `false positive rate of single bloom filter`)
 	indexCmd.Flags().IntP("num-hash", "n", 1, `number of hashes`)
 	indexCmd.Flags().IntP("block-size", "b", 0, `block size, better be multiple of 64. default: sqrt(#.files)`)
-	indexCmd.Flags().StringP("block-max-kmers", "B", "200M", `if kmers of single .unik file exceeds this value, we creat individual index for this file. unit supported: K, M, G`)
+	indexCmd.Flags().StringP("block-max-kmers-t1", "m", "20M", `if kmers of single .unik file exceeds this threshold, we creat change block size to 8. unit supported: K, M, G`)
+	indexCmd.Flags().StringP("block-max-kmers-t2", "M", "200M", `if kmers of single .unik file exceeds this threshold, we creat individual index for this file. unit supported: K, M, G`)
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
-	indexCmd.Flags().IntP("max-open-files", "m", 512, "maximum number of opened files")
+	indexCmd.Flags().IntP("max-open-files", "F", 512, "maximum number of opened files")
 }
