@@ -379,8 +379,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 				loc = int(h % numSigsInt)
 				offset = int(offset0 + int64(loc*numRowBytes))
 
-				// data[i] = sigs[offset : offset+numRowBytes] // buggy???
-				copy(data[i], sigs[offset:offset+numRowBytes]) // right???
+				data[i] = sigs[offset : offset+numRowBytes]
 			}
 		} else {
 			for i, h = range hs {
@@ -395,15 +394,13 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		// AND
 		var and []byte
 
+		copy(and, data[0]) // must copy
 		if numHashes > 1 {
-			copy(and, data[0])
 			for _, row = range data[1:] {
 				for i, b = range row {
 					and[i] &= b
 				}
 			}
-		} else {
-			and = data[0]
 		}
 
 		// add to buffer for counting
