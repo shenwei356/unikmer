@@ -34,6 +34,7 @@ import (
 
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/unikmer/index"
+	"github.com/shenwei356/util/bytesize"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +56,15 @@ Attentions:
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
-		var err error
+		maxKmersS := getFlagString(cmd, "block-max-kmers")
+		maxKmersF, err := bytesize.Parse([]byte(maxKmersS))
+		if err != nil {
+			checkError(fmt.Errorf("invalid size: %s", maxKmersF))
+		}
+		maxKmers := int64(maxKmersF)
+		if maxKmers <= 0 {
+			checkError(fmt.Errorf("value of flag -B/--block-max-kmers should be positive: %d", maxKmers))
+		}
 
 		nameRegexp := getFlagString(cmd, "name-regexp")
 		extractName := nameRegexp != ""
@@ -252,26 +261,49 @@ Attentions:
 
 		var prefix string
 
-		var b, j int
+		var b int
 		var wg0 sync.WaitGroup
 		tokens0 := make(chan int, opt.NumCPUs)
 		tokensOpenFiles := make(chan int, maxOpenFiles)
-		for i := 0; i < nFiles; i += sBlock {
-			j = i + sBlock
-			if j > nFiles {
-				j = nFiles
-			}
 
-			b++
+		batch := make([]*UnikFileInfo, 0, sBlock)
+		var flag bool
+		var lastInfo *UnikFileInfo
+		for i := 0; i <= nFiles; i++ {
+			if i == nFiles { // process lastInfo
+				// process files in batch or the last file
+				if flag {
+					batch = append(batch, lastInfo)
+				}
+			} else {
+				info := fileInfos[i]
+
+				if flag {
+					batch = append(batch, lastInfo)
+					lastInfo = &info
+				} else if info.Kmers > maxKmers { // meet a big file the first time
+					flag = true      // mark
+					lastInfo = &info // leave this file process in the next round
+					// and we have to process files aleady in batch
+				} else {
+					batch = append(batch, &info)
+
+					if len(batch) < sBlock { // not filled
+						continue
+					}
+				}
+
+			}
 
 			prefix = fmt.Sprintf("[block #%03d]", b)
 			if opt.Verbose {
-				log.Infof("%s processing file #%d-#%d", prefix, i+1, j)
+				log.Infof("%s processing %d file", prefix, len(batch))
 			}
 
+			b++
 			wg0.Add(1)
 			tokens0 <- 1
-			go func(files []UnikFileInfo, b int, prefix string) {
+			go func(files []*UnikFileInfo, b int, prefix string) {
 				var wg sync.WaitGroup
 				tokens := make(chan int, opt.NumCPUs)
 
@@ -302,7 +334,7 @@ Attentions:
 					outFile := filepath.Join(outDir, fmt.Sprintf("block%03d_batch%03d%s", b, bb, extIndex))
 					batchFiles = append(batchFiles, outFile)
 
-					go func(_files []UnikFileInfo, bb int, maxElements int64, numSigs uint64, outFile string) {
+					go func(_files []*UnikFileInfo, bb int, maxElements int64, numSigs uint64, outFile string) {
 						defer func() {
 							wg.Done()
 							<-tokens
@@ -390,7 +422,9 @@ Attentions:
 				wg0.Done()
 				ch <- filepath.Base(blockFile)
 				<-tokens0
-			}(fileInfos[i:j], b, prefix)
+			}(batch, b, prefix)
+
+			batch = make([]*UnikFileInfo, 0, sBlock)
 		}
 
 		wg0.Wait()
@@ -425,6 +459,7 @@ func init() {
 	indexCmd.Flags().Float64P("false-positive-rate", "f", 0.3, `false positive rate of single bloom filter`)
 	indexCmd.Flags().IntP("num-hash", "n", 1, `number of hashes`)
 	indexCmd.Flags().IntP("block-size", "b", 0, `block size, better be multiple of 64. default: sqrt(#.files)`)
+	indexCmd.Flags().StringP("block-max-kmers", "B", "200M", `if kmers of single .unik file exceeds this value, we creat individual index for this file. unit supported: K, M, G`)
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
