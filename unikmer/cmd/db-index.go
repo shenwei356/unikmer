@@ -305,7 +305,8 @@ Attentions:
 					if flag {
 						batch = append(batch, lastInfo)
 						lastInfo = &info
-					} else if info.Kmers > kmerThresholdS { // meet a very big file the first time
+					} else if info.Kmers > kmerThresholdS {
+						// meet a very big file the first time
 						flag = true      // mark
 						lastInfo = &info // leave this file process in the next round
 						// and we have to process files aleady in batch
@@ -321,11 +322,18 @@ Attentions:
 						}
 					}
 				} else if info.Kmers > kmerThreshold8 {
-					// meet a big file > kmerThreshold8
-					sBlock = 8
-					flag8 = true     // mark
-					lastInfo = &info // leave this file process in the next batch
-					// and we have to process files aleady in batch
+					if info.Kmers > kmerThresholdS {
+						// meet a very big file the first time
+						flag = true      // mark
+						lastInfo = &info // leave this file process in the next round
+						// and we have to process files aleady in batch
+					} else {
+						// meet a big file > kmerThreshold8
+						sBlock = 8
+						flag8 = true     // mark
+						lastInfo = &info // leave this file process in the next batch
+						// and we have to process files aleady in batch
+					}
 				} else {
 					batch = append(batch, &info)
 					if len(batch) < sBlock { // not filled
@@ -345,6 +353,7 @@ Attentions:
 			}
 
 			b++
+
 			wg0.Add(1)
 			tokens0 <- 1
 			go func(files []*UnikFileInfo, b int, prefix string) {

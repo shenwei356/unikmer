@@ -30,6 +30,7 @@ import (
 	"sync"
 
 	"github.com/edsrzf/mmap-go"
+	"github.com/klauspost/cpuid"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/smallnest/ringbuffer"
@@ -280,6 +281,8 @@ type UnikIndex struct {
 	_data  [][]uint8
 	buffs  [][]byte
 	buffsT [][64]byte // 64 is the cache line size
+
+	pospopcnt func(*[8]int32, []byte)
 }
 
 func (idx *UnikIndex) String() string {
@@ -338,6 +341,12 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	}
 	idx.buffs = buffs
 	idx.buffsT = buffsT
+
+	if AVX2Available {
+		idx.pospopcnt = Pospopcnt
+	} else {
+		idx.pospopcnt = PospopcntGo
+	}
 	return idx, nil
 }
 
@@ -355,6 +364,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	sigs := idx.sigsB
 	useMmap := idx.useMmap
 	data := idx._data
+	pospopcnt := idx.pospopcnt
 
 	counts := make([][8]int32, numRowBytes)
 
@@ -392,7 +402,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		}
 
 		// AND
-		var and []byte
+		and := make([]byte, numRowBytes)
 
 		copy(and, data[0]) // must copy
 		if numHashes > 1 {
@@ -418,7 +428,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 
 			// count
 			for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
-				Pospopcnt(&counts[i], buffsT[i][:])
+				pospopcnt(&counts[i], buffsT[i][:])
 			}
 
 			bufIdx = 0
@@ -436,7 +446,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 
 		// count
 		for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
-			Pospopcnt(&counts[i], buffsT[i][0:bufIdx])
+			pospopcnt(&counts[i], buffsT[i][0:bufIdx])
 		}
 	}
 
@@ -497,4 +507,15 @@ func (idx *UnikIndex) Close() error {
 
 func maxFPR(p float64, k float64, l int) float64 {
 	return math.Exp(-float64(l) * (k - p) * (k - p) / 2 / (1 - p))
+}
+
+var AVX2Available = cpuid.CPU.AVX2()
+
+// for CPUs not supporting AVX2
+func PospopcntGo(counts *[8]int32, buf []byte) {
+	for i := 0; i < len(buf); i++ {
+		for j := 0; j < 8; j++ {
+			(*counts)[7-j] += int32(buf[i]) >> j & 1
+		}
+	}
 }
