@@ -368,7 +368,6 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 
 	counts := make([][8]int32, numRowBytes)
 
-	// var and []byte
 	var offset int
 	var offset2 int64
 	var loc int
@@ -402,9 +401,9 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		}
 
 		// AND
-		and := make([]byte, numRowBytes)
+		var and []byte
 
-		copy(and, data[0]) // must copy
+		and = data[0]
 		if numHashes > 1 {
 			for _, row = range data[1:] {
 				for i, b = range row {
