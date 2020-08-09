@@ -33,7 +33,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// numCmd represents
 var numCmd = &cobra.Command{
 	Use:   "num",
 	Short: "Quickly inspect number of k-mers in binary files",

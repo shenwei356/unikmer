@@ -33,11 +33,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// searchCmd represents
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "search sequence from index database",
-	Long: `search sequence from index database
+	Short: "Search sequence from index database",
+	Long: `Search sequence from index database
 
 Attentions:
   0. Input format should be (gzipped) FASTA or FASTQ from file or stdin.
@@ -106,7 +105,7 @@ Attentions:
 		}()
 
 		if queryCov <= db.Info.FPR {
-			checkError(fmt.Errorf("query coverage threshold (%f) should not small than fpr of single bloom filter of index database (%f)", queryCov, db.Info.FPR))
+			checkError(fmt.Errorf("query coverage threshold (%f) should not small than FPR of single bloom filter of index database (%f)", queryCov, db.Info.FPR))
 		}
 		if opt.Verbose {
 			log.Infof("db loaded: %s", db)
@@ -240,8 +239,8 @@ Attentions:
 						tmp[i] = fmt.Sprintf("%s(#:%.0f, qcov:%0.4f, tcov:%0.4f)", t, matched[k][0], matched[k][1], matched[k][2])
 					}
 
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%e\t%s\n",
-						record.ID, l, maxFPR(db.Info.FPR, queryCov, l), strings.Join(tmp, ", ")))
+					outfh.WriteString(fmt.Sprintf("%s\t%d\t%e\t%d\t%s\n",
+						record.ID, l, maxFPR(db.Info.FPR, queryCov, l), len(matched), strings.Join(tmp, ", ")))
 				}
 			}
 		}
@@ -257,8 +256,8 @@ func init() {
 
 	searchCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	searchCmd.Flags().StringP("db-dir", "d", "", `database directory created by "unikmer db index"`)
-	searchCmd.Flags().Float64P("query-cov", "t", 0.6, `query coverage threshold, i.e., ratio of matched k-mers in unique k-mers of a query`)
-	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., ratio of matched k-mers in unique k-mers of a target`)
+	searchCmd.Flags().Float64P("query-cov", "t", 0.6, `query coverage threshold, i.e., ratio of matched k-mers and unique k-mers of a query`)
+	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., ratio of matched k-mers and unique k-mers of a target`)
 	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching (recommended)`)
 	searchCmd.Flags().StringP("name-map", "M", "", `tabular two-column file mapping names to user-defined values`)
 }

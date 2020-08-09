@@ -33,7 +33,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// diffCmd represents
 var diffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "Set difference of multiple binary files",

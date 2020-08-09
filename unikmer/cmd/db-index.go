@@ -39,23 +39,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// indexCmd represents
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "construct index from binary files",
-	Long: `construct index from binary files
+	Short: "Construct index from binary files",
+	Long: `Construct index from binary files
 
 Attentions:
-  0. All input files should be sorted, and output file is sorted.
+  0. All input files should be sorted.
   1. The 'canonical' flags of all files should be consistent.
   2. Increase value of -j/--threads for acceleratation in cost of more
-     memory occupation, sqrt(#cpus) is recommended.
+	 memory occupation, sqrt(#cpus) is recommended.
+  3. Value of block size -b/--block-size better be multiple of 64.
+  4. Use --dry-run to adjust parameters and see final #index files 
+     and total file size.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
 
+		dryRun := getFlagBool(cmd, "dry-run")
+		if dryRun {
+			opt.Verbose = true
+		}
+
+		// block-max-kmers-t1
 		kmerThreshold8Str := getFlagString(cmd, "block-max-kmers-t1")
 		kmerThreshold8Float, err := bytesize.Parse([]byte(kmerThreshold8Str))
 		if err != nil {
@@ -66,6 +74,7 @@ Attentions:
 			checkError(fmt.Errorf("value of flag -m/--block-max-kmers-t1 should be positive: %d", kmerThreshold8))
 		}
 
+		// block-max-kmers-t2
 		kmerThresholdSStr := getFlagString(cmd, "block-max-kmers-t2")
 		kmerThresholdSFloat, err := bytesize.Parse([]byte(kmerThresholdSStr))
 		if err != nil {
@@ -76,6 +85,12 @@ Attentions:
 			checkError(fmt.Errorf("value of flag -M/--block-max-kmers-t2 should be positive: %d", kmerThresholdS))
 		}
 
+		if kmerThreshold8 >= kmerThresholdS {
+			checkError(fmt.Errorf("value of flag -m/--block-max-kmers-t1 (%d) should be small than -M/--block-max-kmers-t2 (%d)", kmerThreshold8, kmerThresholdS))
+		}
+
+		// -------------------------------------------------------
+
 		nameRegexp := getFlagString(cmd, "name-regexp")
 		extractName := nameRegexp != ""
 		var reName *regexp.Regexp
@@ -85,10 +100,6 @@ Attentions:
 			}
 			reName, err = regexp.Compile(nameRegexp)
 			checkError(err)
-		}
-
-		if kmerThreshold8 >= kmerThresholdS {
-			checkError(fmt.Errorf("value of flag -m/--block-max-kmers-t1 (%d) should be small than -M/--block-max-kmers-t2 (%d)", kmerThreshold8, kmerThresholdS))
 		}
 
 		sBlock := getFlagInt(cmd, "block-size")
@@ -113,6 +124,7 @@ Attentions:
 			log.Infof("false positive rate: %f", fpr)
 			log.Info("checking input files ...")
 		}
+
 		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
 		if opt.Verbose {
 			if len(files) == 1 && isStdin(files[0]) {
@@ -132,15 +144,23 @@ Attentions:
 			checkError(err)
 			if !empty {
 				if force {
-					checkError(os.RemoveAll(outDir))
+					if !dryRun {
+						checkError(os.RemoveAll(outDir))
+					}
 				} else {
-					checkError(fmt.Errorf("dir not empty: %s, choose another one or use --force to overwrite", outDir))
+					if !dryRun {
+						checkError(fmt.Errorf("dir not empty: %s, choose another one or use --force to overwrite", outDir))
+					}
 				}
 			} else {
-				checkError(os.RemoveAll(outDir))
+				if !dryRun {
+					checkError(os.RemoveAll(outDir))
+				}
 			}
 		}
-		checkError(os.MkdirAll(outDir, 0777))
+		if !dryRun {
+			checkError(os.MkdirAll(outDir, 0777))
+		}
 
 		// ------------------------------------------------------------------------------------
 		// check unik files and read k-mers numbers
@@ -215,7 +235,7 @@ Attentions:
 			doneGetInfo <- 1
 		}()
 		for i, file := range files[1:] {
-			if opt.Verbose {
+			if opt.Verbose && !dryRun {
 				if i < 98 || (i+2)%100 == 0 {
 					log.Infof("checking file: %d/%d", i+2, nfiles)
 				}
@@ -236,7 +256,7 @@ Attentions:
 		<-doneGetInfo
 
 		if opt.Verbose {
-			log.Infof("analyzing ...")
+			log.Infof("finished checking %d .unik files", nfiles)
 		}
 
 		sort.Sort(UnikFileInfos(fileInfos))
@@ -253,7 +273,7 @@ Attentions:
 		// begin creating index
 
 		if opt.Verbose {
-			log.Infof("indexing ...")
+			log.Infof("starting indexing ...")
 		}
 		nFiles := len(fileInfos)
 		if sBlock <= 0 {
@@ -267,10 +287,13 @@ Attentions:
 
 		if opt.Verbose {
 			log.Infof("block size: %d", sBlock)
+			log.Infof("block-max-kmers-threshold 1: %s", kmerThreshold8Str)
+			log.Infof("block-max-kmers-threshold 2: %s", kmerThresholdSStr)
 		}
 
-		nIndexFiles := int((len(files) + sBlock - 1) / sBlock)
+		nIndexFiles := int((len(files) + sBlock - 1) / sBlock) // may be more if using -m and -M
 		indexFiles := make([]string, 0, nIndexFiles)
+
 		ch := make(chan string, nIndexFiles)
 		done := make(chan int)
 		go func() {
@@ -280,11 +303,25 @@ Attentions:
 			done <- 1
 		}()
 
+		var fileSize float64
+		chFileSize := make(chan float64, nIndexFiles)
+		doneFileSize := make(chan int)
+		go func() {
+			for f := range chFileSize {
+				fileSize += f
+			}
+			doneFileSize <- 1
+		}()
+
 		var prefix string
 
 		var b int
 		var wg0 sync.WaitGroup
-		tokens0 := make(chan int, opt.NumCPUs)
+		maxConc := opt.NumCPUs
+		if dryRun {
+			maxConc = 1 // just for loging in order
+		}
+		tokens0 := make(chan int, maxConc)
 		tokensOpenFiles := make(chan int, maxOpenFiles)
 
 		sBlock0 := sBlock
@@ -347,12 +384,9 @@ Attentions:
 				break
 			}
 
-			prefix = fmt.Sprintf("[block #%03d]", b)
-			if opt.Verbose {
-				log.Infof("%s processing %d file", prefix, len(batch))
-			}
-
 			b++
+
+			prefix = fmt.Sprintf("[block #%03d]", b)
 
 			wg0.Add(1)
 			tokens0 <- 1
@@ -367,15 +401,26 @@ Attentions:
 					}
 				}
 
-				batchFiles := make([]string, 0, int((len(files)+7)/8))
+				nBatchFiles := int((len(files) + 7) / 8)
+				batchFiles := make([]string, 0, nBatchFiles)
 
 				numSigs := CalcSignatureSize(uint64(maxElements), numHashes, fpr)
+				var eFileSize float64
+				eFileSize = 24
+				for _, info := range files {
+					eFileSize += float64(len(info.Name) + 1 + 8)
+				}
+				eFileSize += float64(numSigs * uint64(nBatchFiles))
+
 				if opt.Verbose {
-					log.Infof("%s max number of k-mers: %d, number of signatures: %d", prefix, maxElements, numSigs)
+					log.Infof("%s #files: %d, max #k-mers: %d, #signatures: %d, file size: %s", prefix, len(files), maxElements, numSigs, bytesize.ByteSize(eFileSize))
 				}
 
 				var bb, jj int
 				for ii := 0; ii < len(files); ii += 8 {
+					if dryRun {
+						continue
+					}
 					jj = ii + 8
 					if jj > len(files) {
 						jj = len(files)
@@ -468,22 +513,25 @@ Attentions:
 
 				blockFile := filepath.Join(outDir, fmt.Sprintf("block%03d%s", b, extIndex))
 
-				if len(files) == 1 { // do not have to merge
-					checkError(os.Rename(batchFiles[0], blockFile))
-				} else {
-					if opt.Verbose {
-						log.Infof("%s merging %d index files", prefix, len(batchFiles))
-					}
+				if !dryRun {
+					if len(files) == 1 { // do not have to merge
+						checkError(os.Rename(batchFiles[0], blockFile))
+					} else {
+						if opt.Verbose {
+							log.Infof("%s merging %d index files", prefix, len(batchFiles))
+						}
 
-					checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
+						checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
 
-					if opt.Verbose {
-						log.Infof("%s finished merging", prefix)
+						if opt.Verbose {
+							log.Infof("%s finished merging", prefix)
+						}
 					}
 				}
 
 				wg0.Done()
 				ch <- filepath.Base(blockFile)
+				chFileSize <- eFileSize
 				<-tokens0
 			}(batch, b, prefix)
 
@@ -510,6 +558,7 @@ Attentions:
 
 		if opt.Verbose {
 			log.Infof("unikmer index database with %d k-mers saved to %s", n, outDir)
+			log.Infof("#index files: %d, total file size: %s", len(indexFiles), bytesize.ByteSize(fileSize))
 		}
 	},
 }
@@ -528,4 +577,5 @@ func init() {
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
 	indexCmd.Flags().IntP("max-open-files", "F", 512, "maximum number of opened files")
+	indexCmd.Flags().BoolP("dry-run", "", false, "dry run, useful to adjust parameters")
 }

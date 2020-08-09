@@ -1,5 +1,9 @@
 - v0.12.0
-    - `unikmer`: new flag `-S/-nocheck-file` for not checking binary file.
+    - `unikmer`: new flag `-nocheck-file` for not checking binary file.
+    - new commands:
+        - `unikmer db index`: constructing index from binary files
+        - `unikmer db info`: printing information of index file
+        - `unikmer db search`: searching sequence from index database
     - `unikmer rfilter`: change format of rank order file.
     - `unikmer inter/union`: speedup for single input file.
     - `unikmer concat`:

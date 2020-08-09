@@ -30,11 +30,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// infoCmd represents
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "information of index file",
-	Long: `information of index file
+	Short: "Information of index file",
+	Long: `Information of index file
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// dumpCmd represents
 var dumpCmd = &cobra.Command{
 	Use:   "dump",
 	Short: "Convert plain k-mer text to binary format",

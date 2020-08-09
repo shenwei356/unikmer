@@ -36,7 +36,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// tsplitCmd represents
 var tsplitCmd = &cobra.Command{
 	Use:   "tsplit",
 	Short: "Split k-mers according to taxid",

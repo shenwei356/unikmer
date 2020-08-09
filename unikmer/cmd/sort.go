@@ -35,7 +35,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// sortCmd represents
 var sortCmd = &cobra.Command{
 	Use:   "sort",
 	Short: "Sort k-mers in binary files to reduce file size",

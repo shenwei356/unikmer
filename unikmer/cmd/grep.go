@@ -37,7 +37,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// grepCmd represents
 var grepCmd = &cobra.Command{
 	Use:   "grep",
 	Short: "Search k-mers from binary files",

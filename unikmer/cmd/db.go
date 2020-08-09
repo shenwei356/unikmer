@@ -27,8 +27,8 @@ import (
 // dbCmd represents
 var dbCmd = &cobra.Command{
 	Use:   "db",
-	Short: "contruct and search k-mer index",
-	Long: `contruct and search k-mer index
+	Short: "Contruct and search k-mer index",
+	Long: `Contruct and search k-mer index
 
 `,
 }

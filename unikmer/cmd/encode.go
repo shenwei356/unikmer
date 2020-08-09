@@ -30,7 +30,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// encodeCmd represents
 var encodeCmd = &cobra.Command{
 	Use:   "encode",
 	Short: "Encode plain k-mer text to integer",

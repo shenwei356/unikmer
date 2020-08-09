@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// decodeCmd represents
 var decodeCmd = &cobra.Command{
 	Use:   "decode",
 	Short: "Decode encoded integer to k-mer text",

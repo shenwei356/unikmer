@@ -36,7 +36,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// splitCmd represents
 var splitCmd = &cobra.Command{
 	Use:   "split",
 	Short: "Split k-mers into sorted chunk files",

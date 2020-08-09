@@ -35,7 +35,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// locateCmd represents
 var locateCmd = &cobra.Command{
 	Use:   "locate",
 	Short: "Locate k-mers in genome",

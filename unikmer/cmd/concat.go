@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// concatCmd represents
 var concatCmd = &cobra.Command{
 	Use:   "concat",
 	Short: "Concatenate multiple binary files without removing duplicates",

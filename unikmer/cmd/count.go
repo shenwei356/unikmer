@@ -34,7 +34,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// countCmd represents
 var countCmd = &cobra.Command{
 	Use:   "count",
 	Short: "Count k-mers from FASTA/Q sequences",

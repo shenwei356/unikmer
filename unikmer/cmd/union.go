@@ -32,7 +32,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// unionCmd represents
 var unionCmd = &cobra.Command{
 	Use:   "union",
 	Short: "Union of multiple binary files",

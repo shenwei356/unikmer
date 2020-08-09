@@ -133,8 +133,8 @@ type UnikIndexDB struct {
 }
 
 func (db *UnikIndexDB) String() string {
-	return fmt.Sprintf("unikmer index db v%d: #blocksize: %d, #blocks: %d, #%d-mers: %d, #hashes: %d, #signatures: %d",
-		db.Info.Version, db.Info.BlockSize, len(db.Info.Files), db.Header.K, db.Info.Kmers, db.Header.NumHashes, db.Header.NumSigs)
+	return fmt.Sprintf("unikmer index db v%d: #blocksize: %d, #blocks: %d, #%d-mers: %d, #hashes: %d",
+		db.Info.Version, db.Info.BlockSize, len(db.Info.Files), db.Header.K, db.Info.Kmers, db.Header.NumHashes)
 }
 
 func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {

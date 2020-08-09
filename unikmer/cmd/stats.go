@@ -39,7 +39,6 @@ import (
 	prettytable "github.com/tatsushid/go-prettytable"
 )
 
-// statCmd represents
 var statCmd = &cobra.Command{
 	Use:   "stats",
 	Short: "Statistics of binary files",

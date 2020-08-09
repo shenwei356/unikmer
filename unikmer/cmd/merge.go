@@ -35,7 +35,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// mergeCmd represents
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
 	Short: "Merge k-mers from sorted chunk files",

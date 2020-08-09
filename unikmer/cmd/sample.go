@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// sampleCmd represents
 var sampleCmd = &cobra.Command{
 	Use:   "sample",
 	Short: "Sample k-mers from binary files",

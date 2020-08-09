@@ -31,10 +31,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// filterCmd represents
 var filterCmd = &cobra.Command{
 	Use:   "filter",
-	Short: "Filter low-complexity k-mers",
+	Short: "Filter low-complexity k-mers (experimental)",
 	Long: `Filter low-complexity k-mers (experimental)
 
 Attentions:

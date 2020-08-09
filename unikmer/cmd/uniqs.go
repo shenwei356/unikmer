@@ -34,7 +34,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// uniqsCmd represents
 var uniqsCmd = &cobra.Command{
 	Use:   "uniqs",
 	Short: "Mapping k-mers back to genome and find unique subsequences",

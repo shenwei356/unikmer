@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// headCmd represents
 var headCmd = &cobra.Command{
 	Use:   "head",
 	Short: "Extract the first N k-mers",

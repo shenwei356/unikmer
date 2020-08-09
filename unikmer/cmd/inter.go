@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// interCmd represents
 var interCmd = &cobra.Command{
 	Use:   "inter",
 	Short: "Intersection of multiple binary files",
