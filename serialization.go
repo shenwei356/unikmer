@@ -31,7 +31,7 @@ import (
 const MainVersion uint8 = 3
 
 // MinorVersion is the minor version number.
-const MinorVersion uint8 = 0
+const MinorVersion uint8 = 1
 
 // Magic number of binary file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
@@ -105,6 +105,8 @@ type Reader struct {
 
 	compact bool // saving KmerCode in variable-length byte array.
 	bufsize int
+
+	pseodoSort bool // after version 3.1, for k > 28, sorted kmers in plain 8 bytes and varint is not used
 
 	sorted  bool
 	hasPrev bool
@@ -205,6 +207,10 @@ func (reader *Reader) readHeader() (err error) {
 	reader.MinorVersion = meta[1]
 
 	reader.K = int(meta[2])
+
+	if reader.K > 28 && ((meta[0] == 3 && meta[1] > 0) || meta[0] > 3) {
+		reader.pseodoSort = true
+	}
 
 	err = binary.Read(r, be, &reader.Flag)
 	if err != nil {
@@ -307,7 +313,9 @@ func (reader *Reader) ReadTaxid() (taxid uint32, err error) {
 		return 0, ErrCallOrder
 	}
 
-	if reader.sorted {
+	if reader.pseodoSort {
+		_, err = io.ReadFull(reader.r, reader.bufTaxid)
+	} else if reader.sorted {
 		if reader.lastRecord {
 			_, err = io.ReadFull(reader.r, reader.bufTaxid)
 			if err != nil {
@@ -355,7 +363,9 @@ func (reader *Reader) ReadTaxid() (taxid uint32, err error) {
 // ReadCode reads one code.
 func (reader *Reader) ReadCode() (uint64, error) {
 	var err error
-	if reader.sorted {
+	if reader.pseodoSort {
+		_, err = io.ReadFull(reader.r, reader.buf)
+	} else if reader.sorted {
 		if reader.hasPrev {
 			c := reader.prev
 			// reader.prev = 0
@@ -432,6 +442,9 @@ type Writer struct {
 
 	buf []byte
 
+	// for k > 28, there's no need using varint in sorted mode
+	pseodoSort bool
+
 	// saving KmerCode in compact fixlength byte array.
 	compact bool
 	bufsize int
@@ -472,9 +485,13 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 		writer.bufsize = int(k+3) / 4
 	}
 	if writer.Flag&UNIK_SORTED > 0 {
-		writer.sorted = true
-		writer.buf2 = make([]byte, 16)
-		writer.buf3 = make([]byte, 32)
+		if k > 28 { // do not need
+			writer.pseodoSort = true
+		} else {
+			writer.sorted = true
+			writer.buf2 = make([]byte, 16)
+			writer.buf3 = make([]byte, 32)
+		}
 	}
 	if writer.Flag&UNIK_INCLUDETAXID > 0 {
 		writer.includeTaxid = true
@@ -640,7 +657,10 @@ func (writer *Writer) WriteTaxid(taxid uint32) (err error) {
 		return ErrCallOrder
 	}
 
-	if writer.sorted {
+	if writer.pseodoSort {
+		be.PutUint32(writer.bufTaxid, taxid)
+		_, err = writer.w.Write(writer.bufTaxid)
+	} else if writer.sorted {
 		if !writer.hasPrevTaxid { // write it later
 			writer.prevTaxid = taxid
 			writer.hasPrevTaxid = true
@@ -677,7 +697,10 @@ func (writer *Writer) WriteCode(code uint64) (err error) {
 		writer.wroteHeader = true
 	}
 
-	if writer.sorted {
+	if writer.pseodoSort {
+		be.PutUint64(writer.buf, code)
+		_, err = writer.w.Write(writer.buf)
+	} else if writer.sorted {
 		if !writer.hasPrev { // write it later
 			writer.prev = code
 			writer.hasPrev = true
@@ -715,7 +738,7 @@ func (writer *Writer) Flush() (err error) {
 		writer.Number = 0
 		writer.WriteHeader()
 	}
-	if !writer.sorted || !writer.hasPrev {
+	if writer.pseodoSort || !writer.sorted || !writer.hasPrev {
 		return nil
 	}
 
