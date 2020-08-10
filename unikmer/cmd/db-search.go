@@ -180,7 +180,7 @@ Attentions:
 						sequence = record.Seq.RevComInplace().Seq
 					}
 
-					kmers := make(map[uint64]int, 128)
+					kmers := make(map[uint64]interface{}, 2048)
 					originalLen = len(record.Seq.Seq)
 					l = len(sequence)
 
@@ -212,7 +212,7 @@ Attentions:
 							kcode = kcode.Canonical()
 						}
 
-						kmers[kcode.Code]++
+						kmers[kcode.Code] = struct{}{}
 					}
 
 					kmerList := make([]uint64, 0, len(kmers))

@@ -217,17 +217,34 @@ func (db *UnikIndexDB) Close() error {
 	return err0
 }
 
-func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][3]float64 {
-	if threads <= 0 {
-		threads = len(db.Indices)
+func (db *UnikIndexDB) SearchMap(kmers map[uint64]interface{}, threads int, queryCov float64, targetCov float64) map[string][3]float64 {
+	numHashes := db.Info.NumHashes
+	hashes := make([][]uint64, len(kmers))
+	i := 0
+	for kmer := range kmers {
+		hashes[i] = hashValues(kmer, numHashes)
+		i++
 	}
 
-	m := make(map[string][3]float64, 8)
+	return db.searchHashes(hashes, threads, queryCov, targetCov)
+}
 
+func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][3]float64 {
 	numHashes := db.Info.NumHashes
 	hashes := make([][]uint64, len(kmers))
 	for i, kmer := range kmers {
 		hashes[i] = hashValues(kmer, numHashes)
+	}
+
+	return db.searchHashes(hashes, threads, queryCov, targetCov)
+}
+
+func (db *UnikIndexDB) searchHashes(hashes [][]uint64, threads int, queryCov float64, targetCov float64) map[string][3]float64 {
+
+	m := make(map[string][3]float64, 8)
+
+	if threads <= 0 {
+		threads = len(db.Indices)
 	}
 
 	ch := make([]*map[string][3]float64, len(db.Indices))
@@ -274,6 +291,10 @@ type UnikIndex struct {
 	reader  *index.Reader
 	offset0 int64
 
+	// -------------------------------
+
+	moreThanOneHash bool
+
 	useMmap bool
 	sigs    mmap.MMap // mapped sigatures
 	sigsB   []byte
@@ -316,6 +337,7 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	h.NumSigs = reader.NumSigs
 	idx := &UnikIndex{Path: file, Header: h, fh: fh, reader: reader, offset0: offset}
 	idx.useMmap = useMmap
+
 	if useMmap {
 		idx.sigs, err = mmap.Map(fh, mmap.RDONLY, 0)
 		if err != nil {
@@ -347,13 +369,13 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	} else {
 		idx.pospopcnt = PospopcntGo
 	}
+
+	idx.moreThanOneHash = reader.NumHashes > 1
 	return idx, nil
 }
 
 func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov float64) map[string][3]float64 {
 	numNames := len(idx.Header.Names)
-
-	numHashes := int(idx.Header.NumHashes)
 	numRowBytes := idx.Header.NumRowBytes
 	numSigs := idx.Header.NumSigs
 	numSigsInt := uint64(numSigs)
@@ -365,6 +387,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	useMmap := idx.useMmap
 	data := idx._data
 	pospopcnt := idx.pospopcnt
+	moreThanOneHash := idx.moreThanOneHash
 
 	counts := make([][8]int32, numRowBytes)
 
@@ -401,15 +424,20 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		}
 
 		// AND
-		var and []byte
-
-		and = data[0]
-		if numHashes > 1 {
+		var and []byte // must creat a new local variable
+		if moreThanOneHash {
+			and = make([]byte, numRowBytes) // create new slice to avoid edit original data source
+			copy(and, data[i])
 			for _, row = range data[1:] {
 				for i, b = range row {
 					and[i] &= b
 				}
 			}
+		} else if useMmap { // just point to the orginial data (mmaped)
+			and = data[0]
+		} else { // ！useMmap, where io.ReadFull(fh, data[i])
+			and = make([]byte, numRowBytes) // create new slice because we don't want data in buffs point to the same data[0]
+			copy(and, data[0])
 		}
 
 		// add to buffer for counting
@@ -454,10 +482,10 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	var ix8 int
 	var k int
 
-	m := make([]int, numNames)
+	result := make(map[string][3]float64, 8)
 
+	var c, t, T float64
 	iLast := numRowBytes - 1
-	nTargets := 0
 	for i, _counts = range counts {
 		ix8 = i << 3
 		for j, count = range _counts {
@@ -465,30 +493,23 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 			if i == iLast && k == numNames {
 				break
 			}
-			if count > 0 {
-				nTargets++
+			if count == 0 {
+				continue
 			}
-			m[k] = int(count)
-		}
-	}
 
-	result := make(map[string][3]float64, nTargets)
-	var t, T float64
-	for i, v := range m {
-		if v == 0 {
-			continue
-		}
+			c = float64(count)
 
-		t = float64(v) / float64(len(hashes))
-		if t < queryCov {
-			continue
-		}
-		T = float64(v) / float64(sizes[i])
-		if T < targetCov {
-			continue
-		}
+			t = float64(c) / float64(len(hashes))
+			if t < queryCov {
+				continue
+			}
+			T = float64(c) / float64(sizes[k])
+			if T < targetCov {
+				continue
+			}
 
-		result[names[i]] = [3]float64{float64(v), t, T}
+			result[names[k]] = [3]float64{c, t, T}
+		}
 	}
 
 	return result
