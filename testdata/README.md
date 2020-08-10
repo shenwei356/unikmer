@@ -17,6 +17,9 @@ No Taxids stored.
         | csvtk -t mutate2 -L 1 -n r_unik.default -e '$unik/$plain*100' \
         | csvtk -t mutate2 -L 1 -n r_unik.compact -e '$cunik/$plain*100' \
         | csvtk -t mutate2 -L 1 -n r_unik.sorted -e '$sunik/$plain*100' \
+        | csvtk -t mutate2 -L 1 -n r_unik.default.C -e '$unikC/$plain*100' \
+        | csvtk -t mutate2 -L 1 -n r_unik.compact.C -e '$cunikC/$plain*100' \
+        | csvtk -t mutate2 -L 1 -n r_unik.sorted.C -e '$sunikC/$plain*100' \
         | csvtk -t cut -F -f k,num,r_* \
         | csvtk -t gather -k group -v value -F -f 'r_*' \
         | csvtk -t replace -f group -p 'r_' \
