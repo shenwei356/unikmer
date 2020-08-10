@@ -235,7 +235,7 @@ Attentions:
 			doneGetInfo <- 1
 		}()
 		for i, file := range files[1:] {
-			if opt.Verbose && !dryRun {
+			if opt.Verbose {
 				if i < 98 || (i+2)%100 == 0 {
 					log.Infof("checking file: %d/%d", i+2, nfiles)
 				}
@@ -542,17 +542,19 @@ Attentions:
 		close(ch)
 		<-done
 
-		sort.Strings(indexFiles)
-		dbInfo := NewUnikIndexDBInfo(int(index.Version), indexFiles)
-		dbInfo.K = k
-		dbInfo.Kmers = int(n)
-		dbInfo.FPR = fpr
-		dbInfo.BlockSize = sBlock0
-		dbInfo.Names = names0
-		dbInfo.Sizes = sizes0
-		dbInfo.NumHashes = numHashes
-		dbInfo.Canonical = canonical
-		checkError(dbInfo.WriteTo(filepath.Join(outDir, dbInfoFile)))
+		if !dryRun {
+			sort.Strings(indexFiles)
+			dbInfo := NewUnikIndexDBInfo(int(index.Version), indexFiles)
+			dbInfo.K = k
+			dbInfo.Kmers = int(n)
+			dbInfo.FPR = fpr
+			dbInfo.BlockSize = sBlock0
+			dbInfo.Names = names0
+			dbInfo.Sizes = sizes0
+			dbInfo.NumHashes = numHashes
+			dbInfo.Canonical = canonical
+			checkError(dbInfo.WriteTo(filepath.Join(outDir, dbInfoFile)))
+		}
 
 		// ------------------------------------------------------------------------------------
 
