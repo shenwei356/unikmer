@@ -48,7 +48,9 @@ Attentions:
   0. All input files should be sorted.
   1. The 'canonical' flags of all files should be consistent.
   2. Increase value of -j/--threads for acceleratation in cost of more
-	 memory occupation, sqrt(#cpus) is recommended.
+     memory occupation and I/O pressure, sqrt(#cpus) is recommended.
+     #threads * #threads files are simultaneously opened, and max number
+     of opened files is limited by flag -F/--max-open-files.
   3. Value of block size -b/--block-size better be multiple of 64.
   4. Use --dry-run to adjust parameters and see final #index files 
      and total file size.
@@ -179,7 +181,6 @@ Attentions:
 		getInfo := func(file string, first bool) UnikFileInfo {
 			infh, r, _, err := inStream(file)
 			checkError(err)
-			defer checkError(r.Close())
 
 			reader, err := unikmer.NewReader(infh)
 			checkError(err)
@@ -211,6 +212,7 @@ Attentions:
 				name = filepath.Base(file)
 			}
 
+			checkError(r.Close())
 			return UnikFileInfo{Path: file, Name: name, Kmers: reader.Number}
 		}
 
@@ -578,6 +580,6 @@ func init() {
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
-	indexCmd.Flags().IntP("max-open-files", "F", 512, "maximum number of opened files")
+	indexCmd.Flags().IntP("max-open-files", "F", 256, "maximum number of opened files")
 	indexCmd.Flags().BoolP("dry-run", "", false, "dry run, useful to adjust parameters")
 }

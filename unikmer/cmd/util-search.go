@@ -30,7 +30,7 @@ import (
 	"sync"
 
 	"github.com/edsrzf/mmap-go"
-	"github.com/klauspost/cpuid"
+	"github.com/fuzxxl/pospop"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/smallnest/ringbuffer"
@@ -301,9 +301,9 @@ type UnikIndex struct {
 
 	_data  [][]uint8
 	buffs  [][]byte
-	buffsT [][64]byte // 64 is the cache line size
+	buffsT [][128]byte // cache line size 64
 
-	pospopcnt func(*[8]int32, []byte)
+	// pospopcnt func(*[8]int32, []byte)
 }
 
 func (idx *UnikIndex) String() string {
@@ -351,24 +351,24 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	}
 
 	// byte matrix for counting
-	buffs := make([][]byte, 64)
-	for i := 0; i < 64; i++ {
+	buffs := make([][]byte, 128)
+	for i := 0; i < 128; i++ {
 		buffs[i] = make([]byte, reader.NumRowBytes)
 	}
 
 	// transpose of buffs
-	buffsT := make([][64]byte, reader.NumRowBytes)
+	buffsT := make([][128]byte, reader.NumRowBytes)
 	for i := 0; i < reader.NumRowBytes; i++ {
-		buffsT[i] = [64]byte{}
+		buffsT[i] = [128]byte{}
 	}
 	idx.buffs = buffs
 	idx.buffsT = buffsT
 
-	if AVX2Available {
-		idx.pospopcnt = Pospopcnt
-	} else {
-		idx.pospopcnt = PospopcntGo
-	}
+	// if AVX2Available {
+	// 	idx.pospopcnt = Pospopcnt
+	// } else {
+	// 	idx.pospopcnt = PospopcntGo
+	// }
 
 	idx.moreThanOneHash = reader.NumHashes > 1
 	return idx, nil
@@ -386,10 +386,9 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	sigs := idx.sigsB
 	useMmap := idx.useMmap
 	data := idx._data
-	pospopcnt := idx.pospopcnt
 	moreThanOneHash := idx.moreThanOneHash
 
-	counts := make([][8]int32, numRowBytes)
+	counts := make([][8]int, numRowBytes)
 
 	var offset int
 	var offset2 int64
@@ -403,7 +402,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	buffs := idx.buffs
 	buffsT := idx.buffsT
 	bufIdx := 0
-	var buf *[64]byte
+	var buf *[128]byte
 
 	for _, hs = range hashes {
 		if useMmap {
@@ -444,18 +443,18 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		buffs[bufIdx] = and
 		bufIdx++
 
-		if bufIdx == 64 {
+		if bufIdx == 128 {
 			// transpose
 			for i = 0; i < numRowBytes; i++ { // every column in matrix
 				buf = &buffsT[i]
-				for j = 0; j < 64; j++ {
+				for j = 0; j < 128; j++ {
 					(*buf)[j] = buffs[j][i]
 				}
 			}
 
 			// count
 			for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
-				pospopcnt(&counts[i], buffsT[i][:])
+				pospop.Count8(&counts[i], buffsT[i][:])
 			}
 
 			bufIdx = 0
@@ -466,19 +465,19 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		// transpose
 		for i = 0; i < numRowBytes; i++ { // every column in matrix
 			buf = &buffsT[i]
-			for j = 0; j < 64; j++ {
+			for j = 0; j < bufIdx; j++ {
 				(*buf)[j] = buffs[j][i]
 			}
 		}
 
 		// count
 		for i = 0; i < numRowBytes; i++ { // every row in transposed matrix
-			pospopcnt(&counts[i], buffsT[i][0:bufIdx])
+			pospop.Count8(&counts[i], buffsT[i][0:bufIdx])
 		}
 	}
 
-	var _counts [8]int32
-	var count int32
+	var _counts [8]int
+	var count int
 	var ix8 int
 	var k int
 
@@ -488,7 +487,9 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	iLast := numRowBytes - 1
 	for i, _counts = range counts {
 		ix8 = i << 3
-		for j, count = range _counts {
+		// for j, count = range _counts {
+		for j = 0; j < 8; j++ {
+			count = _counts[7-j] // because count in package pospop is in revered order
 			k = ix8 + j
 			if i == iLast && k == numNames {
 				break
@@ -527,15 +528,4 @@ func (idx *UnikIndex) Close() error {
 
 func maxFPR(p float64, k float64, l int) float64 {
 	return math.Exp(-float64(l) * (k - p) * (k - p) / 2 / (1 - p))
-}
-
-var AVX2Available = cpuid.CPU.AVX2()
-
-// for CPUs not supporting AVX2
-func PospopcntGo(counts *[8]int32, buf []byte) {
-	for i := 0; i < len(buf); i++ {
-		for j := 0; j < 8; j++ {
-			(*counts)[7-j] += int32(buf[i]) >> j & 1
-		}
-	}
 }
