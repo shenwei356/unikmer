@@ -301,7 +301,7 @@ type UnikIndex struct {
 
 	_data  [][]uint8
 	buffs  [][]byte
-	buffsT [][64]byte // 64 is the cache line size
+	buffsT [][128]byte // cache line size 64
 
 	// pospopcnt func(*[8]int32, []byte)
 }
@@ -351,15 +351,15 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	}
 
 	// byte matrix for counting
-	buffs := make([][]byte, 64)
-	for i := 0; i < 64; i++ {
+	buffs := make([][]byte, 128)
+	for i := 0; i < 128; i++ {
 		buffs[i] = make([]byte, reader.NumRowBytes)
 	}
 
 	// transpose of buffs
-	buffsT := make([][64]byte, reader.NumRowBytes)
+	buffsT := make([][128]byte, reader.NumRowBytes)
 	for i := 0; i < reader.NumRowBytes; i++ {
-		buffsT[i] = [64]byte{}
+		buffsT[i] = [128]byte{}
 	}
 	idx.buffs = buffs
 	idx.buffsT = buffsT
@@ -402,7 +402,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	buffs := idx.buffs
 	buffsT := idx.buffsT
 	bufIdx := 0
-	var buf *[64]byte
+	var buf *[128]byte
 
 	for _, hs = range hashes {
 		if useMmap {
@@ -443,11 +443,11 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		buffs[bufIdx] = and
 		bufIdx++
 
-		if bufIdx == 64 {
+		if bufIdx == 128 {
 			// transpose
 			for i = 0; i < numRowBytes; i++ { // every column in matrix
 				buf = &buffsT[i]
-				for j = 0; j < 64; j++ {
+				for j = 0; j < 128; j++ {
 					(*buf)[j] = buffs[j][i]
 				}
 			}
@@ -465,7 +465,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		// transpose
 		for i = 0; i < numRowBytes; i++ { // every column in matrix
 			buf = &buffsT[i]
-			for j = 0; j < 64; j++ {
+			for j = 0; j < bufIdx; j++ {
 				(*buf)[j] = buffs[j][i]
 			}
 		}
