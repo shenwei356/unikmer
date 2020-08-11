@@ -62,11 +62,11 @@ Attentions:
 		useMmap := getFlagBool(cmd, "use-mmap")
 		nameMappingFile := getFlagString(cmd, "name-map")
 
-		if queryCov < 0 {
-			checkError(fmt.Errorf("value of -t/--query-cov should be positive"))
+		if queryCov < 0 || queryCov > 1 {
+			checkError(fmt.Errorf("value of -t/--query-cov should be in range [0, 1]"))
 		}
-		if targetCov < 0 {
-			checkError(fmt.Errorf("value of -T/-target-cov should not be negative"))
+		if targetCov < 0 || targetCov > 1 {
+			checkError(fmt.Errorf("value of -T/-target-cov should be in range [0, 1]"))
 		}
 
 		var namesMap map[string]string

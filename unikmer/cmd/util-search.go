@@ -143,6 +143,10 @@ func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 		return nil, err
 	}
 
+	if len(info.Files) == 0 {
+		checkError(fmt.Errorf("no index files"))
+	}
+
 	err = info.Check()
 	if err != nil {
 		return nil, err
