@@ -551,6 +551,7 @@ Attentions:
 			dbInfo.Kmers = int(n)
 			dbInfo.FPR = fpr
 			dbInfo.BlockSize = sBlock0
+			dbInfo.NumNames = len(names0)
 			dbInfo.Names = names0
 			dbInfo.Sizes = sizes0
 			dbInfo.NumHashes = numHashes

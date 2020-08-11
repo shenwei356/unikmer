@@ -48,6 +48,7 @@ type UnikIndexDBInfo struct {
 	BlockSize int      `yaml:"blocksize"`
 	Kmers     int      `yaml:"totalKmers"`
 	Files     []string `yaml:"files"`
+	NumNames  int      `yaml:"numNames"`
 	Names     []string `yaml:"names"`
 	Sizes     []uint64 `yaml:"kmers"`
 
