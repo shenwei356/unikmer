@@ -230,10 +230,13 @@ Attentions:
 					sort.Slice(targets, func(i, j int) bool { return matched[targets[i]][0] > matched[targets[j]][0] })
 
 					tmp := make([]string, len(targets))
-					var t string
+					var ok bool
 					for i, k := range targets {
+						var t string
 						if mappingNames {
-							t = namesMap[k]
+							if t, ok = namesMap[k]; !ok {
+								t = k
+							}
 						} else {
 							t = k
 						}
