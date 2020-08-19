@@ -224,6 +224,8 @@ Attentions:
 		file := files[0]
 		info := getInfo(file, true)
 		fileInfos = append(fileInfos, info)
+		namesMap := make(map[string]interface{}, nfiles)
+		namesMap[info.Name] = struct{}{}
 
 		// left files
 		var wgGetInfo sync.WaitGroup
@@ -231,9 +233,16 @@ Attentions:
 		tokensGetInfo := make(chan int, opt.NumCPUs)
 		doneGetInfo := make(chan int)
 		go func() {
+			var ok bool
 			for info := range chInfos {
 				fileInfos = append(fileInfos, info)
 				n += info.Kmers
+
+				if _, ok = namesMap[info.Name]; ok {
+					log.Warningf("duplicated name: %s", info.Name)
+				} else {
+					namesMap[info.Name] = struct{}{}
+				}
 			}
 			doneGetInfo <- 1
 		}()
