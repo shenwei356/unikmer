@@ -552,7 +552,9 @@ Attentions:
 
 		wg0.Wait()
 		close(ch)
+		close(chFileSize)
 		<-done
+		<-doneFileSize
 
 		if !dryRun {
 			sort.Strings(indexFiles)
@@ -572,6 +574,12 @@ Attentions:
 		// ------------------------------------------------------------------------------------
 
 		if opt.Verbose {
+			if dryRun {
+				log.Infof("names:")
+				for _, info := range fileInfos {
+					log.Infof("name: %s, #k-mers: %d, file: %s, ", info.Name, info.Kmers, info.Path)
+				}
+			}
 			log.Infof("unikmer index database with %d k-mers saved to %s", n, outDir)
 			log.Infof("#index files: %d, total file size: %s", len(indexFiles), bytesize.ByteSize(fileSize))
 		}
