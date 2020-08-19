@@ -28,6 +28,7 @@ import (
 	"runtime"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -131,7 +132,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					k = reader.K
@@ -159,7 +160,7 @@ Tips:
 							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						writer, err = unikmer.NewWriter(outfh, k, mode)
-						checkError(err)
+						checkError(errors.Wrap(err, outFile))
 						writer.SetMaxTaxid(opt.MaxTaxid)
 					}
 				} else {
@@ -184,7 +185,7 @@ Tips:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					if hasTaxid {

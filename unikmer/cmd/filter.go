@@ -27,6 +27,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -109,7 +110,7 @@ Attentions:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					k = reader.K
@@ -122,7 +123,7 @@ Attentions:
 					scores = make([]int, k)
 
 					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
-					checkError(err)
+					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {
 					if k != reader.K {
@@ -139,7 +140,7 @@ Attentions:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					hit = filterCode(code, k, penaltyS, penaltyD, threshold, window, &scores)

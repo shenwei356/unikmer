@@ -31,6 +31,7 @@ import (
 
 	"github.com/edsrzf/mmap-go"
 	"github.com/fuzxxl/pospop"
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/smallnest/ringbuffer"
@@ -157,16 +158,16 @@ func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 
 	// first idx
 	idx1, err := NewUnixIndex(filepath.Join(path, info.Files[0]), useMmap)
+	checkError(errors.Wrap(err, filepath.Join(path, info.Files[0])))
 
 	if info.Version == int(idx1.Header.Version) &&
 		info.K == idx1.Header.K &&
 		info.Canonical == idx1.Header.Canonical &&
 		info.NumHashes == int(idx1.Header.NumHashes) {
 	} else {
-		checkError(fmt.Errorf("index files not compatible111"))
+		checkError(fmt.Errorf("index files not compatible"))
 	}
 
-	checkError(err)
 	indices = append(indices, idx1)
 
 	db := &UnikIndexDB{Info: info, Header: idx1.Header, path: path}
@@ -194,7 +195,7 @@ func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 			defer wg.Done()
 
 			idx, err := NewUnixIndex(f, useMmap)
-			checkError(err)
+			checkError(errors.Wrap(err, f))
 
 			if !idx.Header.Compatible(idx1.Header) {
 				checkError(fmt.Errorf("index files not compatible"))

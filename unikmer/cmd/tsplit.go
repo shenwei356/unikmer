@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/util/pathutil"
 
 	"github.com/shenwei356/unikmer"
@@ -92,10 +93,10 @@ Tips:
 		pwd, _ := os.Getwd()
 		if outdir != "./" && outdir != "." && pwd != filepath.Clean(outdir) {
 			existed, err := pathutil.DirExists(outdir)
-			checkError(err)
+			checkError(errors.Wrap(err, outdir))
 			if existed {
 				empty, err := pathutil.IsEmpty(outdir)
-				checkError(err)
+				checkError(errors.Wrap(err, outdir))
 				if !empty {
 					if force {
 						checkError(os.RemoveAll(outdir))
@@ -138,7 +139,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					k = reader.K
@@ -174,7 +175,7 @@ Tips:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					n++
@@ -258,7 +259,7 @@ Tips:
 				}()
 
 				_writer, err := unikmer.NewWriter(_outfh, k, mode)
-				checkError(err)
+				checkError(errors.Wrap(err, _outFile))
 
 				_writer.Number = int64(len(*codes))
 				_writer.SetMaxTaxid(maxTaxid) // follow reader

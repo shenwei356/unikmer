@@ -34,6 +34,7 @@ import (
 
 	"github.com/cznic/sortutil"
 	humanize "github.com/dustin/go-humanize"
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 	prettytable "github.com/tatsushid/go-prettytable"
@@ -310,7 +311,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 				if err != nil {
 					select {
 					case <-cancel:
@@ -336,7 +337,7 @@ Tips:
 								if err == io.EOF {
 									break
 								}
-								checkError(err)
+								checkError(errors.Wrap(err, file))
 							}
 
 							n++
@@ -401,7 +402,6 @@ Tips:
 			}...)
 		}
 		tbl, err := prettytable.NewTable(columns...)
-
 		checkError(err)
 		tbl.Separator = "  "
 

@@ -29,6 +29,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -108,7 +109,7 @@ Tips:
 		checkError(err)
 
 		reader, err = unikmer.NewReader(infh)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 
 		if !reader.IsSorted() { // query is sorted
 			checkError(fmt.Errorf("the first file should be sorted"))
@@ -135,7 +136,7 @@ Tips:
 				if err == io.EOF {
 					break
 				}
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 			}
 
 			mc = append(mc, unikmer.CodeTaxid{Code: code, Taxid: taxid})
@@ -180,7 +181,7 @@ Tips:
 			}
 
 			writer, err := unikmer.NewWriter(outfh, k, mode)
-			checkError(err)
+			checkError(errors.Wrap(err, outFile))
 			writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
 			writer.Number = 0
@@ -319,7 +320,7 @@ Tips:
 					checkError(err)
 
 					reader, err = unikmer.NewReader(infh)
-					checkError(err)
+					checkError(errors.Wrap(err, file))
 
 					if k != reader.K {
 						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
@@ -353,7 +354,7 @@ Tips:
 								if err == io.EOF {
 									break
 								}
-								checkError(err)
+								checkError(errors.Wrap(err, file))
 							}
 
 							// delete seen kmer
@@ -389,7 +390,7 @@ Tips:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 
 						for {
@@ -420,7 +421,7 @@ Tips:
 									if err == io.EOF {
 										break
 									}
-									checkError(err)
+									checkError(errors.Wrap(err, file))
 								}
 							} else {
 								code, taxid, err = reader.ReadCodeWithTaxid()
@@ -428,7 +429,7 @@ Tips:
 									if err == io.EOF {
 										break
 									}
-									checkError(err)
+									checkError(errors.Wrap(err, file))
 								}
 							}
 						}
@@ -557,7 +558,7 @@ Tips:
 		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)
-		checkError(err)
+		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid)
 
 		if sortKmers {

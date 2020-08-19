@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
@@ -81,7 +82,7 @@ var decodeCmd = &cobra.Command{
 
 		for _, file := range files {
 			reader, err = breader.NewDefaultBufferedReader(file)
-			checkError(err)
+			checkError(errors.Wrap(err, file))
 
 			for chunk = range reader.Ch {
 				checkError(chunk.Err)

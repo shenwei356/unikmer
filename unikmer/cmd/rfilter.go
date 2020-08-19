@@ -31,6 +31,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/shenwei356/util/stringutil"
@@ -99,7 +100,7 @@ Rank file:
 		}
 
 		rankOrder, noRanks, err := readRankOrder(opt, rankFile)
-		checkError(err)
+		checkError(errors.Wrap(err, rankFile))
 
 		if listOrder {
 			orders := make([]stringutil.StringCount, 0, len(rankOrder))
@@ -205,7 +206,7 @@ Rank file:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 				if k == -1 {
@@ -219,7 +220,7 @@ Rank file:
 					mode := reader.Flag
 					mode |= unikmer.UNIK_INCLUDETAXID
 					writer, err = unikmer.NewWriter(outfh, k, mode)
-					checkError(err)
+					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {
 					if k != reader.K {
@@ -239,7 +240,7 @@ Rank file:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					if discardRoot && taxid == rootTaxid {
@@ -252,7 +253,7 @@ Rank file:
 					}
 
 					pass, err = filter.isPassed(rank)
-					checkError(err)
+					checkError(errors.Wrapf(err, "file: %s, rank: %s", file, rank))
 					if !pass {
 						continue
 					}

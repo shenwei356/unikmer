@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 )
 
@@ -218,11 +219,11 @@ func mergeChunksFile(opt *Options, taxondb *unikmer.Taxonomy, files []string, ou
 	var reader *unikmer.Reader
 	for i, file := range files {
 		infh, fh, _, err := inStream(file)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 		fhs = append(fhs, fh)
 
 		reader, err := unikmer.NewReader(infh)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 		readers[i] = reader
 	}
 	defer func() {

@@ -30,6 +30,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
@@ -116,10 +117,10 @@ Tips:
 			}
 
 			existed, err := pathutil.DirExists(tmpDir)
-			checkError(err)
+			checkError(errors.Wrap(err, tmpDir))
 			if existed {
 				empty, err := pathutil.IsEmpty(tmpDir)
-				checkError(err)
+				checkError(errors.Wrap(err, tmpDir))
 				if !empty {
 					if force {
 						checkError(os.RemoveAll(tmpDir))
@@ -176,7 +177,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					k = reader.K
@@ -224,7 +225,7 @@ Tips:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					if hasTaxid {
@@ -465,7 +466,7 @@ Tips:
 			w.Close()
 		}()
 		writer, err = unikmer.NewWriter(outfh, k, mode)
-		checkError(err)
+		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 
 		var n int

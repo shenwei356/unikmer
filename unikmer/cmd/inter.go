@@ -27,6 +27,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -131,7 +132,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
 					checkError(fmt.Errorf("input file should be sorted: %s", file))
@@ -182,7 +183,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if firstFile {
 					for {
@@ -191,7 +192,7 @@ Tips:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 
 						mc = append(mc, unikmer.CodeTaxid{Code: code, Taxid: taxid})
@@ -212,7 +213,7 @@ Tips:
 					if err == io.EOF {
 						return flagBreak
 					}
-					checkError(err)
+					checkError(errors.Wrap(err, file))
 				}
 
 				n := 0
@@ -252,7 +253,7 @@ Tips:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 					} else {
 						code, taxid, err = reader.ReadCodeWithTaxid()
@@ -260,7 +261,7 @@ Tips:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 					}
 				}
@@ -330,7 +331,7 @@ Tips:
 		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)
-		checkError(err)
+		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 
 		writer.Number = int64(len(mc))

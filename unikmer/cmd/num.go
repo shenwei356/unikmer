@@ -29,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -89,7 +90,7 @@ Attention:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if reader.Number < 0 && force {
 					var n int64
@@ -99,7 +100,7 @@ Attention:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 
 						n++

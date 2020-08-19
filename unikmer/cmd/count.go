@@ -28,6 +28,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
@@ -179,14 +180,14 @@ var countCmd = &cobra.Command{
 				log.Infof("reading sequence file: %s", file)
 			}
 			fastxReader, err = fastx.NewDefaultReader(file)
-			checkError(err)
+			checkError(errors.Wrap(err, file))
 			for {
 				record, err = fastxReader.Read()
 				if err != nil {
 					if err == io.EOF {
 						break
 					}
-					checkError(err)
+					checkError(errors.Wrap(err, file))
 					break
 				}
 
@@ -327,7 +328,7 @@ var countCmd = &cobra.Command{
 				mode |= unikmer.UNIK_INCLUDETAXID
 			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
-			checkError(err)
+			checkError(errors.Wrap(err, outFile))
 			writer.SetMaxTaxid(opt.MaxTaxid)
 			if setGlobalTaxid {
 				checkError(writer.SetGlobalTaxid(taxid))

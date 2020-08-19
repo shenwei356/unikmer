@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/spf13/cobra"
 )
@@ -80,7 +81,7 @@ var infoCmd = &cobra.Command{
 			checkError(err)
 
 			reader, err := index.NewReader(infh)
-			checkError(err)
+			checkError(errors.Wrap(err, file))
 
 			h := reader.Header
 

@@ -30,6 +30,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/util/pathutil"
 
 	"github.com/shenwei356/unikmer"
@@ -103,10 +104,10 @@ Tips:
 		pwd, _ := os.Getwd()
 		if outDir != "./" && outDir != "." && pwd != filepath.Clean(outDir) {
 			existed, err := pathutil.DirExists(outDir)
-			checkError(err)
+			checkError(errors.Wrap(err, outDir))
 			if existed {
 				empty, err := pathutil.IsEmpty(outDir)
-				checkError(err)
+				checkError(errors.Wrap(err, outDir))
 				if !empty {
 					if force {
 						checkError(os.RemoveAll(outDir))
@@ -170,7 +171,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					k = reader.K
@@ -209,7 +210,7 @@ Tips:
 						checkError(err)
 
 						writer, err = unikmer.NewWriter(outfh, k, mode)
-						checkError(err)
+						checkError(errors.Wrap(err, outFile2))
 						writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 						if opt.Verbose {
 							log.Infof("[chunk %d] begin writing k-mers to: %s", iTmpFile, outFile2)
@@ -237,7 +238,7 @@ Tips:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					if doNotNeedSorting {
@@ -263,7 +264,7 @@ Tips:
 							checkError(err)
 
 							writer, err = unikmer.NewWriter(outfh, k, mode)
-							checkError(err)
+							checkError(errors.Wrap(err, outFile2))
 							writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
 							if opt.Verbose {

@@ -29,6 +29,7 @@ import (
 	"regexp"
 	"runtime"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/util/pathutil"
 
 	"github.com/shenwei356/unikmer"
@@ -158,7 +159,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
 					checkError(fmt.Errorf("input files should be sorted"))
@@ -250,10 +251,10 @@ Tips:
 		}
 
 		existed, err := pathutil.DirExists(tmpDir)
-		checkError(err)
+		checkError(errors.Wrap(err, tmpDir))
 		if existed {
 			empty, err := pathutil.IsEmpty(tmpDir)
-			checkError(err)
+			checkError(errors.Wrap(err, tmpDir))
 			if !empty {
 				if force {
 					checkError(os.RemoveAll(tmpDir))

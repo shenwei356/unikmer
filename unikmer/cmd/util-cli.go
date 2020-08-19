@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/go-logging"
 	"github.com/shenwei356/util/stringutil"
@@ -201,7 +202,7 @@ func getFileList(args []string, checkFile bool) []string {
 				continue
 			}
 			if _, err := os.Stat(file); os.IsNotExist(err) {
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 			}
 		}
 		files = args

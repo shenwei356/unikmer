@@ -29,6 +29,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
@@ -97,7 +98,7 @@ Attention:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					k = reader.K
@@ -137,14 +138,14 @@ Attention:
 			log.Infof("reading genome file: %s", genomeFile)
 		}
 		fastxReader, err = fastx.NewDefaultReader(genomeFile)
-		checkError(err)
+		checkError(errors.Wrap(err, genomeFile))
 		for {
 			record, err = fastxReader.Read()
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
-				checkError(err)
+				checkError(errors.Wrap(err, genomeFile))
 				break
 			}
 
@@ -228,7 +229,7 @@ Attention:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if !canonical {
 					for {
@@ -237,7 +238,7 @@ Attention:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 
 						locs, ok = m[kcode.Code]
@@ -270,7 +271,7 @@ Attention:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 
 						if locs, ok = m[kcode.Code]; ok {

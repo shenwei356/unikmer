@@ -26,6 +26,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer/index"
 )
 
@@ -52,7 +53,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 		file := files[0]
 		// os.Rename(files[0], outFile)
 		infh, r, _, err := inStream(file)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 		defer r.Close()
 
 		outfh, gw, w, err := outStream(outFile, false, -1)
@@ -83,10 +84,10 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 	// retrieve header of the first file, and names in all files
 	for i, file := range files {
 		infh, r, _, err := inStream(file)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 
 		_reader, err := index.NewReader(infh)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 		if i == 0 {
 			header = _reader.Header
 		} else if !header.Compatible(_reader.Header) {
@@ -107,11 +108,11 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 	var wg sync.WaitGroup
 	for _, file := range files {
 		infh, r, _, err := inStream(file)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 		rs = append(rs, r)
 
 		reader, err := index.NewReader(infh)
-		checkError(err)
+		checkError(errors.Wrap(err, file))
 
 		ch := make(chan []byte, 8)
 		chs = append(chs, ch)
@@ -125,7 +126,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 					if err == io.EOF {
 						break
 					}
-					checkError(err)
+					checkError(errors.Wrap(err, file))
 				}
 				ch <- _data
 			}

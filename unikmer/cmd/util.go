@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
@@ -94,7 +95,7 @@ func getOptions(cmd *cobra.Command) *Options {
 
 func checkDataDir(opt *Options) {
 	existed, err := pathutil.DirExists(opt.DataDir)
-	checkError(err)
+	checkError(errors.Wrap(err, opt.DataDir))
 	if !existed {
 		log.Errorf(`data directory not created. please download and decompress ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz, and copy "nodes.dmp" to %s`, opt.DataDir)
 	}

@@ -27,6 +27,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
@@ -73,7 +74,7 @@ Attentions:
 		mappingNames := nameMappingFile != ""
 		if mappingNames {
 			namesMap, err = readKVs(nameMappingFile, false)
-			checkError(err)
+			checkError(errors.Wrap(err, nameMappingFile))
 			if opt.Verbose {
 				log.Infof("%d pairs of name mapping values loaded", len(namesMap))
 			}
@@ -99,7 +100,7 @@ Attentions:
 			}
 		}
 		db, err := NewUnikIndexDB(dbDir, useMmap)
-		checkError(err)
+		checkError(errors.Wrap(err, dbDir))
 		defer func() {
 			checkError(db.Close())
 		}()
@@ -154,14 +155,14 @@ Attentions:
 				log.Infof("reading sequence file: %s", file)
 			}
 			fastxReader, err = fastx.NewDefaultReader(file)
-			checkError(err)
+			checkError(errors.Wrap(err, file))
 			for {
 				record, err = fastxReader.Read()
 				if err != nil {
 					if err == io.EOF {
 						break
 					}
-					checkError(err)
+					errors.Wrap(err, file)
 					break
 				}
 

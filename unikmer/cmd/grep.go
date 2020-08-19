@@ -31,6 +31,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
@@ -142,7 +143,7 @@ Tips:
 					log.Infof("loading queries from k-mer file [%d/%d]: %s", i+1, nfiles, queryFile)
 				}
 				brdr, err = breader.NewDefaultBufferedReader(queryFile)
-				checkError(err)
+				checkError(errors.Wrap(err, queryFile))
 				for chunk := range brdr.Ch {
 					checkError(chunk.Err)
 					for _, data = range chunk.Data {
@@ -215,7 +216,7 @@ Tips:
 					defer r.Close()
 
 					reader, err = unikmer.NewReader(infh)
-					checkError(err)
+					checkError(errors.Wrap(err, file))
 
 					canonical = reader.IsCanonical()
 
@@ -235,7 +236,7 @@ Tips:
 							if err == io.EOF {
 								break
 							}
-							checkError(err)
+							checkError(errors.Wrap(err, file))
 						}
 
 						if queryWithTaxids {
@@ -323,10 +324,10 @@ Tips:
 			pwd, _ := os.Getwd()
 			if outdir != "./" && outdir != "." && pwd != filepath.Clean(outdir) {
 				existed, err := pathutil.DirExists(outdir)
-				checkError(err)
+				checkError(errors.Wrap(err, outdir))
 				if existed {
 					empty, err := pathutil.IsEmpty(outdir)
-					checkError(err)
+					checkError(errors.Wrap(err, outdir))
 					if !empty {
 						if force {
 							checkError(os.RemoveAll(outdir))
@@ -411,7 +412,7 @@ Tips:
 				defer r.Close()
 
 				reader, err = unikmer.NewReader(infh)
-				checkError(err)
+				checkError(errors.Wrap(err, file))
 
 				if !queryWithTaxids && k != reader.K {
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
@@ -451,7 +452,7 @@ Tips:
 							mode |= unikmer.UNIK_INCLUDETAXID
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
-						checkError(err)
+						checkError(errors.Wrap(err, outFile))
 						writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
 						go func() {
@@ -518,7 +519,7 @@ Tips:
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}
 					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
-					checkError(err)
+					checkError(errors.Wrap(err, _outFile))
 					_writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 					if _hasGlobalTaxid {
 						checkError(_writer.SetGlobalTaxid(reader.GetGlobalTaxid()))
@@ -544,7 +545,7 @@ Tips:
 						if err == io.EOF {
 							break
 						}
-						checkError(err)
+						checkError(errors.Wrap(err, file))
 					}
 
 					if queryWithTaxids {

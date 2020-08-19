@@ -32,6 +32,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/bytesize"
@@ -101,7 +102,7 @@ Attentions:
 				checkError(fmt.Errorf(`value of -r (--name-regexp) must contains "(" and ")" to extract name`))
 			}
 			reName, err = regexp.Compile(nameRegexp)
-			checkError(err)
+			checkError(errors.Wrapf(err, "parsing regular expression: %s", nameRegexp))
 		}
 
 		sBlock := getFlagInt(cmd, "block-size")
@@ -140,10 +141,10 @@ Attentions:
 		}
 
 		existed, err := pathutil.DirExists(outDir)
-		checkError(err)
+		checkError(errors.Wrapf(err, "check output dir: %s", outDir))
 		if existed {
 			empty, err := pathutil.IsEmpty(outDir)
-			checkError(err)
+			checkError(errors.Wrapf(err, "check output dir: %s", outDir))
 			if !empty {
 				if force {
 					if !dryRun {
@@ -183,7 +184,7 @@ Attentions:
 			checkError(err)
 
 			reader, err := unikmer.NewReader(infh)
-			checkError(err)
+			checkError(errors.Wrap(err, file))
 
 			if first {
 				k = reader.K
@@ -479,10 +480,10 @@ Attentions:
 
 							tokensOpenFiles <- 1
 							infh, r, _, err = inStream(info.Path)
-							checkError(err)
+							checkError(errors.Wrap(err, info.Path))
 
 							reader, err = unikmer.NewReader(infh)
-							checkError(err)
+							checkError(errors.Wrap(err, info.Path))
 
 							for {
 								code, _, err = reader.ReadCodeWithTaxid()
@@ -490,7 +491,7 @@ Attentions:
 									if err == io.EOF {
 										break
 									}
-									checkError(err)
+									checkError(errors.Wrap(err, info.Path))
 								}
 
 								for _, loc = range hashLocations(code, numHashes, numSigs) {
