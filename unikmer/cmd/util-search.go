@@ -495,7 +495,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		ix8 = i << 3
 		// for j, count = range _counts {
 		for j = 0; j < 8; j++ {
-			count = _counts[7-j] // because count in package pospop is in revered order
+			count = _counts[7-j] // because count in package pospop is in reversed order
 			k = ix8 + j
 			if i == iLast && k == numNames {
 				break
@@ -506,11 +506,11 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 
 			c = float64(count)
 
-			t = float64(c) / float64(len(hashes))
+			t = c / float64(len(hashes))
 			if t < queryCov {
 				continue
 			}
-			T = float64(c) / float64(sizes[k])
+			T = c / float64(sizes[k])
 			if T < targetCov {
 				continue
 			}
