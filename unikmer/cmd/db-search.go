@@ -25,7 +25,6 @@ import (
 	"io"
 	"runtime"
 	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
@@ -63,6 +62,14 @@ Attentions:
 		targetCov := getFlagFloat64(cmd, "target-cov")
 		useMmap := getFlagBool(cmd, "use-mmap")
 		nameMappingFile := getFlagString(cmd, "name-map")
+		keepUnmatched := getFlagBool(cmd, "keep-unmatched")
+		topN := getFlagNonNegativeInt(cmd, "keep-top")
+		keepTopN := topN > 0
+		noHeaderRow := getFlagBool(cmd, "no-header-row")
+		sortBy := getFlagString(cmd, "sort-by")
+		if !(sortBy == "qcov" || sortBy == "tcov" || sortBy == "sum") {
+			checkError(fmt.Errorf("invalid value for flag -s/--sort-by: %s. Available: qcov/tsov/sum", sortBy))
+		}
 
 		if queryCov < 0 || queryCov > 1 {
 			checkError(fmt.Errorf("value of -t/--query-cov should be in range [0, 1]"))
@@ -143,6 +150,10 @@ Attentions:
 			}
 			w.Close()
 		}()
+
+		if !noHeaderRow {
+			outfh.WriteString("query\tlength\tFPR\thits\ttarget\tkmers\tqcov\ttcov\n")
+		}
 
 		var sequence, kmer, preKmer []byte
 		var originalLen, l, end, e int
@@ -242,12 +253,39 @@ Attentions:
 					for m := range matched {
 						targets = append(targets, m)
 					}
-					sort.Slice(targets, func(i, j int) bool { return matched[targets[i]][0] > matched[targets[j]][0] })
 
-					tmp := make([]string, len(targets))
+					switch sortBy {
+					case "qcov":
+						sort.Slice(targets,
+							func(i, j int) bool {
+								return matched[targets[i]][0] > matched[targets[j]][0]
+							})
+					case "tcov":
+						sort.Slice(targets,
+							func(i, j int) bool {
+								return matched[targets[i]][2] > matched[targets[j]][2]
+							})
+					case "sum":
+						sort.Slice(targets,
+							func(i, j int) bool {
+								return matched[targets[i]][1]+matched[targets[i]][2] > matched[targets[j]][1]+matched[targets[j]][2]
+							})
+					}
+
+					if keepTopN && topN < len(targets) {
+						targets = targets[0:topN]
+					}
+
 					var ok bool
-					for i, k := range targets {
-						var t string
+					var t string
+					prefix2 := fmt.Sprintf("%s\t%d\t%e\t%d",
+						record.ID, l, maxFPR(db.Info.FPR, queryCov, l), len(matched))
+
+					if keepUnmatched && len(matched) == 0 {
+						outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%d\t%d\n",
+							prefix2, t, len(kmerList), 0, 0))
+					}
+					for _, k := range targets {
 						if mappingNames {
 							if t, ok = namesMap[k]; !ok {
 								t = k
@@ -255,11 +293,11 @@ Attentions:
 						} else {
 							t = k
 						}
-						tmp[i] = fmt.Sprintf("%s(#:%.0f, qcov:%0.4f, tcov:%0.4f)", t, matched[k][0], matched[k][1], matched[k][2])
+
+						outfh.WriteString(fmt.Sprintf("%s\t%s\t%.0f\t%0.4f\t%0.4f\n",
+							prefix2, t, matched[k][0], matched[k][1], matched[k][2]))
 					}
 
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%e\t%d\t%s\n",
-						record.ID, l, maxFPR(db.Info.FPR, queryCov, l), len(matched), strings.Join(tmp, ", ")))
 				}
 			}
 		}
@@ -275,8 +313,12 @@ func init() {
 
 	searchCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	searchCmd.Flags().StringP("db-dir", "d", "", `database directory created by "unikmer db index"`)
-	searchCmd.Flags().Float64P("query-cov", "t", 0.6, `query coverage threshold, i.e., ratio of matched k-mers and unique k-mers of a query`)
-	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., ratio of matched k-mers and unique k-mers of a target`)
+	searchCmd.Flags().Float64P("query-cov", "t", 0.6, `query coverage threshold, i.e., proportion of matched k-mers and unique k-mers of a query`)
+	searchCmd.Flags().Float64P("target-cov", "T", 0, `target coverage threshold, i.e., proportion of matched k-mers and unique k-mers of a target`)
 	searchCmd.Flags().BoolP("use-mmap", "m", false, `load index files into memory to accelerate searching (recommended)`)
 	searchCmd.Flags().StringP("name-map", "M", "", `tabular two-column file mapping names to user-defined values`)
+	searchCmd.Flags().BoolP("keep-unmatched", "k", false, `keep unmatched query sequence information`)
+	searchCmd.Flags().IntP("keep-top", "n", 0, `keep top N hits, 0 for all`)
+	searchCmd.Flags().BoolP("no-header-row", "H", false, `do not print header row`)
+	searchCmd.Flags().StringP("sort-by", "s", "qcov", `sort hits by qcov, tcov or sum (qcov+tcov)`)
 }

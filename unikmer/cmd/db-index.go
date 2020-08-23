@@ -281,6 +281,13 @@ Attentions:
 			sizes0 = append(sizes0, uint64(info.Kmers))
 		}
 
+		if dryRun {
+			log.Infof("names:")
+			for _, info := range fileInfos {
+				log.Infof("name: %s, #k-mers: %d, file: %s, ", info.Name, info.Kmers, info.Path)
+			}
+		}
+
 		// ------------------------------------------------------------------------------------
 		// begin creating index
 
@@ -591,12 +598,6 @@ Attentions:
 		// ------------------------------------------------------------------------------------
 
 		if opt.Verbose {
-			if dryRun {
-				log.Infof("names:")
-				for _, info := range fileInfos {
-					log.Infof("name: %s, #k-mers: %d, file: %s", info.Name, info.Kmers, info.Path)
-				}
-			}
 			log.Infof("unikmer index database with %d k-mers saved to %s", n, outDir)
 			log.Infof("#index files: %d, total file size: %s", len(indexFiles), bytesize.ByteSize(fileSize))
 		}
