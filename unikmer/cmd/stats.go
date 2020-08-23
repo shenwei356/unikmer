@@ -97,6 +97,7 @@ Tips:
 			colnames := []string{
 				"file",
 				"k",
+				"hashed",
 				"gzipped",
 				"compact",
 				"canonical",
@@ -139,9 +140,10 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
+								boolStr(sTrue, sFalse, info.hashed),
 								boolStr(sTrue, sFalse, info.gzipped),
 								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
@@ -150,9 +152,10 @@ Tips:
 								info.globalTaxid,
 							))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
 								info.file,
 								info.k,
+								boolStr(sTrue, sFalse, info.hashed),
 								boolStr(sTrue, sFalse, info.gzipped),
 								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
@@ -172,9 +175,10 @@ Tips:
 								statInfos = append(statInfos, info1)
 							} else {
 								if !all {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 										info.file,
 										info.k,
+										boolStr(sTrue, sFalse, info.hashed),
 										boolStr(sTrue, sFalse, info.gzipped),
 										boolStr(sTrue, sFalse, info.compact),
 										boolStr(sTrue, sFalse, info.canonical),
@@ -183,9 +187,10 @@ Tips:
 										info.globalTaxid,
 									))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
 										info.file,
 										info.k,
+										boolStr(sTrue, sFalse, info.hashed),
 										boolStr(sTrue, sFalse, info.gzipped),
 										boolStr(sTrue, sFalse, info.compact),
 										boolStr(sTrue, sFalse, info.canonical),
@@ -222,9 +227,10 @@ Tips:
 						statInfos = append(statInfos, info)
 					} else {
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
+								boolStr(sTrue, sFalse, info.hashed),
 								boolStr(sTrue, sFalse, info.gzipped),
 								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
@@ -233,9 +239,10 @@ Tips:
 								info.globalTaxid,
 							))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
 								info.file,
 								info.k,
+								boolStr(sTrue, sFalse, info.hashed),
 								boolStr(sTrue, sFalse, info.gzipped),
 								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
@@ -355,6 +362,7 @@ Tips:
 				ch <- statInfo{
 					file:         file,
 					k:            reader.K,
+					hashed:       reader.IsHashed(),
 					gzipped:      gzipped,
 					compact:      reader.IsCompact(),
 					canonical:    reader.IsCanonical(),
@@ -389,6 +397,7 @@ Tips:
 		columns := []prettytable.Column{
 			{Header: "file"},
 			{Header: "k", AlignRight: true},
+			{Header: "hashed"},
 			{Header: "gzipped"},
 			{Header: "compact"},
 			{Header: "canonical"},
@@ -410,6 +419,7 @@ Tips:
 				tbl.AddRow(
 					info.file,
 					info.k,
+					boolStr(sTrue, sFalse, info.hashed),
 					boolStr(sTrue, sFalse, info.gzipped),
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
@@ -421,6 +431,7 @@ Tips:
 				tbl.AddRow(
 					info.file,
 					info.k,
+					boolStr(sTrue, sFalse, info.hashed),
 					boolStr(sTrue, sFalse, info.gzipped),
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
@@ -438,6 +449,7 @@ Tips:
 type statInfo struct {
 	file         string
 	k            int
+	hashed       bool
 	gzipped      bool
 	compact      bool
 	canonical    bool

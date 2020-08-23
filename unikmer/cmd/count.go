@@ -33,6 +33,7 @@ import (
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/will-rowe/nthash"
 )
 
 var countCmd = &cobra.Command{
@@ -51,12 +52,23 @@ var countCmd = &cobra.Command{
 		outFile := getFlagString(cmd, "out-prefix")
 		circular := getFlagBool(cmd, "circular")
 		k := getFlagPositiveInt(cmd, "kmer-len")
+		hashed := getFlagBool(cmd, "hash")
 		if k > 32 {
-			checkError(fmt.Errorf("k > 32 not supported"))
+			hashed = true
+			log.Warning("flag -H/--hash is switched on for k > 32")
 		}
 
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")
+
+		if opt.Compact {
+			if sortKmers {
+				log.Infof("flag -s/--sort overides -c/--compact")
+			}
+			if hashed {
+				log.Infof("flag -H/--hash overides -c/--compact")
+			}
+		}
 
 		taxid := getFlagUint32(cmd, "taxid")
 		var setGlobalTaxid bool
@@ -126,7 +138,7 @@ var countCmd = &cobra.Command{
 		if !parseTaxid && !sortKmers {
 			if sortKmers {
 				mode |= unikmer.UNIK_SORTED
-			} else if opt.Compact {
+			} else if opt.Compact && !hashed {
 				mode |= unikmer.UNIK_COMPACT
 			}
 			if canonical {
@@ -134,6 +146,9 @@ var countCmd = &cobra.Command{
 			}
 			if parseTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
+			}
+			if hashed {
+				mode |= unikmer.UNIK_HASHED
 			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)
@@ -175,6 +190,8 @@ var countCmd = &cobra.Command{
 		var lca uint32
 		var mark bool
 		var nseq int64
+		var hasher *nthash.NTHi
+		var hash uint64
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -223,6 +240,65 @@ var countCmd = &cobra.Command{
 						sequence = record.Seq.Seq
 					} else { // reverse complement sequence
 						sequence = record.Seq.RevComInplace().Seq
+					}
+
+					// using ntHash
+					if hashed {
+
+						hasher, err = nthash.NewHasher(&sequence, uint(k))
+						checkError(errors.Wrap(err, file))
+
+						for hash = range hasher.Hash(canonical) {
+							if parseTaxid {
+								if repeated {
+									if mark, ok = marks[hash]; !ok {
+										marks[hash] = false
+									} else if !mark {
+										if lca, ok = mt[hash]; !ok {
+											mt[hash] = taxid
+										} else {
+											mt[hash] = taxondb.LCA(lca, taxid) // update with LCA
+										}
+										marks[hash] = true
+									}
+
+									continue
+								}
+
+								if lca, ok = mt[hash]; !ok {
+									mt[hash] = taxid
+								} else {
+									mt[hash] = taxondb.LCA(lca, taxid) // update with LCA
+								}
+								continue
+							}
+
+							if repeated {
+								if mark, ok = marks[hash]; !ok {
+									marks[hash] = false
+								} else if !mark {
+									if !sortKmers {
+										writer.WriteCode(hash)
+										n++
+									} else {
+										m[hash] = struct{}{}
+									}
+									marks[hash] = true
+								}
+
+								continue
+							}
+
+							if _, ok = m[hash]; !ok {
+								m[hash] = struct{}{}
+								if !sortKmers {
+									writer.WriteCode(hash)
+									n++
+								}
+							}
+						}
+
+						continue
 					}
 
 					originalLen = len(record.Seq.Seq)
@@ -318,7 +394,7 @@ var countCmd = &cobra.Command{
 			var mode uint32
 			if sortKmers {
 				mode |= unikmer.UNIK_SORTED
-			} else if opt.Compact {
+			} else if opt.Compact && !hashed {
 				mode |= unikmer.UNIK_COMPACT
 			}
 			if canonical {
@@ -326,6 +402,9 @@ var countCmd = &cobra.Command{
 			}
 			if parseTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
+			}
+			if hashed {
+				mode |= unikmer.UNIK_HASHED
 			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(errors.Wrap(err, outFile))
@@ -416,4 +495,5 @@ func init() {
 	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
 	countCmd.Flags().BoolP("repeated", "d", false, `only count duplicated k-mers, for removing singleton in FASTQ`)
 	countCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
+	countCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
 }

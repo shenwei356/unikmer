@@ -88,7 +88,7 @@ Attentions:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var kcode unikmer.KmerCode
 		var taxid uint32
 
@@ -96,16 +96,20 @@ Attentions:
 		var hasTaxid bool
 
 		var quality string
+
+		var hash uint64
+
 		for _, file := range files {
 			func() {
 				infh, r, _, err = inStream(file)
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err := unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
+					reader0 = reader
 					k = reader.K
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 					if showTaxid && !reader.HasTaxidInfo() {
@@ -115,9 +119,7 @@ Attentions:
 						showTaxid = false
 					}
 				} else {
-					if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-					}
+					reader0 = reader
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						if reader.HasTaxidInfo() {
 							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
@@ -125,6 +127,28 @@ Attentions:
 							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
 						}
 					}
+				}
+
+				if reader.IsHashed() {
+					for {
+						hash, taxid, err = reader.ReadCodeWithTaxid()
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							checkError(errors.Wrap(err, file))
+						}
+
+						if showTaxid {
+							outfh.WriteString(fmt.Sprintf("%d\t%d\n", hash, taxid))
+						} else if showTaxidOnly {
+							outfh.WriteString(fmt.Sprintf("%d\n", taxid))
+						} else {
+							outfh.WriteString(fmt.Sprintf("%d\n", hash))
+						}
+
+					}
+					return
 				}
 
 				if outFastq {

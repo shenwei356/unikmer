@@ -20,4 +20,22 @@
 
 package cmd
 
+import (
+	"fmt"
+
+	"github.com/shenwei356/unikmer"
+)
+
 const extDataFile = ".unik"
+
+func checkCompatibility(reader0 *unikmer.Reader, reader *unikmer.Reader, file string) {
+	if reader0.K != reader.K {
+		checkError(fmt.Errorf(`k-mer length not consistent, please check with "unikmer stats": %s`, file))
+	}
+	if reader0.IsCanonical() != reader.IsCanonical() {
+		checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats": %s`, file))
+	}
+	if reader0.IsHashed() != reader.IsHashed() {
+		checkError(fmt.Errorf(`'hashed' flags not consistent, please check with "unikmer stats": %s`, file))
+	}
+}

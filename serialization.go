@@ -28,7 +28,7 @@ import (
 )
 
 // MainVersion is the main version number.
-const MainVersion uint8 = 3
+const MainVersion uint8 = 4
 
 // MinorVersion is the minor version number.
 const MinorVersion uint8 = 0
@@ -89,6 +89,9 @@ const (
 	UNIK_SORTED // when sorted, the serialization structure is very different
 	// UNIK_INCLUDETAXID means a k-mer are followed it's LCA taxid
 	UNIK_INCLUDETAXID
+
+	// UNIK_HASHED means ntHash value are saved as code.
+	UNIK_HASHED
 )
 
 func (h Header) String() string {
@@ -119,6 +122,8 @@ type Reader struct {
 	hasPrevTaxid  bool
 	justReadACode bool
 	lastRecord    bool
+
+	hashValue bool
 }
 
 // NewReader returns a Reader.
@@ -149,6 +154,11 @@ func (reader *Reader) IsCompact() bool {
 // IsIncludeTaxid tells if every k-mer is followed by its taxid
 func (reader *Reader) IsIncludeTaxid() bool {
 	return reader.Flag&UNIK_INCLUDETAXID > 0
+}
+
+// IsHashed tells if ntHash values are saved.
+func (reader *Reader) IsHashed() bool {
+	return reader.Flag&UNIK_HASHED > 0
 }
 
 // HasGlobalTaxid means the file has a global taxid
@@ -457,7 +467,7 @@ type Writer struct {
 
 // NewWriter creates a Writer.
 func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
-	if k == 0 || k > 32 {
+	if k == 0 {
 		return nil, ErrKOverflow
 	}
 
@@ -467,7 +477,10 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 	}
 
 	writer.buf = make([]byte, 8)
-	if writer.Flag&UNIK_COMPACT > 0 {
+	if writer.Flag&UNIK_COMPACT > 0 &&
+		writer.Flag&UNIK_SORTED == 0 &&
+		writer.Flag&UNIK_HASHED == 0 {
+
 		writer.compact = true
 		writer.bufsize = int(k+3) / 4
 	}

@@ -139,9 +139,10 @@ Tips:
 		}
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var k int = -1
 		var canonical bool
+		var hashed bool
 		var hasTaxid bool
 		var mode uint32
 		var taxondb *unikmer.Taxonomy
@@ -158,7 +159,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err := unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
@@ -166,8 +167,10 @@ Tips:
 				}
 
 				if k == -1 { // first file
+					reader0 = reader
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					if canonical {

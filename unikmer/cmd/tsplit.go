@@ -114,12 +114,13 @@ Tips:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var codes *[]uint64
 		var code uint64
 		var taxid uint32
 		var k int = -1
 		var canonical bool
+		var hashed bool
 		var hasTaxid bool
 		var mode uint32
 		var flag int
@@ -138,12 +139,14 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err := unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
+					reader0 = reader
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 					mode = reader.Flag
 					if !reader.IsSorted() {
@@ -151,12 +154,7 @@ Tips:
 					}
 					maxTaxid = maxUint32N(reader.GetTaxidBytesLength())
 				} else {
-					if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-					}
-					if reader.IsCanonical() != canonical {
-						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
-					}
+					checkCompatibility(reader0, reader, file)
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						if reader.HasTaxidInfo() {
 							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))

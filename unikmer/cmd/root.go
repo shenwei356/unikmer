@@ -108,4 +108,4 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("nocheck-file", "", false, "do not check binary file, when using process substitution/named pipe")
 }
 
-const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overwrites global flag -c/--compact"
+const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overides global flag -c/--compact"

@@ -80,10 +80,11 @@ Attention:
 
 		var k int = -1
 		var canonical bool
+		var hashed bool
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var nfiles = len(files)
 		for i, file := range files {
 			if isStdin(file) {
@@ -97,12 +98,14 @@ Attention:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err := unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
+					reader0 = reader
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")
@@ -111,12 +114,7 @@ Attention:
 						}
 					}
 				} else {
-					if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-					}
-					if reader.IsCanonical() != canonical {
-						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
-					}
+					checkCompatibility(reader0, reader, file)
 				}
 
 			}()
@@ -213,6 +211,7 @@ Attention:
 			w.Close()
 		}()
 
+		var reader *unikmer.Reader
 		var locs, locs2, locs3 []int
 		var loc int
 		var ok2 bool

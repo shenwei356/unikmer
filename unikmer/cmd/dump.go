@@ -30,6 +30,7 @@ import (
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/will-rowe/nthash"
 )
 
 var dumpCmd = &cobra.Command{
@@ -68,6 +69,11 @@ Attentions:
 		canonicalOnly := getFlagBool(cmd, "canonical-only")
 		sortedKmers := getFlagBool(cmd, "sorted")
 		taxid := getFlagUint32(cmd, "taxid")
+		hashed := getFlagBool(cmd, "hash")
+
+		if hashed && canonicalOnly {
+			checkError(fmt.Errorf("flag -H/--hash and -k/--canonical-only are not compatible"))
+		}
 
 		if !isStdout(outFile) {
 			outFile += extDataFile
@@ -95,6 +101,7 @@ Attentions:
 		var chunk breader.Chunk
 		var data interface{}
 		var line string
+		var linebytes []byte
 		var kcode, kcodeC unikmer.KmerCode
 		var ok bool
 		var n int64
@@ -105,6 +112,8 @@ Attentions:
 		var _taxid uint32
 		var once bool = true
 		hasGlobalTaxid := taxid > 0
+		var hasher *nthash.NTHi
+		var hash uint64
 
 		for _, file := range files {
 			reader, err = breader.NewDefaultBufferedReader(file)
@@ -165,7 +174,7 @@ Attentions:
 						var mode uint32
 						if sortedKmers {
 							mode |= unikmer.UNIK_SORTED
-						} else if opt.Compact {
+						} else if opt.Compact && !hashed {
 							mode |= unikmer.UNIK_COMPACT
 						}
 						if canonical || canonicalOnly {
@@ -174,12 +183,43 @@ Attentions:
 						if includeTaxid {
 							mode |= unikmer.UNIK_INCLUDETAXID
 						}
+						if hashed {
+							mode |= unikmer.UNIK_HASHED
+						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(errors.Wrap(err, outFile))
 						writer.SetMaxTaxid(opt.MaxTaxid)
 						if !includeTaxid && hasGlobalTaxid {
 							checkError(writer.SetGlobalTaxid(taxid))
 						}
+					}
+
+					if hashed {
+						linebytes = []byte(line)
+						hasher, err = nthash.NewHasher(&linebytes, uint(k))
+						checkError(errors.Wrap(err, line))
+						for hash = range hasher.Hash(canonical) {
+							break
+						}
+
+						if unique {
+							if _, ok = m[hash]; !ok {
+								m[hash] = struct{}{}
+								checkError(writer.WriteCode(hash))
+								if includeTaxid {
+									checkError(writer.WriteTaxid(_taxid))
+								}
+								n++
+							}
+						} else {
+							checkError(writer.WriteCode(hash))
+							if includeTaxid {
+								checkError(writer.WriteTaxid(_taxid))
+							}
+							n++
+						}
+
+						continue
 					}
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
@@ -233,4 +273,5 @@ func init() {
 	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This flag overides -K/--canonical")
 	dumpCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
 	dumpCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")
+	dumpCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
 }

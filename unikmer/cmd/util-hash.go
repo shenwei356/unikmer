@@ -32,26 +32,44 @@ func CalcSignatureSize(numElements uint64, numHashes int, falsePositiveRate floa
 
 // get the two basic hash function values for data.
 // Based on early version of https://github.com/willf/bloom/blob/master/bloom.go .
-func baseHashes(key uint64) (uint32, uint32) {
-	hash := hash64(key)
+func baseHashes(hash uint64) (uint32, uint32) {
 	return uint32(hash >> 32), uint32(hash)
 }
 
-// return locations in bitset for a key
-func hashLocations(key uint64, numHashes int, numSigs uint64) []int {
+// return locations in bitset for a hash
+func hashLocations(hash uint64, numHashes int, numSigs uint64) []int {
+	if numHashes < 1 {
+		return nil
+	}
+
 	locs := make([]int, numHashes)
-	a, b := baseHashes(key)
+	if numHashes == 1 {
+		locs[0] = int(hash % numSigs)
+		return locs
+	}
+
+	a, b := baseHashes(hash)
 	for i := uint32(0); i < uint32(numHashes); i++ {
 		locs[i] = int(uint64(a+b*i) % numSigs)
 	}
 	return locs
 }
 
-// return hashes for a key
-func hashValues(key uint64, numHashes int) []uint64 {
+// return hashes for a hash
+func hashValues(hash uint64, numHashes int) []uint64 {
+	if numHashes < 1 {
+		return nil
+	}
+
 	hashes := make([]uint64, numHashes)
-	a, b := baseHashes(key)
-	for i := uint32(0); i < uint32(numHashes); i++ { // when numHashes == 1, only high 32bit is used.
+
+	if numHashes == 1 {
+		hashes[0] = hash
+		return hashes
+	}
+
+	a, b := baseHashes(hash)
+	for i := uint32(0); i < uint32(numHashes); i++ {
 		hashes[i] = uint64(a + b*i)
 	}
 	return hashes
