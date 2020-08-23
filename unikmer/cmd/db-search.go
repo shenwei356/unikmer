@@ -32,6 +32,7 @@ import (
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/will-rowe/nthash"
 )
 
 var searchCmd = &cobra.Command{
@@ -127,6 +128,7 @@ Attentions:
 		}
 
 		k := db.Header.K
+		hashed := db.Info.Hashed
 		canonical := db.Header.Canonical
 
 		// if !isStdout(outFile) {
@@ -150,6 +152,8 @@ Attentions:
 		var first bool
 		var i, j, iters int
 		var nseq int64
+		var hasher *nthash.NTHi
+		var hash uint64
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -182,38 +186,49 @@ Attentions:
 					}
 
 					kmers := make(map[uint64]interface{}, 2048)
-					originalLen = len(record.Seq.Seq)
-					l = len(sequence)
 
-					end = l - 1
-					if end < 0 {
-						end = 0
-					}
-					first = true
-					for i = 0; i <= end; i++ {
-						e = i + k
-						if e > originalLen {
-							break
-						} else {
-							kmer = sequence[i : i+k]
+					if hashed {
+						hasher, err = nthash.NewHasher(&record.Seq.Seq, uint(k))
+						checkError(errors.Wrap(err, file))
+
+						for hash = range hasher.Hash(canonical) {
+							kmers[hash] = struct{}{}
 						}
 
-						if first {
-							kcode, err = unikmer.NewKmerCode(kmer)
-							first = false
-						} else {
-							kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-						}
-						if err != nil {
-							checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
-						}
-						preKmer, preKcode = kmer, kcode
+					} else {
+						originalLen = len(record.Seq.Seq)
+						l = len(sequence)
 
-						if canonical {
-							kcode = kcode.Canonical()
+						end = l - 1
+						if end < 0 {
+							end = 0
 						}
+						first = true
+						for i = 0; i <= end; i++ {
+							e = i + k
+							if e > originalLen {
+								break
+							} else {
+								kmer = sequence[i : i+k]
+							}
 
-						kmers[kcode.Code] = struct{}{}
+							if first {
+								kcode, err = unikmer.NewKmerCode(kmer)
+								first = false
+							} else {
+								kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
+							}
+							if err != nil {
+								checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
+							}
+							preKmer, preKcode = kmer, kcode
+
+							if canonical {
+								kcode = kcode.Canonical()
+							}
+
+							kmers[kcode.Code] = struct{}{}
+						}
 					}
 
 					kmerList := make([]uint64, 0, len(kmers))

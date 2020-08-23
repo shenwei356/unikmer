@@ -29,6 +29,7 @@ import (
 	"github.com/shenwei356/breader"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/will-rowe/nthash"
 )
 
 var encodeCmd = &cobra.Command{
@@ -58,6 +59,7 @@ var encodeCmd = &cobra.Command{
 		outFile := getFlagString(cmd, "out-file")
 		all := getFlagBool(cmd, "all")
 		canonical := getFlagBool(cmd, "canonical")
+		hashed := getFlagBool(cmd, "hash")
 
 		outfh, gw, w, err := outStream(outFile, strings.HasSuffix(strings.ToLower(outFile), ".gz"), opt.CompressionLevel)
 		checkError(err)
@@ -75,7 +77,10 @@ var encodeCmd = &cobra.Command{
 		var chunk breader.Chunk
 		var data interface{}
 		var line string
+		var linebytes []byte
 		var kcode unikmer.KmerCode
+		var hasher *nthash.NTHi
+		var hash uint64
 
 		for _, file := range files {
 			reader, err = breader.NewDefaultBufferedReader(file)
@@ -93,6 +98,19 @@ var encodeCmd = &cobra.Command{
 						k = l
 					} else if l != k {
 						checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
+					}
+
+					if hashed {
+						linebytes = []byte(line)
+						hasher, err = nthash.NewHasher(&linebytes, uint(k))
+						checkError(errors.Wrap(err, line))
+						for hash = range hasher.Hash(canonical) {
+							outfh.WriteString(fmt.Sprintf("%d\n", hash))
+
+							break
+						}
+
+						continue
 					}
 
 					kcode, err = unikmer.NewKmerCode([]byte(line))
@@ -121,4 +139,5 @@ func init() {
 	encodeCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	encodeCmd.Flags().BoolP("all", "a", false, `output all data: orginial k-mer, parsed k-mer, encoded integer, encode bits`)
 	encodeCmd.Flags().BoolP("canonical", "K", false, "keep the canonical k-mers")
+	encodeCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32`)
 }

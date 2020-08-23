@@ -43,6 +43,7 @@ const dbInfoFile = "_db.yml"
 type UnikIndexDBInfo struct {
 	Version   int      `yaml:"version"`
 	K         int      `yaml:"k"`
+	Hashed    bool     `yaml:"hashed"`
 	Canonical bool     `yaml:"canonical"`
 	NumHashes int      `yaml:"hashes"`
 	FPR       float64  `yaml:"fpr"`
@@ -57,8 +58,8 @@ type UnikIndexDBInfo struct {
 }
 
 func (i UnikIndexDBInfo) String() string {
-	return fmt.Sprintf("unikmer index db v%d: k: %d, canonical: %v, #hashes: %d, fpr:%f, #blocksize: %d, #blocks: %d, #%d-mers: %d",
-		i.Version, i.K, i.Canonical, i.NumHashes, i.FPR, i.BlockSize, len(i.Files), i.K, i.Kmers)
+	return fmt.Sprintf("unikmer index db v%d: k: %d, hashed: %v,  canonical: %v, #hashes: %d, fpr:%f, #blocksize: %d, #blocks: %d, #%d-mers: %d",
+		i.Version, i.K, i.Hashed, i.Canonical, i.NumHashes, i.FPR, i.BlockSize, len(i.Files), i.K, i.Kmers)
 }
 
 func NewUnikIndexDBInfo(version int, files []string) UnikIndexDBInfo {
@@ -227,9 +228,17 @@ func (db *UnikIndexDB) SearchMap(kmers map[uint64]interface{}, threads int, quer
 	numHashes := db.Info.NumHashes
 	hashes := make([][]uint64, len(kmers))
 	i := 0
-	for kmer := range kmers {
-		hashes[i] = hashValues(kmer, numHashes)
-		i++
+
+	if db.Info.Hashed {
+		for kmer := range kmers {
+			hashes[i] = hashValues(kmer, numHashes)
+			i++
+		}
+	} else {
+		for kmer := range kmers {
+			hashes[i] = hashValues(hash64(kmer), numHashes)
+			i++
+		}
 	}
 
 	return db.searchHashes(hashes, threads, queryCov, targetCov)
@@ -238,8 +247,14 @@ func (db *UnikIndexDB) SearchMap(kmers map[uint64]interface{}, threads int, quer
 func (db *UnikIndexDB) Search(kmers []uint64, threads int, queryCov float64, targetCov float64) map[string][3]float64 {
 	numHashes := db.Info.NumHashes
 	hashes := make([][]uint64, len(kmers))
-	for i, kmer := range kmers {
-		hashes[i] = hashValues(kmer, numHashes)
+	if db.Info.Hashed {
+		for i, kmer := range kmers {
+			hashes[i] = hashValues(kmer, numHashes)
+		}
+	} else {
+		for i, kmer := range kmers {
+			hashes[i] = hashValues(hash64(kmer), numHashes)
+		}
 	}
 
 	return db.searchHashes(hashes, threads, queryCov, targetCov)

@@ -81,9 +81,10 @@ Tips:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var k int = -1
 		var canonical bool
+		var hashed bool
 		var hasTaxid bool
 		var firstFile = true
 		var hasInter = true
@@ -131,7 +132,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err := unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
@@ -139,8 +140,10 @@ Tips:
 				}
 
 				if k == -1 {
+					reader0 = reader
 					k = reader.K
 					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					if hasTaxid {
@@ -150,12 +153,7 @@ Tips:
 						taxondb = loadTaxonomy(opt, false)
 					}
 				} else {
-					if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-					}
-					if reader.IsCanonical() != canonical {
-						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
-					}
+					checkCompatibility(reader0, reader, file)
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						if mixTaxid {
 							hasMixTaxid = true
@@ -172,6 +170,7 @@ Tips:
 			}()
 		}
 
+		var reader *unikmer.Reader
 		for i, file := range files {
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)

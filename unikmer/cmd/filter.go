@@ -89,11 +89,12 @@ Attentions:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var code uint64
 		var taxid uint32
 		var k int = -1
 		var canonical bool
+		var hashed bool
 		var flag int
 		var nfiles = len(files)
 		var hit bool
@@ -109,16 +110,18 @@ Attentions:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err := unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
+					reader0 = reader
 					k = reader.K
 					if window > k {
 						log.Warningf("window size (%d) is bigger than k (%d)", window, k)
 						window = k
 					}
 					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 
 					scores = make([]int, k)
 
@@ -126,12 +129,7 @@ Attentions:
 					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {
-					if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-					}
-					if reader.IsCanonical() != canonical {
-						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
-					}
+					checkCompatibility(reader0, reader, file)
 				}
 
 				for {

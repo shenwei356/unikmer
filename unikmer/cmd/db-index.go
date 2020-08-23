@@ -175,9 +175,12 @@ Attentions:
 		fileInfos := make([]UnikFileInfo, 0, len(files))
 
 		var k int = -1
+		var hashed bool
 		var canonical bool
 		var n int64
 		var nfiles = len(files)
+
+		var reader0 *unikmer.Reader
 
 		getInfo := func(file string, first bool) UnikFileInfo {
 			infh, r, _, err := inStream(file)
@@ -187,15 +190,12 @@ Attentions:
 			checkError(errors.Wrap(err, file))
 
 			if first {
+				reader0 = reader
 				k = reader.K
+				hashed = reader.IsHashed()
 				canonical = reader.IsCanonical()
 			} else {
-				if k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-				}
-				if reader.IsCanonical() != canonical {
-					checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
-				}
+				checkCompatibility(reader0, reader, file)
 			}
 
 			if reader.Number < 0 {
@@ -494,17 +494,33 @@ Attentions:
 							reader, err = unikmer.NewReader(infh)
 							checkError(errors.Wrap(err, info.Path))
 
-							for {
-								code, _, err = reader.ReadCodeWithTaxid()
-								if err != nil {
-									if err == io.EOF {
-										break
+							if reader.IsHashed() {
+								for {
+									code, _, err = reader.ReadCodeWithTaxid()
+									if err != nil {
+										if err == io.EOF {
+											break
+										}
+										checkError(errors.Wrap(err, info.Path))
 									}
-									checkError(errors.Wrap(err, info.Path))
-								}
 
-								for _, loc = range hashLocations(code, numHashes, numSigs) {
-									sigs[loc] |= 1 << (7 - _k)
+									for _, loc = range hashLocations(code, numHashes, numSigs) {
+										sigs[loc] |= 1 << (7 - _k)
+									}
+								}
+							} else {
+								for {
+									code, _, err = reader.ReadCodeWithTaxid()
+									if err != nil {
+										if err == io.EOF {
+											break
+										}
+										checkError(errors.Wrap(err, info.Path))
+									}
+
+									for _, loc = range hashLocations(hash64(code), numHashes, numSigs) {
+										sigs[loc] |= 1 << (7 - _k)
+									}
 								}
 							}
 
@@ -560,6 +576,7 @@ Attentions:
 			sort.Strings(indexFiles)
 			dbInfo := NewUnikIndexDBInfo(int(index.Version), indexFiles)
 			dbInfo.K = k
+			dbInfo.Hashed = hashed
 			dbInfo.Kmers = int(n)
 			dbInfo.FPR = fpr
 			dbInfo.BlockSize = sBlock0
@@ -577,7 +594,7 @@ Attentions:
 			if dryRun {
 				log.Infof("names:")
 				for _, info := range fileInfos {
-					log.Infof("name: %s, #k-mers: %d, file: %s, ", info.Name, info.Kmers, info.Path)
+					log.Infof("name: %s, #k-mers: %d, file: %s", info.Name, info.Kmers, info.Path)
 				}
 			}
 			log.Infof("unikmer index database with %d k-mers saved to %s", n, outDir)

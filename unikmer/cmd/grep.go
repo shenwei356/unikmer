@@ -197,9 +197,10 @@ Tips:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader *unikmer.Reader
+		var reader0 *unikmer.Reader
 		var flag int
 		var canonical bool
+		var hashed bool
 		var taxid uint32
 
 		// load k-mers/taxids from .unik files
@@ -215,10 +216,11 @@ Tips:
 					checkError(err)
 					defer r.Close()
 
-					reader, err = unikmer.NewReader(infh)
+					reader, err := unikmer.NewReader(infh)
 					checkError(errors.Wrap(err, file))
 
 					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 
 					if queryWithTaxids && !reader.HasTaxidInfo() {
 						checkError(fmt.Errorf("no taxids found in file: %s", file))
@@ -226,8 +228,9 @@ Tips:
 
 					if k == -1 {
 						k = reader.K
-					} else if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
+						reader0 = reader
+					} else {
+						checkCompatibility(reader0, reader, file)
 					}
 
 					for {
@@ -397,6 +400,7 @@ Tips:
 
 				var n int
 				var _canonical bool
+				var _hashed bool
 				var _hasGlobalTaxid bool
 				var _isIncludeTaxid bool
 				var _mustSort bool
@@ -419,6 +423,7 @@ Tips:
 				}
 
 				_canonical = reader.IsCanonical()
+				_hashed = reader.IsHashed()
 				_hasGlobalTaxid = reader.HasGlobalTaxid()
 				_isIncludeTaxid = reader.IsIncludeTaxid()
 				_sorted = reader.IsSorted()
@@ -445,7 +450,7 @@ Tips:
 						} else if len(files) == 1 && reader.IsSorted() {
 							// if the only input file is already sorted, we don't have to sort again.
 							mode |= unikmer.UNIK_SORTED
-						} else if opt.Compact {
+						} else if opt.Compact && !_hashed {
 							mode |= unikmer.UNIK_COMPACT
 						}
 						if hasTaxid {
@@ -512,7 +517,7 @@ Tips:
 						mode |= unikmer.UNIK_SORTED
 					} else if reader.IsSorted() {
 						mode |= unikmer.UNIK_SORTED
-					} else if opt.Compact {
+					} else if opt.Compact && !hashed {
 						mode |= unikmer.UNIK_COMPACT
 					}
 					if _isIncludeTaxid {
