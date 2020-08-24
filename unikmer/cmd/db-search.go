@@ -196,6 +196,8 @@ Attentions:
 						sequence = record.Seq.RevComInplace().Seq
 					}
 
+					l = len(sequence)
+
 					kmers := make(map[uint64]interface{}, 2048)
 
 					if hashed {
@@ -208,7 +210,6 @@ Attentions:
 
 					} else {
 						originalLen = len(record.Seq.Seq)
-						l = len(sequence)
 
 						end = l - 1
 						if end < 0 {

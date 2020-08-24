@@ -53,7 +53,7 @@ var countCmd = &cobra.Command{
 		circular := getFlagBool(cmd, "circular")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		hashed := getFlagBool(cmd, "hash")
-		if k > 32 {
+		if k > 32 && !hashed {
 			hashed = true
 			log.Warning("flag -H/--hash is switched on for k > 32")
 		}
