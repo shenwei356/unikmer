@@ -31,9 +31,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
+	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/will-rowe/nthash"
 )
 
 var countCmd = &cobra.Command{
@@ -248,7 +248,12 @@ var countCmd = &cobra.Command{
 						hasher, err = nthash.NewHasher(&sequence, uint(k))
 						checkError(errors.Wrap(err, file))
 
-						for hash = range hasher.Hash(canonical) {
+						// for hash = range hasher.Hash(canonical) {
+						for {
+							hash, ok = hasher.Next(canonical)
+							if !ok {
+								break
+							}
 							if parseTaxid {
 								if repeated {
 									if mark, ok = marks[hash]; !ok {

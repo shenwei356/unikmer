@@ -29,9 +29,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
+	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/will-rowe/nthash"
 )
 
 var searchCmd = &cobra.Command{
@@ -165,6 +165,7 @@ Attentions:
 		var nseq int64
 		var hasher *nthash.NTHi
 		var hash uint64
+		var ok bool
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -204,7 +205,15 @@ Attentions:
 						hasher, err = nthash.NewHasher(&record.Seq.Seq, uint(k))
 						checkError(errors.Wrap(err, file))
 
-						for hash = range hasher.Hash(canonical) {
+						// much slower because of channel lock
+						// for hash = range hasher.Hash(canonical) {
+						// 	kmers[hash] = struct{}{}
+						// }
+						for {
+							hash, ok = hasher.Next(canonical)
+							if !ok {
+								break
+							}
 							kmers[hash] = struct{}{}
 						}
 

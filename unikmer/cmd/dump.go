@@ -28,9 +28,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
+	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/will-rowe/nthash"
 )
 
 var dumpCmd = &cobra.Command{
@@ -198,9 +198,10 @@ Attentions:
 						linebytes = []byte(line)
 						hasher, err = nthash.NewHasher(&linebytes, uint(k))
 						checkError(errors.Wrap(err, line))
-						for hash = range hasher.Hash(canonical) {
-							break
-						}
+						// for hash = range hasher.Hash(canonical) {
+						// 	break
+						// }
+						hash, _ = hasher.Next(canonical)
 
 						if unique {
 							if _, ok = m[hash]; !ok {

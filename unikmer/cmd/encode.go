@@ -27,9 +27,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
+	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/will-rowe/nthash"
 )
 
 var encodeCmd = &cobra.Command{
@@ -81,6 +81,7 @@ var encodeCmd = &cobra.Command{
 		var kcode unikmer.KmerCode
 		var hasher *nthash.NTHi
 		var hash uint64
+		var ok bool
 
 		for _, file := range files {
 			reader, err = breader.NewDefaultBufferedReader(file)
@@ -104,7 +105,12 @@ var encodeCmd = &cobra.Command{
 						linebytes = []byte(line)
 						hasher, err = nthash.NewHasher(&linebytes, uint(k))
 						checkError(errors.Wrap(err, line))
-						for hash = range hasher.Hash(canonical) {
+						// for hash = range hasher.Hash(canonical) {
+						for {
+							hash, ok = hasher.Next(canonical)
+							if !ok {
+								break
+							}
 							outfh.WriteString(fmt.Sprintf("%d\n", hash))
 
 							break
