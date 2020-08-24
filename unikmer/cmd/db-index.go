@@ -92,6 +92,8 @@ Attentions:
 			checkError(fmt.Errorf("value of flag -m/--block-max-kmers-t1 (%d) should be small than -M/--block-max-kmers-t2 (%d)", kmerThreshold8, kmerThresholdS))
 		}
 
+		inMemoryMode := getFlagBool(cmd, "in-memory")
+
 		// -------------------------------------------------------
 
 		nameRegexp := getFlagString(cmd, "name-regexp")
@@ -420,8 +422,51 @@ Attentions:
 					}
 				}
 
-				nBatchFiles := int((len(files) + 7) / 8)
-				batchFiles := make([]string, 0, nBatchFiles)
+				var nBatchFiles int
+				nBatchFiles = int((len(files) + 7) / 8)
+
+				var batchFiles []string
+
+				var sigsBlock [][]byte
+				var namesBlock []string
+				var sizesBlock []uint64
+				var chSigs chan []byte
+				var chNames chan []string
+				var chSizes chan []uint64
+				var doneSigs, doneNames, doneSizes chan int
+				if !inMemoryMode {
+					batchFiles = make([]string, 0, nBatchFiles)
+				} else {
+					sigsBlock = make([][]byte, 0, nBatchFiles)
+					namesBlock = make([]string, 0, len(files))
+					sizesBlock = make([]uint64, 0, len(files))
+
+					chSigs = make(chan []byte, nBatchFiles)
+					chNames = make(chan []string, nBatchFiles)
+					chSizes = make(chan []uint64, nBatchFiles)
+
+					doneSigs = make(chan int)
+					doneNames = make(chan int)
+					doneSizes = make(chan int)
+					go func() {
+						for _sigs := range chSigs {
+							sigsBlock = append(sigsBlock, _sigs)
+						}
+						doneSigs <- 1
+					}()
+					go func() {
+						for _names := range chNames {
+							namesBlock = append(namesBlock, _names...)
+						}
+						doneNames <- 1
+					}()
+					go func() {
+						for _sizes := range chSizes {
+							sizesBlock = append(sizesBlock, _sizes...)
+						}
+						doneSizes <- 1
+					}()
+				}
 
 				numSigs := CalcSignatureSize(uint64(maxElements), numHashes, fpr)
 				var eFileSize float64
@@ -448,8 +493,12 @@ Attentions:
 					tokens <- 1
 					bb++
 
-					outFile := filepath.Join(outDir, fmt.Sprintf("block%03d_batch%03d%s", b, bb, extIndex))
-					batchFiles = append(batchFiles, outFile)
+					var outFile string
+
+					if !inMemoryMode {
+						outFile = filepath.Join(outDir, fmt.Sprintf("block%03d_batch%03d%s", b, bb, extIndex))
+						batchFiles = append(batchFiles, outFile)
+					}
 
 					go func(_files []*UnikFileInfo, bb int, maxElements int64, numSigs uint64, outFile string) {
 						defer func() {
@@ -461,15 +510,23 @@ Attentions:
 						if len(_files) > 1 {
 							outGzip = true
 						}
-						outfh, gw, w, err := outStream(outFile, outGzip, opt.CompressionLevel)
-						checkError(err)
-						defer func() {
-							outfh.Flush()
-							if gw != nil {
-								gw.Close()
-							}
-							w.Close()
-						}()
+
+						var err error
+						var outfh *bufio.Writer
+						var gw io.WriteCloser
+						var w *os.File
+
+						if !inMemoryMode {
+							outfh, gw, w, err = outStream(outFile, outGzip, opt.CompressionLevel)
+							checkError(err)
+							defer func() {
+								outfh.Flush()
+								if gw != nil {
+									gw.Close()
+								}
+								w.Close()
+							}()
+						}
 
 						names := make([]string, 0, 8)
 						sizes := make([]uint64, 0, 8)
@@ -478,11 +535,14 @@ Attentions:
 							sizes = append(sizes, uint64(info.Kmers))
 						}
 
-						writer, err := index.NewWriter(outfh, k, canonical, uint8(numHashes), numSigs, names, sizes)
-						checkError(err)
-						defer func() {
-							checkError(writer.Flush())
-						}()
+						var writer *index.Writer
+						if !inMemoryMode {
+							writer, err = index.NewWriter(outfh, k, canonical, uint8(numHashes), numSigs, names, sizes)
+							checkError(err)
+							defer func() {
+								checkError(writer.Flush())
+							}()
+						}
 
 						sigs := make([]byte, numSigs)
 
@@ -500,33 +560,62 @@ Attentions:
 
 							reader, err = unikmer.NewReader(infh)
 							checkError(errors.Wrap(err, info.Path))
+							singleHash := numHashes == 1
 
 							if reader.IsHashed() {
-								for {
-									code, _, err = reader.ReadCodeWithTaxid()
-									if err != nil {
-										if err == io.EOF {
-											break
+								if singleHash {
+									for {
+										code, _, err = reader.ReadCodeWithTaxid()
+										if err != nil {
+											if err == io.EOF {
+												break
+											}
+											checkError(errors.Wrap(err, info.Path))
 										}
-										checkError(errors.Wrap(err, info.Path))
-									}
 
-									for _, loc = range hashLocations(code, numHashes, numSigs) {
-										sigs[loc] |= 1 << (7 - _k)
+										sigs[code%numSigs] |= 1 << (7 - _k)
+									}
+								} else {
+									for {
+										code, _, err = reader.ReadCodeWithTaxid()
+										if err != nil {
+											if err == io.EOF {
+												break
+											}
+											checkError(errors.Wrap(err, info.Path))
+										}
+
+										for _, loc = range hashLocations(code, numHashes, numSigs) {
+											sigs[loc] |= 1 << (7 - _k)
+										}
 									}
 								}
 							} else {
-								for {
-									code, _, err = reader.ReadCodeWithTaxid()
-									if err != nil {
-										if err == io.EOF {
-											break
+								if singleHash {
+									for {
+										code, _, err = reader.ReadCodeWithTaxid()
+										if err != nil {
+											if err == io.EOF {
+												break
+											}
+											checkError(errors.Wrap(err, info.Path))
 										}
-										checkError(errors.Wrap(err, info.Path))
-									}
 
-									for _, loc = range hashLocations(hash64(code), numHashes, numSigs) {
-										sigs[loc] |= 1 << (7 - _k)
+										sigs[hash64(code)%numSigs] |= 1 << (7 - _k)
+									}
+								} else {
+									for {
+										code, _, err = reader.ReadCodeWithTaxid()
+										if err != nil {
+											if err == io.EOF {
+												break
+											}
+											checkError(errors.Wrap(err, info.Path))
+										}
+
+										for _, loc = range hashLocations(hash64(code), numHashes, numSigs) {
+											sigs[loc] |= 1 << (7 - _k)
+										}
 									}
 								}
 							}
@@ -536,30 +625,80 @@ Attentions:
 							<-tokensOpenFiles
 						}
 
-						checkError(writer.WriteBatch(sigs, len(sigs)))
-						if opt.Verbose {
-							log.Infof("%s batch #%03d: %d signatures saved", prefix, bb, len(sigs))
+						if !inMemoryMode {
+							checkError(writer.WriteBatch(sigs, len(sigs)))
+							if opt.Verbose {
+								log.Infof("%s batch #%03d: %d signatures saved", prefix, bb, len(sigs))
+							}
+						} else {
+							chSigs <- sigs
+							chNames <- names
+							chSizes <- sizes
+							if opt.Verbose {
+								log.Infof("%s batch #%03d: %d signatures loaded", prefix, bb, len(sigs))
+							}
 						}
 
 					}(files[ii:jj], bb, maxElements, numSigs, outFile)
 				}
 
 				wg.Wait()
+				if inMemoryMode {
+					close(chSigs)
+					close(chNames)
+					close(chSizes)
+					<-doneSigs
+					<-doneNames
+					<-doneSizes
+				}
 
 				blockFile := filepath.Join(outDir, fmt.Sprintf("block%03d%s", b, extIndex))
 
 				if !dryRun {
-					if len(files) == 1 { // do not have to merge
-						checkError(os.Rename(batchFiles[0], blockFile))
-					} else {
-						if opt.Verbose {
-							log.Infof("%s merging %d index files", prefix, len(batchFiles))
+					if !inMemoryMode {
+						if len(files) == 1 { // do not have to merge
+							checkError(os.Rename(batchFiles[0], blockFile))
+						} else {
+							if opt.Verbose {
+								log.Infof("%s merging %d index files", prefix, len(batchFiles))
+							}
+
+							checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
+
+							if opt.Verbose {
+								log.Infof("%s finished merging", prefix)
+							}
 						}
+					} else {
+						outfh, gw, w, err := outStream(blockFile, false, opt.CompressionLevel)
+						checkError(err)
+						defer func() {
+							outfh.Flush()
+							if gw != nil {
+								gw.Close()
+							}
+							w.Close()
+						}()
 
-						checkError(MergeUnikIndex(opt, prefix, batchFiles, blockFile))
+						writer, err := index.NewWriter(outfh, k, canonical, uint8(numHashes), numSigs, namesBlock, sizesBlock)
+						checkError(err)
+						defer func() {
+							checkError(writer.Flush())
+						}()
 
+						if nBatchFiles == 1 {
+							checkError(writer.WriteBatch(sigsBlock[0], len(sigsBlock[0])))
+						} else {
+							row := make([]byte, nBatchFiles)
+							for ii := 0; ii < int(numSigs); ii++ {
+								for jj = 0; jj < nBatchFiles; jj++ {
+									row[jj] = sigsBlock[jj][ii]
+								}
+								checkError(writer.Write(row))
+							}
+						}
 						if opt.Verbose {
-							log.Infof("%s finished merging", prefix)
+							log.Infof("%s signatures saved", prefix)
 						}
 					}
 				}
@@ -619,4 +758,5 @@ func init() {
 	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
 	indexCmd.Flags().IntP("max-open-files", "F", 256, "maximum number of opened files")
 	indexCmd.Flags().BoolP("dry-run", "", false, "dry run, useful to adjust parameters")
+	indexCmd.Flags().BoolP("in-memory", "", false, "compute signature matrix in memory, much faster by avoid frequent disk writes (recommended)")
 }
