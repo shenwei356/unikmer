@@ -179,6 +179,9 @@ Tips:
 					if hasTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}
+					if hashed {
+						mode |= unikmer.UNIK_HASHED
+					}
 					mode |= unikmer.UNIK_SORTED
 
 					if hasTaxid {
@@ -188,12 +191,7 @@ Tips:
 						taxondb = loadTaxonomy(opt, false)
 					}
 				} else {
-					if k != reader.K {
-						checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to previous K (%d)", reader.K, file, k))
-					}
-					if reader.IsCanonical() != canonical {
-						checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats"`))
-					}
+					checkCompatibility(reader0, reader, file)
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						if reader.HasTaxidInfo() {
 							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))

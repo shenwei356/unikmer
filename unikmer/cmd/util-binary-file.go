@@ -30,7 +30,7 @@ const extDataFile = ".unik"
 
 func checkCompatibility(reader0 *unikmer.Reader, reader *unikmer.Reader, file string) {
 	if reader0.K != reader.K {
-		checkError(fmt.Errorf(`k-mer length not consistent, please check with "unikmer stats": %s`, file))
+		checkError(fmt.Errorf(`k-mer length not consistent (%d != %d), please check with "unikmer stats": %s`, reader0.K, reader.K, file))
 	}
 	if reader0.IsCanonical() != reader.IsCanonical() {
 		checkError(fmt.Errorf(`'canonical' flags not consistent, please check with "unikmer stats": %s`, file))

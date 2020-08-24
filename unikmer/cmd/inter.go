@@ -328,6 +328,9 @@ Tips:
 		if hasTaxid || hasMixTaxid {
 			mode |= unikmer.UNIK_INCLUDETAXID
 		}
+		if hashed {
+			mode |= unikmer.UNIK_HASHED
+		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))

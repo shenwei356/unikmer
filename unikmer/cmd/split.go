@@ -198,11 +198,11 @@ Tips:
 						log.Infof("sorting is not needed for ONE input file")
 					}
 
-					if canonical {
-						mode |= unikmer.UNIK_CANONICAL
-					}
 					if hasTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
+					}
+					if hashed {
+						mode |= unikmer.UNIK_HASHED
 					}
 					mode |= unikmer.UNIK_SORTED
 

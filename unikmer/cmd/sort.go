@@ -202,6 +202,9 @@ Tips:
 					if hasTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}
+					if hashed {
+						mode |= unikmer.UNIK_HASHED
+					}
 					mode |= unikmer.UNIK_SORTED
 				} else {
 					checkCompatibility(reader0, reader, file)

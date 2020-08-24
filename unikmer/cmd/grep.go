@@ -33,6 +33,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
+	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
@@ -165,7 +166,6 @@ Tips:
 		var kcode unikmer.KmerCode
 		var mer []byte
 		var _queries [][]byte
-		var q []byte
 		var val uint64
 		for _, query := range queryList {
 			if queryWithTaxids {
@@ -186,13 +186,7 @@ Tips:
 				_queries = [][]byte{[]byte(query)}
 			}
 
-			for _, q = range _queries {
-				kcode, err = unikmer.NewKmerCode(q)
-				if err != nil {
-					checkError(fmt.Errorf("fail to encode query '%s': %s", mer, err))
-				}
-				m[kcode.Canonical().Code] = struct{}{}
-			}
+			// encode later, cause we have to chose hash/encode depends on the file
 		}
 
 		var infh *bufio.Reader
@@ -202,9 +196,12 @@ Tips:
 		var canonical bool
 		var hashed bool
 		var taxid uint32
+		var loadQueryFromUnik bool
+
+		loadQueryFromUnik = len(queryUnikFiles) != 0
 
 		// load k-mers/taxids from .unik files
-		if len(queryUnikFiles) != 0 {
+		if loadQueryFromUnik {
 			nfiles = len(queryUnikFiles)
 			for i, file := range queryUnikFiles {
 				if opt.Verbose {
@@ -226,8 +223,14 @@ Tips:
 						checkError(fmt.Errorf("no taxids found in file: %s", file))
 					}
 
-					if k == -1 {
-						k = reader.K
+					if reader0 == nil {
+						if k != -1 {
+							if k != reader.K {
+								checkError(fmt.Errorf(`k-mer length not consistent (%d != %d), please check with "unikmer stats": %s`, k, reader.K, file))
+							}
+						} else {
+							k = reader.K
+						}
 						reader0 = reader
 					} else {
 						checkCompatibility(reader0, reader, file)
@@ -271,11 +274,13 @@ Tips:
 				}
 				log.Infof("%d taxids loaded", len(mt))
 			} else {
-				if len(m) == 0 {
-					log.Warningf("%d k-mers loaded", len(m))
-					return
+				if loadQueryFromUnik {
+					if len(m) == 0 {
+						log.Warningf("%d k-mers loaded from binary files", len(m))
+						return
+					}
+					log.Infof("%d k-mers loaded from binary files", len(m))
 				}
-				log.Infof("%d k-mers loaded", len(m))
 			}
 			log.Info()
 		}
@@ -375,7 +380,9 @@ Tips:
 		var done chan int
 		var chCodes chan uint64
 		var chCodesTaxids chan unikmer.CodeTaxid
+
 		var once sync.Once
+		chEncodeQueries := make(chan int)
 
 		if !mOutputs {
 			done = make(chan int)
@@ -422,17 +429,66 @@ Tips:
 					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
 				}
 
+				if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+					if reader.HasTaxidInfo() {
+						checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+					} else {
+						checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+					}
+				}
+
 				_canonical = reader.IsCanonical()
 				_hashed = reader.IsHashed()
 				_hasGlobalTaxid = reader.HasGlobalTaxid()
 				_isIncludeTaxid = reader.IsIncludeTaxid()
 				_sorted = reader.IsSorted()
 
+				if loadQueryFromUnik {
+					checkCompatibility(reader0, reader, file)
+				}
+
 				// if the input files is already sorted, we don't have to sort again in mOutput mode.
 				_mustSort = !reader.IsIncludeTaxid()
 
-				if !mOutputs { // set global writer
-					once.Do(func() {
+				// lazily encode queries, and set global writer.
+				once.Do(func() {
+					// lazily encode queries,
+					if _hashed {
+						var hasher *nthash.NTHi
+						var hash uint64
+						for _, q := range _queries {
+							hasher, err = nthash.NewHasher(&q, uint(k))
+							checkError(errors.Wrap(err, string(q)))
+							hash, _ = hasher.Next(_canonical)
+							m[hash] = struct{}{}
+						}
+					} else {
+						for _, q := range _queries {
+							kcode, err = unikmer.NewKmerCode(q)
+							if err != nil {
+								checkError(fmt.Errorf("fail to encode query '%s': %s", mer, err))
+							}
+							m[kcode.Canonical().Code] = struct{}{}
+						}
+					}
+					if loadQueryFromUnik {
+						if len(_queries) > 0 {
+							log.Warningf("additional %d k-mers loaded", len(_queries))
+						}
+					} else {
+						if len(_queries) == 0 {
+							log.Warningf("%d k-mers loaded", len(_queries))
+							os.Exit(0)
+						} else {
+							log.Infof("%d k-mers loaded", len(_queries))
+						}
+					}
+
+					if !mOutputs { // set global writer
+						if !loadQueryFromUnik {
+							reader0 = reader
+						}
+
 						hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 						if !isStdout(outFile) {
@@ -455,6 +511,9 @@ Tips:
 						}
 						if hasTaxid {
 							mode |= unikmer.UNIK_INCLUDETAXID
+						}
+						if _hashed {
+							mode |= unikmer.UNIK_HASHED
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 						checkError(errors.Wrap(err, outFile))
@@ -482,15 +541,18 @@ Tips:
 							}
 							done <- 1
 						}()
-					})
 
-					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-						if reader.HasTaxidInfo() {
-							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
-						} else {
-							checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
-						}
 					}
+
+					close(chEncodeQueries)
+				})
+
+				select {
+				case <-chEncodeQueries:
+				}
+
+				if !loadQueryFromUnik {
+					checkCompatibility(reader0, reader, file)
 				}
 
 				var _writer *unikmer.Writer
@@ -522,6 +584,9 @@ Tips:
 					}
 					if _isIncludeTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
+					}
+					if _hashed {
+						mode |= unikmer.UNIK_HASHED
 					}
 					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
 					checkError(errors.Wrap(err, _outFile))

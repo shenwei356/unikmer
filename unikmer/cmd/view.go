@@ -119,7 +119,7 @@ Attentions:
 						showTaxid = false
 					}
 				} else {
-					reader0 = reader
+					checkCompatibility(reader0, reader, file)
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
 						if reader.HasTaxidInfo() {
 							checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))

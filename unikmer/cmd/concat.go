@@ -131,6 +131,9 @@ Attentions:
 					if hasTaxid && !hasGlobalTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}
+					if hashed {
+						mode |= unikmer.UNIK_HASHED
+					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
