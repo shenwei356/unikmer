@@ -93,8 +93,6 @@ Attentions:
 		var code uint64
 		var taxid uint32
 		var k int = -1
-		var canonical bool
-		var hashed bool
 		var flag int
 		var nfiles = len(files)
 		var hit bool
@@ -120,8 +118,6 @@ Attentions:
 						log.Warningf("window size (%d) is bigger than k (%d)", window, k)
 						window = k
 					}
-					canonical = reader.IsCanonical()
-					hashed = reader.IsHashed()
 
 					scores = make([]int, k)
 

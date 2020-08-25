@@ -188,8 +188,6 @@ Rank file:
 		var code uint64
 		var taxid uint32
 		var k int = -1
-		var canonical bool
-		var hashed bool
 		var hasTaxid bool
 		var flag int
 		var nfiles = len(files)
@@ -213,9 +211,6 @@ Rank file:
 				if k == -1 {
 					reader0 = reader
 					k = reader.K
-					canonical = reader.IsCanonical()
-					hashed = reader.IsHashed()
-
 					if !hasTaxid {
 						checkError(fmt.Errorf(`taxid information not found: %s`, file))
 					}

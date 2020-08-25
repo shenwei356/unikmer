@@ -199,6 +199,9 @@ Tips:
 						m = make([]uint64, 0, listInitSize)
 					}
 
+					if canonical {
+						mode |= unikmer.UNIK_CANONICAL
+					}
 					if hasTaxid {
 						mode |= unikmer.UNIK_INCLUDETAXID
 					}

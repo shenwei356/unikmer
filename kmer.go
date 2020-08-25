@@ -220,6 +220,15 @@ func RevComp(code uint64, k int) (c uint64) {
 	return
 }
 
+// Canonical returns code of its canonical kmer
+func Canonical(code uint64, k int) (c uint64) {
+	rc := RevComp(code, k)
+	if rc < code {
+		return rc
+	}
+	return code
+}
+
 // bit2base is for mapping bit to base.
 var bit2base = [4]byte{'A', 'C', 'G', 'T'}
 

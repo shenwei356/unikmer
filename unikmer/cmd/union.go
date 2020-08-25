@@ -153,7 +153,9 @@ Tips:
 
 					if !hasTaxid && !sortKmers {
 						var mode uint32
-						if opt.Compact {
+						if sortKmers {
+							mode |= unikmer.UNIK_SORTED
+						} else if opt.Compact && !hashed {
 							mode |= unikmer.UNIK_COMPACT
 						}
 						if canonical {
@@ -219,14 +221,16 @@ Tips:
 
 		if sortKmers || hasTaxid {
 			var mode uint32
+			if sortKmers {
+				mode |= unikmer.UNIK_SORTED
+			} else if opt.Compact && !hashed {
+				mode |= unikmer.UNIK_COMPACT
+			}
 			if canonical {
 				mode |= unikmer.UNIK_CANONICAL
 			}
 			if hasTaxid {
 				mode |= unikmer.UNIK_INCLUDETAXID
-			}
-			if sortKmers {
-				mode |= unikmer.UNIK_SORTED
 			}
 			if hashed {
 				mode |= unikmer.UNIK_HASHED

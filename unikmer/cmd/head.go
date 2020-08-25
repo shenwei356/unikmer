@@ -86,8 +86,6 @@ Attentions:
 		var code uint64
 		var taxid uint32
 		var k int = -1
-		var canonical bool
-		var hashed bool
 		var hasTaxid bool
 		var n int
 		var flag int
@@ -109,13 +107,11 @@ Attentions:
 				if k == -1 {
 					reader0 = reader
 					k = reader.K
-					canonical = reader.IsCanonical()
-					hashed = reader.IsHashed()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					mode := reader.Flag
 					if hasTaxid {
-						mode |= unikmer.UNIK_INCLUDETAXID
+						mode |= unikmer.UNIK_INCLUDETAXID // for multiple input files
 					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(errors.Wrap(err, outFile))

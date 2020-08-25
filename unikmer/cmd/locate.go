@@ -80,7 +80,6 @@ Attention:
 
 		var k int = -1
 		var canonical bool
-		var hashed bool
 
 		var infh *bufio.Reader
 		var r *os.File
@@ -105,7 +104,6 @@ Attention:
 					reader0 = reader
 					k = reader.K
 					canonical = reader.IsCanonical()
-					hashed = reader.IsHashed()
 					if opt.Verbose {
 						if canonical {
 							log.Infof("flag of canonical is on")

@@ -54,7 +54,8 @@ Attentions:
      of opened files is limited by flag -F/--max-open-files.
   3. Value of block size -b/--block-size better be multiple of 64.
   4. Use --dry-run to adjust parameters and see final #index files 
-     and total file size.
+	 and total file size.
+  5. Use --in-memory for acceleratation in cost of more memory usage.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -148,10 +148,16 @@ Tips:
 					canonical = reader.IsCanonical()
 					hashed = reader.IsHashed()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
-					mode = reader.Flag
 					if !reader.IsSorted() {
 						checkError(fmt.Errorf("input should be sorted: %s", file))
 					}
+					if canonical {
+						mode |= unikmer.UNIK_CANONICAL
+					}
+					if hashed {
+						mode |= unikmer.UNIK_HASHED
+					}
+					mode |= unikmer.UNIK_SORTED
 					maxTaxid = maxUint32N(reader.GetTaxidBytesLength())
 				} else {
 					checkCompatibility(reader0, reader, file)
@@ -229,8 +235,6 @@ Tips:
 
 		var wg sync.WaitGroup
 		tokens := make(chan int, threads)
-
-		mode ^= unikmer.UNIK_INCLUDETAXID // because we can assign global taxids to outfiles
 
 		var i int
 		var ntaxids int = len(m)

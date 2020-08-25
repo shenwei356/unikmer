@@ -548,7 +548,7 @@ Tips:
 		var mode uint32
 		if sortKmers {
 			mode |= unikmer.UNIK_SORTED
-		} else if opt.Compact {
+		} else if opt.Compact && !hashed {
 			mode |= unikmer.UNIK_COMPACT
 		}
 		if canonical {

@@ -195,6 +195,7 @@ Tips:
 		var flag int
 		var canonical bool
 		var hashed bool
+		var code uint64
 		var taxid uint32
 		var loadQueryFromUnik bool
 
@@ -235,9 +236,8 @@ Tips:
 					} else {
 						checkCompatibility(reader0, reader, file)
 					}
-
 					for {
-						kcode, taxid, err = reader.ReadWithTaxid()
+						code, taxid, err = reader.ReadCodeWithTaxid()
 						if err != nil {
 							if err == io.EOF {
 								break
@@ -249,10 +249,10 @@ Tips:
 							mt[taxid] = struct{}{}
 							continue
 						}
-						if !canonical {
-							kcode = kcode.Canonical()
+						if !canonical && !hashed {
+							code = unikmer.Canonical(code, k)
 						}
-						m[kcode.Code] = struct{}{}
+						m[code] = struct{}{}
 					}
 
 					return flagContinue
@@ -406,6 +406,7 @@ Tips:
 				var reader *unikmer.Reader
 
 				var n int
+				var _k int
 				var _canonical bool
 				var _hashed bool
 				var _hasGlobalTaxid bool
@@ -425,18 +426,7 @@ Tips:
 				reader, err = unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
-				if !queryWithTaxids && k != reader.K {
-					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
-				}
-
-				if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
-					if reader.HasTaxidInfo() {
-						checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
-					} else {
-						checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
-					}
-				}
-
+				_k = reader.K
 				_canonical = reader.IsCanonical()
 				_hashed = reader.IsHashed()
 				_hasGlobalTaxid = reader.HasGlobalTaxid()
@@ -452,8 +442,11 @@ Tips:
 
 				// lazily encode queries, and set global writer.
 				once.Do(func() {
-					// lazily encode queries,
-					if _hashed {
+					if !loadQueryFromUnik {
+						hashed = reader.IsHashed()
+					}
+					// lazily encode queries
+					if hashed {
 						var hasher *nthash.NTHi
 						var hash uint64
 						for _, q := range _queries {
@@ -472,14 +465,14 @@ Tips:
 						}
 					}
 					if loadQueryFromUnik {
-						if len(_queries) > 0 {
-							log.Warningf("additional %d k-mers loaded", len(_queries))
+						if len(_queries) > 0 && opt.Verbose {
+							log.Infof("additional %d k-mers loaded", len(_queries))
 						}
-					} else {
+					} else if !queryWithTaxids {
 						if len(_queries) == 0 {
 							log.Warningf("%d k-mers loaded", len(_queries))
 							os.Exit(0)
-						} else {
+						} else if opt.Verbose {
 							log.Infof("%d k-mers loaded", len(_queries))
 						}
 					}
@@ -554,6 +547,17 @@ Tips:
 				if !loadQueryFromUnik {
 					checkCompatibility(reader0, reader, file)
 				}
+				if !queryWithTaxids && k != reader.K {
+					checkError(fmt.Errorf("K (%d) of binary file '%s' not equal to query K (%d)", reader.K, file, k))
+				}
+
+				if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
+					if reader.HasTaxidInfo() {
+						checkError(fmt.Errorf(`taxid information not found in previous files, but found in this: %s`, file))
+					} else {
+						checkError(fmt.Errorf(`taxid information found in previous files, but missing in this: %s`, file))
+					}
+				}
 
 				var _writer *unikmer.Writer
 				var _codes []uint64
@@ -607,10 +611,10 @@ Tips:
 					checkError(_writer.Flush())
 				}
 
-				var kcode unikmer.KmerCode
+				var code uint64
 				var taxid uint32
 				for {
-					kcode, taxid, err = reader.ReadWithTaxid()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -626,15 +630,15 @@ Tips:
 						}
 					} else {
 						if singleCodeQuery {
-							ok = kcode.Code == theOneCode
-							if _sorted && kcode.Code > theOneCode { // no need compare later codes
+							ok = code == theOneCode
+							if _sorted && code > theOneCode { // no need compare later codes
 								break
 							}
 						} else {
-							if !_canonical {
-								kcode = kcode.Canonical()
+							if !_canonical && !hashed {
+								code = unikmer.Canonical(code, _k)
 							}
-							_, ok = m[kcode.Code]
+							_, ok = m[code]
 						}
 					}
 
@@ -651,19 +655,19 @@ Tips:
 					if mOutputs {
 						if sortKmers && _mustSort {
 							if _isIncludeTaxid {
-								_codesTaxids = append(_codesTaxids, unikmer.CodeTaxid{Code: kcode.Code, Taxid: taxid})
+								_codesTaxids = append(_codesTaxids, unikmer.CodeTaxid{Code: code, Taxid: taxid})
 							} else {
-								_codes = append(_codes, kcode.Code)
+								_codes = append(_codes, code)
 							}
 						} else {
-							_writer.WriteCodeWithTaxid(kcode.Code, taxid)
+							_writer.WriteCodeWithTaxid(code, taxid)
 							n++
 						}
 					} else {
 						if hasTaxid {
-							chCodesTaxids <- unikmer.CodeTaxid{Code: kcode.Code, Taxid: taxid}
+							chCodesTaxids <- unikmer.CodeTaxid{Code: code, Taxid: taxid}
 						} else {
-							chCodes <- kcode.Code
+							chCodes <- code
 						}
 					}
 				}
