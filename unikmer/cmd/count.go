@@ -31,7 +31,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
-	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -50,7 +49,6 @@ var countCmd = &cobra.Command{
 		var err error
 
 		outFile := getFlagString(cmd, "out-prefix")
-		circular := getFlagBool(cmd, "circular")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		hashed := getFlagBool(cmd, "hash")
 		if k > 32 && !hashed {
@@ -176,13 +174,8 @@ var countCmd = &cobra.Command{
 			marks = make(map[uint64]bool, mapInitSize)
 		}
 
-		var sequence, kmer, preKmer []byte
-		var originalLen, l, end, e int
 		var record *fastx.Record
 		var fastxReader *fastx.Reader
-		var kcode, preKcode unikmer.KmerCode
-		var first bool
-		var i, j, iters int
 		var ok bool
 		var n int64
 		var founds [][][]byte
@@ -190,8 +183,8 @@ var countCmd = &cobra.Command{
 		var lca uint32
 		var mark bool
 		var nseq int64
-		var hasher *nthash.NTHi
-		var hash uint64
+		var code uint64
+		var iter *unikmer.Iterator
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -206,6 +199,11 @@ var countCmd = &cobra.Command{
 					}
 					checkError(errors.Wrap(err, file))
 					break
+				}
+
+				if len(record.Seq.Seq) < k {
+					log.Warningf("skip sequence shorter than k: %s", record.Name)
+					continue
 				}
 
 				if parseTaxid {
@@ -229,166 +227,70 @@ var countCmd = &cobra.Command{
 					}
 				}
 
-				if canonical {
-					iters = 1
+				// using ntHash
+				if hashed {
+					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical)
 				} else {
-					iters = 2
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical)
 				}
+				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
-				for j = 0; j < iters; j++ {
-					if j == 0 { // sequence
-						sequence = record.Seq.Seq
-					} else { // reverse complement sequence
-						sequence = record.Seq.RevComInplace().Seq
+				for {
+					if hashed {
+						code, ok = iter.NextHash()
+					} else {
+						code, ok, err = iter.NextKmer()
+						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+					}
+					if !ok {
+						break
 					}
 
-					// using ntHash
-					if hashed {
-
-						hasher, err = nthash.NewHasher(&sequence, uint(k))
-						checkError(errors.Wrap(err, file))
-
-						// for hash = range hasher.Hash(canonical) {
-						for {
-							hash, ok = hasher.Next(canonical)
-							if !ok {
-								break
-							}
-							if parseTaxid {
-								if repeated {
-									if mark, ok = marks[hash]; !ok {
-										marks[hash] = false
-									} else if !mark {
-										if lca, ok = mt[hash]; !ok {
-											mt[hash] = taxid
-										} else {
-											mt[hash] = taxondb.LCA(lca, taxid) // update with LCA
-										}
-										marks[hash] = true
-									}
-
-									continue
-								}
-
-								if lca, ok = mt[hash]; !ok {
-									mt[hash] = taxid
+					if parseTaxid {
+						if repeated {
+							if mark, ok = marks[code]; !ok {
+								marks[code] = false
+							} else if !mark {
+								if lca, ok = mt[code]; !ok {
+									mt[code] = taxid
 								} else {
-									mt[hash] = taxondb.LCA(lca, taxid) // update with LCA
+									mt[code] = taxondb.LCA(lca, taxid) // update with LCA
 								}
-								continue
+								marks[code] = true
 							}
 
-							if repeated {
-								if mark, ok = marks[hash]; !ok {
-									marks[hash] = false
-								} else if !mark {
-									if !sortKmers {
-										writer.WriteCode(hash)
-										n++
-									} else {
-										m[hash] = struct{}{}
-									}
-									marks[hash] = true
-								}
+							continue
+						}
 
-								continue
-							}
+						if lca, ok = mt[code]; !ok {
+							mt[code] = taxid
+						} else {
+							mt[code] = taxondb.LCA(lca, taxid) // update with LCA
+						}
+						continue
+					}
 
-							if _, ok = m[hash]; !ok {
-								m[hash] = struct{}{}
-								if !sortKmers {
-									writer.WriteCode(hash)
-									n++
-								}
+					if repeated {
+						if mark, ok = marks[code]; !ok {
+							marks[code] = false
+						} else if !mark {
+							if !sortKmers {
+								writer.WriteCode(code)
+								n++
+							} else {
+								m[code] = struct{}{}
 							}
+							marks[code] = true
 						}
 
 						continue
 					}
 
-					originalLen = len(record.Seq.Seq)
-					l = len(sequence)
-
-					end = l - 1
-					if end < 0 {
-						end = 0
-					}
-					first = true
-					for i = 0; i <= end; i++ {
-						e = i + k
-						if e > originalLen {
-							if circular {
-								e = e - originalLen
-								kmer = sequence[i:]
-								kmer = append(kmer, sequence[0:e]...)
-							} else {
-								break
-							}
-						} else {
-							kmer = sequence[i : i+k]
-						}
-
-						if first {
-							kcode, err = unikmer.NewKmerCode(kmer)
-							first = false
-						} else {
-							kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-						}
-						if err != nil {
-							checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
-						}
-						preKmer, preKcode = kmer, kcode
-
-						if canonical {
-							kcode = kcode.Canonical()
-						}
-
-						if parseTaxid {
-							if repeated {
-								if mark, ok = marks[kcode.Code]; !ok {
-									marks[kcode.Code] = false
-								} else if !mark {
-									if lca, ok = mt[kcode.Code]; !ok {
-										mt[kcode.Code] = taxid
-									} else {
-										mt[kcode.Code] = taxondb.LCA(lca, taxid) // update with LCA
-									}
-									marks[kcode.Code] = true
-								}
-
-								continue
-							}
-
-							if lca, ok = mt[kcode.Code]; !ok {
-								mt[kcode.Code] = taxid
-							} else {
-								mt[kcode.Code] = taxondb.LCA(lca, taxid) // update with LCA
-							}
-							continue
-						}
-
-						if repeated {
-							if mark, ok = marks[kcode.Code]; !ok {
-								marks[kcode.Code] = false
-							} else if !mark {
-								if !sortKmers {
-									writer.WriteCode(kcode.Code)
-									n++
-								} else {
-									m[kcode.Code] = struct{}{}
-								}
-								marks[kcode.Code] = true
-							}
-
-							continue
-						}
-
-						if _, ok = m[kcode.Code]; !ok {
-							m[kcode.Code] = struct{}{}
-							if !sortKmers {
-								writer.WriteCode(kcode.Code)
-								n++
-							}
+					if _, ok = m[code]; !ok {
+						m[code] = struct{}{}
+						if !sortKmers {
+							writer.WriteCode(code)
+							n++
 						}
 					}
 				}
@@ -427,7 +329,6 @@ var countCmd = &cobra.Command{
 
 		}
 
-		var code uint64
 		if !sortKmers {
 			if parseTaxid {
 				for code, taxid = range mt {
@@ -492,7 +393,6 @@ func init() {
 
 	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	countCmd.Flags().IntP("kmer-len", "k", 0, "k-mer length")
-	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
 	countCmd.Flags().BoolP("sort", "s", false, helpSort)
 	countCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")

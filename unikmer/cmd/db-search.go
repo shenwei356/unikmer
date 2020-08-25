@@ -29,7 +29,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
-	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
@@ -155,16 +154,11 @@ Attentions:
 			outfh.WriteString("query\tlength\tFPR\thits\ttarget\tkmers\tqcov\ttcov\n")
 		}
 
-		var sequence, kmer, preKmer []byte
-		var originalLen, l, end, e int
-		var record *fastx.Record
 		var fastxReader *fastx.Reader
-		var kcode, preKcode unikmer.KmerCode
-		var first bool
-		var i, j, iters int
+		var record *fastx.Record
 		var nseq int64
-		var hasher *nthash.NTHi
-		var hash uint64
+		var iter *unikmer.Iterator
+		var code uint64
 		var ok bool
 		for _, file := range files {
 			if opt.Verbose {
@@ -184,131 +178,93 @@ Attentions:
 
 				nseq++
 
-				if canonical {
-					iters = 1
+				kmers := make(map[uint64]interface{}, 2048)
+
+				// using ntHash
+				if hashed {
+					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical)
 				} else {
-					iters = 2
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical)
+				}
+				checkError(errors.Wrapf(err, "seq: %s", record.Name))
+
+				if hashed {
+					for {
+						code, ok = iter.NextHash()
+						if !ok {
+							break
+						}
+
+						kmers[code] = struct{}{}
+					}
+				} else {
+					for {
+						code, ok, err = iter.NextKmer()
+						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+						if !ok {
+							break
+						}
+
+						kmers[code] = struct{}{}
+					}
 				}
 
-				for j = 0; j < iters; j++ {
-					if j == 0 { // sequence
-						sequence = record.Seq.Seq
-					} else { // reverse complement sequence
-						sequence = record.Seq.RevComInplace().Seq
-					}
+				kmerList := make([]uint64, 0, len(kmers))
+				for code := range kmers {
+					kmerList = append(kmerList, code)
+				}
 
-					l = len(sequence)
+				matched := db.Search(kmerList, opt.NumCPUs, queryCov, targetCov)
 
-					kmers := make(map[uint64]interface{}, 2048)
+				targets := make([]string, 0, len(matched))
+				for m := range matched {
+					targets = append(targets, m)
+				}
 
-					if hashed {
-						hasher, err = nthash.NewHasher(&record.Seq.Seq, uint(k))
-						checkError(errors.Wrap(err, file))
+				switch sortBy {
+				case "qcov":
+					sort.Slice(targets,
+						func(i, j int) bool {
+							return matched[targets[i]][0] > matched[targets[j]][0]
+						})
+				case "tcov":
+					sort.Slice(targets,
+						func(i, j int) bool {
+							return matched[targets[i]][2] > matched[targets[j]][2]
+						})
+				case "sum":
+					sort.Slice(targets,
+						func(i, j int) bool {
+							return matched[targets[i]][1]+matched[targets[i]][2] > matched[targets[j]][1]+matched[targets[j]][2]
+						})
+				}
 
-						// much slower because of channel lock
-						// for hash = range hasher.Hash(canonical) {
-						// 	kmers[hash] = struct{}{}
-						// }
-						for {
-							hash, ok = hasher.Next(canonical)
-							if !ok {
-								break
-							}
-							kmers[hash] = struct{}{}
-						}
+				if keepTopN && topN < len(targets) {
+					targets = targets[0:topN]
+				}
 
-					} else {
-						originalLen = len(record.Seq.Seq)
+				var ok bool
+				var t string
+				prefix2 := fmt.Sprintf("%s\t%d\t%e\t%d",
+					record.ID, len(record.Seq.Seq), maxFPR(db.Info.FPR, queryCov, len(record.Seq.Seq)), len(matched))
 
-						end = l - 1
-						if end < 0 {
-							end = 0
-						}
-						first = true
-						for i = 0; i <= end; i++ {
-							e = i + k
-							if e > originalLen {
-								break
-							} else {
-								kmer = sequence[i : i+k]
-							}
-
-							if first {
-								kcode, err = unikmer.NewKmerCode(kmer)
-								first = false
-							} else {
-								kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-							}
-							if err != nil {
-								checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
-							}
-							preKmer, preKcode = kmer, kcode
-
-							if canonical {
-								kcode = kcode.Canonical()
-							}
-
-							kmers[kcode.Code] = struct{}{}
-						}
-					}
-
-					kmerList := make([]uint64, 0, len(kmers))
-					for code := range kmers {
-						kmerList = append(kmerList, code)
-					}
-
-					matched := db.Search(kmerList, opt.NumCPUs, queryCov, targetCov)
-
-					targets := make([]string, 0, len(matched))
-					for m := range matched {
-						targets = append(targets, m)
-					}
-
-					switch sortBy {
-					case "qcov":
-						sort.Slice(targets,
-							func(i, j int) bool {
-								return matched[targets[i]][0] > matched[targets[j]][0]
-							})
-					case "tcov":
-						sort.Slice(targets,
-							func(i, j int) bool {
-								return matched[targets[i]][2] > matched[targets[j]][2]
-							})
-					case "sum":
-						sort.Slice(targets,
-							func(i, j int) bool {
-								return matched[targets[i]][1]+matched[targets[i]][2] > matched[targets[j]][1]+matched[targets[j]][2]
-							})
-					}
-
-					if keepTopN && topN < len(targets) {
-						targets = targets[0:topN]
-					}
-
-					var ok bool
-					var t string
-					prefix2 := fmt.Sprintf("%s\t%d\t%e\t%d",
-						record.ID, l, maxFPR(db.Info.FPR, queryCov, l), len(matched))
-
-					if keepUnmatched && len(matched) == 0 {
-						outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%d\t%d\n",
-							prefix2, t, len(kmerList), 0, 0))
-					}
-					for _, k := range targets {
-						if mappingNames {
-							if t, ok = namesMap[k]; !ok {
-								t = k
-							}
-						} else {
+				if keepUnmatched && len(matched) == 0 {
+					outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%d\t%d\n",
+						prefix2, t, len(kmerList), 0, 0))
+				}
+				for _, k := range targets {
+					if mappingNames {
+						if t, ok = namesMap[k]; !ok {
 							t = k
 						}
-
-						outfh.WriteString(fmt.Sprintf("%s\t%s\t%.0f\t%0.4f\t%0.4f\n",
-							prefix2, t, matched[k][0], matched[k][1], matched[k][2]))
+					} else {
+						t = k
 					}
 
+					outfh.WriteString(fmt.Sprintf("%s\t%s\t%.0f\t%0.4f\t%0.4f\n",
+						prefix2, t, matched[k][0], matched[k][1], matched[k][2]))
 				}
+
 			}
 		}
 		if opt.Verbose {
