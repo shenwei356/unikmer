@@ -42,8 +42,8 @@ var locateCmd = &cobra.Command{
 	Long: `Locate k-mers in genome
 
 Attention:
-  1. The 'canonical' flags of all files should be consistent.
-  2. output location is 1-based.
+  1. All files should have the 'canonical' flag.
+  2. Output location is 1-based.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -72,14 +72,16 @@ Attention:
 		}
 
 		outFile := getFlagString(cmd, "out-prefix")
-		circular := getFlagBool(cmd, "circular")
 
 		genomeFile := getFlagNonEmptyString(cmd, "genome")
+
+		showHash := getFlagBool(cmd, "show-hash")
 
 		// -----------------------------------------------------------------------
 
 		var k int = -1
 		var canonical bool
+		var hashed bool
 
 		var infh *bufio.Reader
 		var r *os.File
@@ -104,12 +106,9 @@ Attention:
 					reader0 = reader
 					k = reader.K
 					canonical = reader.IsCanonical()
-					if opt.Verbose {
-						if canonical {
-							log.Infof("flag of canonical is on")
-						} else {
-							log.Infof("flag of canonical is off")
-						}
+					hashed = reader.IsHashed()
+					if !canonical {
+						checkError(fmt.Errorf("%s: 'canonical' flag is needed", file))
 					}
 				} else {
 					checkCompatibility(reader0, reader, file)
@@ -121,20 +120,24 @@ Attention:
 		// -----------------------------------------------------------------------
 
 		m := make(map[uint64][]int, mapInitSize)
+		var hash2loc map[uint64][2]int // hash -> [seq idx, seq loc]
+		var sequences [][]byte
+		if hashed && !showHash {
+			sequences = make([][]byte, 0, 8)
+			hash2loc = make(map[uint64][2]int, mapInitSize)
+		}
 
-		var sequence, kmer, preKmer []byte
-		var originalLen, l, end, e int
-		var record *fastx.Record
 		var fastxReader *fastx.Reader
-		var kcode, preKcode unikmer.KmerCode
-		var first bool
-		var i int
+		var record *fastx.Record
+		var iter *unikmer.Iterator
+		var code uint64
 		var ok bool
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
 		}
 		fastxReader, err = fastx.NewDefaultReader(genomeFile)
 		checkError(errors.Wrap(err, genomeFile))
+		var seqIdx, kmerIdx int
 		for {
 			record, err = fastxReader.Read()
 			if err != nil {
@@ -144,54 +147,54 @@ Attention:
 				checkError(errors.Wrap(err, genomeFile))
 				break
 			}
-
-			sequence = record.Seq.Seq
-
-			if opt.Verbose {
-				log.Infof("processing sequence: %s", record.ID)
+			// using ntHash
+			if hashed {
+				iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+			} else {
+				iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
 			}
+			checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
-			originalLen = len(record.Seq.Seq)
-			l = len(sequence)
-
-			end = l - 1
-			if end < 0 {
-				end = 0
-			}
-			first = true
-			for i = 0; i <= end; i++ {
-				e = i + k
-				if e > originalLen {
-					if circular {
-						e = e - originalLen
-						kmer = sequence[i:]
-						kmer = append(kmer, sequence[0:e]...)
-					} else {
+			kmerIdx = 0
+			if hashed {
+				if !showHash {
+					sequences = append(sequences, record.Seq.Clone().Seq)
+				}
+				for {
+					code, ok = iter.NextHash()
+					if !ok {
 						break
 					}
-				} else {
-					kmer = sequence[i : i+k]
-				}
 
-				if first {
-					kcode, err = unikmer.NewKmerCode(kmer)
-					first = false
-				} else {
-					kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-				}
-				if err != nil {
-					checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
-				}
-				preKmer, preKcode = kmer, kcode
+					if _, ok = m[code]; !ok {
+						m[code] = make([]int, 0, 1)
 
-				kcode = kcode.Canonical()
+						if hashed && !showHash {
+							hash2loc[code] = [2]int{seqIdx, kmerIdx}
+						}
+					}
+					m[code] = append(m[code], kmerIdx)
 
-				if _, ok = m[kcode.Code]; !ok {
-					m[kcode.Code] = make([]int, 0, 1)
+					kmerIdx++
 				}
+			} else {
+				for {
+					code, ok, err = iter.NextKmer()
+					checkError(errors.Wrapf(err, "seq: %s", record.Name))
+					if !ok {
+						break
+					}
 
-				m[kcode.Code] = append(m[kcode.Code], i)
+					if _, ok = m[code]; !ok {
+						m[code] = make([]int, 0, 1)
+					}
+					m[code] = append(m[code], kmerIdx)
+
+					kmerIdx++
+				}
 			}
+
+			seqIdx++
 		}
 		if opt.Verbose {
 			log.Infof("finished reading genome file: %s", genomeFile)
@@ -210,9 +213,9 @@ Attention:
 		}()
 
 		var reader *unikmer.Reader
-		var locs, locs2, locs3 []int
+		var locs []int
 		var loc int
-		var ok2 bool
+		var seqKmerIdx [2]int
 		for i, file := range files {
 			if isStdin(file) {
 				log.Warningf("ignoring stdin")
@@ -228,59 +231,33 @@ Attention:
 				reader, err = unikmer.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
-				if !canonical {
-					for {
-						kcode, _, err = reader.ReadWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(errors.Wrap(err, file))
+				for {
+					code, _, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							break
 						}
+						checkError(errors.Wrap(err, file))
+					}
 
-						locs, ok = m[kcode.Code]
-						locs2, ok2 = m[kcode.RevComp().Code]
-						if ok {
-							locs3 = locs
-							if ok2 {
-								locs3 = append(locs3, locs2...)
+					if locs, ok = m[code]; ok {
+						// locs = uniqInts(locs)
+						sort.Ints(locs)
+						if hashed {
+							if showHash {
+								outfh.WriteString(fmt.Sprintf("%d\t", code))
+							} else {
+								seqKmerIdx = hash2loc[code]
+								outfh.WriteString(string(sequences[seqKmerIdx[0]][seqKmerIdx[1]:seqKmerIdx[1]+k]) + "\t")
 							}
 						} else {
-							if ok2 {
-								locs3 = locs2
-							} else {
-								continue
-							}
+							outfh.WriteString(unikmer.KmerCode{Code: code, K: k}.String() + "\t")
 						}
-						locs = uniqInts(locs3)
-						sort.Ints(locs)
-						outfh.WriteString(kcode.String() + "\t")
 						outfh.WriteString(fmt.Sprintf("%d", locs[0]+1))
 						for _, loc = range locs[1:] {
 							outfh.WriteString(fmt.Sprintf(",%d", loc+1))
 						}
 						outfh.WriteString("\n")
-					}
-				} else {
-					for {
-						kcode, _, err = reader.ReadWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(errors.Wrap(err, file))
-						}
-
-						if locs, ok = m[kcode.Code]; ok {
-							// locs = uniqInts(locs)
-							sort.Ints(locs)
-							outfh.WriteString(kcode.String() + "\t")
-							outfh.WriteString(fmt.Sprintf("%d", locs[0]+1))
-							for _, loc = range locs[1:] {
-								outfh.WriteString(fmt.Sprintf(",%d", loc+1))
-							}
-							outfh.WriteString("\n")
-						}
 					}
 				}
 			}()
@@ -292,6 +269,6 @@ func init() {
 	RootCmd.AddCommand(locateCmd)
 
 	locateCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	locateCmd.Flags().BoolP("circular", "", false, "circular genome")
 	locateCmd.Flags().StringP("genome", "g", "", "genome in (gzipped) fasta file")
+	locateCmd.Flags().BoolP("show-hash", "H", false, "show hash instead of kmer for hashed kmer")
 }
