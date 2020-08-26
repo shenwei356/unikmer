@@ -113,7 +113,7 @@ Attentions:
 		}()
 
 		if queryCov <= db.Info.FPR {
-			checkError(fmt.Errorf("query coverage threshold (%f) should not small than FPR of single bloom filter of index database (%f)", queryCov, db.Info.FPR))
+			checkError(fmt.Errorf("query coverage threshold (%f) should not be smaller than FPR of single bloom filter of index database (%f)", queryCov, db.Info.FPR))
 		}
 		if opt.Verbose {
 			log.Infof("db loaded: %s", db)

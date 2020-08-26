@@ -54,7 +54,7 @@ Attentions:
      of opened files is limited by flag -F/--max-open-files.
   3. Value of block size -b/--block-size better be multiple of 64.
   4. Use --dry-run to adjust parameters and see final #index files 
-	 and total file size.
+     and total file size.
   5. Use --in-memory for acceleratation in cost of more memory usage.
 
 `,
@@ -481,6 +481,7 @@ Attentions:
 					log.Infof("%s #files: %d, max #k-mers: %d, #signatures: %d, file size: %s", prefix, len(files), maxElements, numSigs, bytesize.ByteSize(eFileSize))
 				}
 
+				// split into batches with 8 files
 				var bb, jj int
 				for ii := 0; ii < len(files); ii += 8 {
 					if dryRun {
@@ -501,6 +502,7 @@ Attentions:
 						batchFiles = append(batchFiles, outFile)
 					}
 
+					// 8 files
 					go func(_files []*UnikFileInfo, bb int, maxElements int64, numSigs uint64, outFile string) {
 						defer func() {
 							wg.Done()
@@ -547,6 +549,7 @@ Attentions:
 
 						sigs := make([]byte, numSigs)
 
+						// every file in 8 files
 						for _k, info := range _files {
 							var infh *bufio.Reader
 							var r *os.File
@@ -629,14 +632,14 @@ Attentions:
 						if !inMemoryMode {
 							checkError(writer.WriteBatch(sigs, len(sigs)))
 							if opt.Verbose {
-								log.Infof("%s batch #%03d: %d signatures saved", prefix, bb, len(sigs))
+								log.Infof("%s batch #%03d/%d: %d signatures saved to intermediate file", prefix, bb, nBatchFiles, len(sigs))
 							}
 						} else {
 							chSigs <- sigs
 							chNames <- names
 							chSizes <- sizes
 							if opt.Verbose {
-								log.Infof("%s batch #%03d: %d signatures loaded", prefix, bb, len(sigs))
+								log.Infof("%s batch #%03d%d: %d signatures loaded", prefix, bb, nBatchFiles, len(sigs))
 							}
 						}
 
@@ -704,9 +707,10 @@ Attentions:
 					}
 				}
 
-				wg0.Done()
 				ch <- filepath.Base(blockFile)
 				chFileSize <- eFileSize
+
+				wg0.Done()
 				<-tokens0
 			}(batch, b, prefix)
 
@@ -714,6 +718,7 @@ Attentions:
 		}
 
 		wg0.Wait()
+
 		close(ch)
 		close(chFileSize)
 		<-done
