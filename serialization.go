@@ -209,7 +209,11 @@ func (reader *Reader) readHeader() (err error) {
 	// check compatibility？
 	if (meta[0] == 0 && meta[1] == 0) ||
 		MainVersion != meta[0] {
-		return ErrVersionMismatch
+		if MainVersion == 4 && meta[0] == 3 {
+		} else {
+			return ErrVersionMismatch
+		}
+
 	}
 	reader.MainVersion = meta[0]
 	reader.MinorVersion = meta[1]
