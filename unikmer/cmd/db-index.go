@@ -726,7 +726,7 @@ Attentions:
 
 		if !dryRun {
 			sort.Strings(indexFiles)
-			dbInfo := NewUnikIndexDBInfo(int(index.Version), indexFiles)
+			dbInfo := NewUnikIndexDBInfo(indexFiles)
 			dbInfo.K = k
 			dbInfo.Hashed = hashed
 			dbInfo.Kmers = int(n)

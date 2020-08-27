@@ -40,19 +40,24 @@ import (
 
 const dbInfoFile = "_db.yml"
 
+var ErrVersionMismatch = errors.New("unikmer/index-db: version mismatch")
+
+const UnikIndexDBVersion uint8 = 2
+
 type UnikIndexDBInfo struct {
-	Version   int      `yaml:"version"`
-	K         int      `yaml:"k"`
-	Hashed    bool     `yaml:"hashed"`
-	Canonical bool     `yaml:"canonical"`
-	NumHashes int      `yaml:"hashes"`
-	FPR       float64  `yaml:"fpr"`
-	BlockSize int      `yaml:"blocksize"`
-	Kmers     int      `yaml:"totalKmers"`
-	Files     []string `yaml:"files"`
-	NumNames  int      `yaml:"numNames"`
-	Names     []string `yaml:"names"`
-	Sizes     []uint64 `yaml:"kmers"`
+	Version      uint8    `yaml:"version"`
+	IndexVersion uint8    `yaml:"unikiVersion"`
+	K            int      `yaml:"k"`
+	Hashed       bool     `yaml:"hashed"`
+	Canonical    bool     `yaml:"canonical"`
+	NumHashes    int      `yaml:"hashes"`
+	FPR          float64  `yaml:"fpr"`
+	BlockSize    int      `yaml:"blocksize"`
+	Kmers        int      `yaml:"totalKmers"`
+	Files        []string `yaml:"files"`
+	NumNames     int      `yaml:"numNames"`
+	Names        []string `yaml:"names"`
+	Sizes        []uint64 `yaml:"kmers"`
 
 	path string
 }
@@ -62,8 +67,8 @@ func (i UnikIndexDBInfo) String() string {
 		i.Version, i.K, i.Hashed, i.Canonical, i.NumHashes, i.FPR, i.BlockSize, len(i.Files), i.K, i.Kmers)
 }
 
-func NewUnikIndexDBInfo(version int, files []string) UnikIndexDBInfo {
-	return UnikIndexDBInfo{Version: version, Files: files}
+func NewUnikIndexDBInfo(files []string) UnikIndexDBInfo {
+	return UnikIndexDBInfo{Version: UnikIndexDBVersion, IndexVersion: index.Version, Files: files}
 }
 
 func UnikIndexDBInfoFromFile(file string) (UnikIndexDBInfo, error) {
@@ -85,6 +90,10 @@ func UnikIndexDBInfoFromFile(file string) (UnikIndexDBInfo, error) {
 	}
 
 	r.Close()
+
+	if info.Version != UnikIndexDBVersion {
+		return info, ErrVersionMismatch
+	}
 
 	p, _ := filepath.Abs(file)
 	info.path = filepath.Dir(p)
@@ -161,7 +170,7 @@ func NewUnikIndexDB(path string, useMmap bool) (*UnikIndexDB, error) {
 	idx1, err := NewUnixIndex(filepath.Join(path, info.Files[0]), useMmap)
 	checkError(errors.Wrap(err, filepath.Join(path, info.Files[0])))
 
-	if info.Version == int(idx1.Header.Version) &&
+	if info.IndexVersion == idx1.Header.Version &&
 		info.K == idx1.Header.K &&
 		info.Canonical == idx1.Header.Canonical &&
 		info.NumHashes == int(idx1.Header.NumHashes) {
