@@ -36,15 +36,15 @@ var RootCmd = &cobra.Command{
 	Short: "Unique-Kmer Toolkit",
 	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
 
-A command-line toolkit providing functions including counting, format
-convertion, set operations and searching of small k-mers (k <= 32)
-optional with Taxids but without frequency information.
+unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
+including set operation, indexing, and searching on k-mers optional with
+TaxIDs but without count information.
 
-K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of
-golang in RAM, and serialized in binary file with extension '.unik'.
+K-mers are either encoded (k<=32) or hashed (arbitrary k) into 'uint64',
+and serialized in binary file with extension '.unik'.
 
-Taxids can be assigned when counting k-mers from genome sequences,
-and LCA (Lowest Common Ancestor) will be computed during opertions
+TaxIDs can be assigned when counting k-mers from genome sequences,
+and LCA (Lowest Common Ancestor) is computed during set opertions
 including computing union, intersecton, set difference, unique and
 repeated k-mers.
 
@@ -57,18 +57,18 @@ Source code: https://github.com/shenwei356/unikmer
 
 Dataset (optional):
 
-  Some commands need taxonomy file from e.g., NCBI Taxonomy database,
-  please extract "nodes.dmp", "names.dmp", "delnodes.dmp" and "merged.dmp" 
-  from link below into ~/.unikmer/ ,
+  Manipulating k-mers with TaxIDs needs taxonomy file from e.g., 
+  NCBI Taxonomy database, please extract "nodes.dmp", "names.dmp",
+  "delnodes.dmp" and "merged.dmp" from link below into ~/.unikmer/ ,
   ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz , 
-  or some other directory, and later you can refer to using flag --data-dir,
-  or environment variable UNIKMER_DB.
+  or some other directory, and later you can refer to using flag
+  --data-dir or environment variable UNIKMER_DB.
 
   For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump 
   for taxonomy convertion.
 
-  Note that Taxids are represented using uint32 and stored in 4 or less bytes,
-  all taxids should be in range of [1, %d]
+  Note that TaxIDs are represented using uint32 and stored in 4 or
+  less bytes, all TaxIDs should be in range of [1, %d]
 
 `, VERSION, maxUint32),
 }

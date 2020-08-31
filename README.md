@@ -1,26 +1,34 @@
 # unikmer
 
-unikmer (unique kmer) is a golang package and a command-line toolkit for
-manipulating small [k-mers](https://en.wikipedia.org/wiki/K-mer) (k <= 32)
-optional with Taxids but without frequency information.
+`unikmer` is a golang package and a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
+including set operation, indexing, and searching on k-mers optional with
+TaxIDs but without count information.
 
-K-mers (k <= 32) are encoded into `uint64`, stored in builtin `map` of golang in RAM,
-and serialized in binary format.
+K-mers are either encoded (k<=32) or hashed (arbitrary k) into `uint64`,
+and serialized in binary file with extension `.unik`.
+
+TaxIDs can be assigned when counting k-mers from genome sequences,
+and LCA (Lowest Common Ancestor) is computed during set opertions
+including computing union, intersecton, set difference, unique and
+repeated k-mers.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
 
-- [The package](#the-package)
+- [unikmer](#unikmer)
+  - [Table of Contents](#table-of-contents)
+  - [The package](#the-package)
     - [Installation](#installation)
     - [Benchmark](#benchmark)
-- [The toolkit](#the-toolkit)
+  - [The toolkit](#the-toolkit)
     - [Installation](#installation-1)
     - [Commands](#commands)
     - [Binary file (.unik)](#binary-file-unik)
+      - [Compression rate comparison](#compression-rate-comparison)
     - [Quick Start](#quick-start)
-- [Contributing](#contributing)
-- [License](#license)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -30,7 +38,7 @@ and serialized in binary format.
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
 The unikmer package provides basic manipulations of small K-mers
-optional with Taxids but without frequency information,
+optional with TaxIDs but without frequency information,
 and also provides serialization methods.
 
 ### Installation
@@ -55,18 +63,6 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 
 ## The toolkit
 
-`unikmer` is a command-line toolkit providing functions including counting, format
-convertion, set operations and searching of small k-mers (k <= 32)
-optional with Taxids but without frequency information.
-
-K-mers (k <= 32) are encoded into 'uint64', stored in builtin 'map' of
-golang in RAM, and serialized in binary file with extension '.unik'.
-
-Taxids can be assigned when counting k-mers from genome sequences,
-and LCA (Lowest Common Ancestor) will be computed during opertions
-including computing union, intersecton, set difference, unique and
-repeated k-mers.
-
 ### Installation
 
 1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases) (Latest version).
@@ -75,7 +71,7 @@ repeated k-mers.
 
         conda install unikmer
 
-1. Via Homebrew
+1. Via Homebrew (not lastest version)
 
         brew install brewsci/bio/unikmer
 
@@ -116,10 +112,16 @@ repeated k-mers.
         filter          Filter low-complexity k-mers
         rfilter         Filter k-mers by taxonomic rank
 
-1. Searching
+1. Searching on genomes
 
         locate          Locate k-mers in genome
         uniqs           Mapping k-mers back to genome and find unique subsequences
+
+1. Indexing and searching
+
+        db index       Construct index from binary files
+        db search      Search sequence from index database
+        db info        Information of index file
 
 1. Misc
 
@@ -133,11 +135,11 @@ K-mers (represented in `uint64` in RAM ) are serialized in 8-Byte
 (or less Bytes for shorter k-mers in compact format,
 or much less Bytes for sorted k-mers) arrays and
 optionally compressed in gzip format with extension of `.unik`.
-Taxids are optionally stored next to k-mers with 4 or less bytes.
+TaxIDs are optionally stored next to k-mers with 4 or less bytes.
 
 #### Compression rate comparison
 
-No Taxids stored in this test.
+No TaxIDs stored in this test.
 
 ![cr.jpg](testdata/cr.jpg)
 
