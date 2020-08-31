@@ -41,7 +41,8 @@ var uniqsCmd = &cobra.Command{
 	Long: `Mapping k-mers back to genome and find unique subsequences
 
 Attention:
-  1. default output is in BED3 format, with left-closed and right-open
+  1. All files should have the 'canonical' flag.
+  2. Default output is in BED3 format, with left-closed and right-open
      0-based interval
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -66,7 +67,6 @@ Attention:
 		checkFileSuffix(opt, extDataFile, files...)
 
 		outFile := getFlagString(cmd, "out-prefix")
-		circular := getFlagBool(cmd, "circular")
 
 		genomeFile := getFlagNonEmptyString(cmd, "genome")
 
@@ -92,7 +92,8 @@ Attention:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader0 *unikmer.Reader
-		var kcode unikmer.KmerCode
+		var hashed bool
+		var code uint64
 		var nfiles = len(files)
 		for i, file := range files {
 			if opt.Verbose {
@@ -109,42 +110,25 @@ Attention:
 				if k == -1 {
 					reader0 = reader
 					k = reader.K
+					hashed = reader.IsHashed()
 					canonical = reader.IsCanonical()
-					if opt.Verbose {
-						if canonical {
-							log.Infof("flag of canonical is on")
-						} else {
-							log.Infof("flag of canonical is off")
-						}
+					if !canonical {
+						checkError(fmt.Errorf("%s: 'canonical' flag is needed", file))
 					}
 				} else {
 					checkCompatibility(reader0, reader, file)
 				}
 
-				if canonical {
-					for {
-						kcode, _, err = reader.ReadWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(errors.Wrap(err, file))
+				for {
+					code, _, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							break
 						}
-
-						m[kcode.Code] = struct{}{}
+						checkError(errors.Wrap(err, file))
 					}
-				} else {
-					for {
-						kcode, _, err = reader.ReadWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(errors.Wrap(err, file))
-						}
 
-						m[kcode.Canonical().Code] = struct{}{}
-					}
+					m[code] = struct{}{}
 				}
 			}()
 		}
@@ -156,12 +140,9 @@ Attention:
 		// -----------------------------------------------------------------------
 		var m2 map[uint64]bool
 
-		var sequence, kmer, preKmer []byte
-		var originalLen, l, end, e int
 		var record *fastx.Record
 		var fastxReader *fastx.Reader
-		var preKcode unikmer.KmerCode
-		var first bool
+		var iter *unikmer.Iterator
 		var i int
 		var ok bool
 		var multipleMapped bool
@@ -183,53 +164,29 @@ Attention:
 					break
 				}
 
-				sequence = record.Seq.Seq
-
-				if opt.Verbose {
-					log.Infof("processing sequence: %s", record.ID)
+				if hashed {
+					iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+				} else {
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
 				}
+				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
-				originalLen = len(record.Seq.Seq)
-				l = len(sequence)
-
-				end = l - 1
-				if end < 0 {
-					end = 0
-				}
-				first = true
-				for i = 0; i <= end; i++ {
-					e = i + k
-					if e > originalLen {
-						if circular {
-							e = e - originalLen
-							kmer = sequence[i:]
-							kmer = append(kmer, sequence[0:e]...)
-						} else {
-							break
-						}
-					} else {
-						kmer = sequence[i : i+k]
+				for {
+					code, ok, err = iter.Next()
+					if hashed && err != nil {
+						checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
+					}
+					if !ok {
+						break
 					}
 
-					if first {
-						kcode, err = unikmer.NewKmerCode(kmer)
-						first = false
-					} else {
-						kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-					}
-					if err != nil {
-						checkError(fmt.Errorf("fail to encode '%s': %s", kmer, err))
-					}
-					preKmer, preKcode = kmer, kcode
-
-					kcode = kcode.Canonical()
-
-					if multipleMapped, ok = m2[kcode.Code]; !ok {
-						m2[kcode.Code] = false
+					if multipleMapped, ok = m2[code]; !ok {
+						m2[code] = false
 					} else if !multipleMapped {
-						m2[kcode.Code] = true
+						m2[code] = true
 					}
 				}
+
 			}
 			if opt.Verbose {
 				log.Infof("finished pre-reading genome file: %s", genomeFile)
@@ -277,18 +234,8 @@ Attention:
 				break
 			}
 
-			sequence = record.Seq.Seq
-
 			if opt.Verbose {
 				log.Infof("processinig sequence: %s", record.ID)
-			}
-
-			originalLen = len(record.Seq.Seq)
-			l = len(sequence)
-
-			end = l - 1
-			if end < 0 {
-				end = 0
 			}
 
 			c = 0
@@ -296,38 +243,28 @@ Attention:
 			nonUniqs = 0
 			nonUniqsNum = 0
 
-			first = true
-			for i = 0; i <= end; i++ {
-				e = i + k
-				if e > originalLen {
-					if circular {
-						e = e - originalLen
-						kmer = sequence[i:]
-						kmer = append(kmer, sequence[0:e]...)
-					} else {
-						break
-					}
-				} else {
-					kmer = sequence[i : i+k]
+			if hashed {
+				iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+			} else {
+				iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
+			}
+			checkError(errors.Wrapf(err, "seq: %s", record.Name))
+
+			for {
+				code, ok, err = iter.Next()
+				if !hashed && err != nil {
+					checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
+				}
+				if !ok {
+					break
 				}
 
-				if first {
-					kcode, err = unikmer.NewKmerCode(kmer)
-					first = false
-				} else {
-					kcode, err = unikmer.NewKmerCodeMustFromFormerOne(kmer, preKmer, preKcode)
-				}
-				if err != nil {
-					checkError(fmt.Errorf("encoding '%s': %s", kmer, err))
-				}
-				preKmer, preKcode = kmer, kcode
+				i = iter.CurrentIndex()
 
-				kcode = kcode.Canonical()
-
-				if _, ok = m[kcode.Code]; ok {
+				if _, ok = m[code]; ok {
 					nonUniqs = 0
 					if !mMapped {
-						if multipleMapped, ok = m2[kcode.Code]; ok && multipleMapped {
+						if multipleMapped, ok = m2[code]; ok && multipleMapped {
 							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
 								start >= 0 && lastmatch-start+k >= minLen {
 								if outputFASTA {

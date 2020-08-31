@@ -82,6 +82,7 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool) (*Iterator, error) {
 // NextHash returns next ntHash.
 func (iter *Iterator) NextHash() (code uint64, ok bool) {
 	code, ok = iter.hasher.Next(iter.canonical)
+	iter.idx++
 	return code, ok
 }
 
@@ -156,7 +157,13 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 func (iter *Iterator) Next() (code uint64, ok bool, err error) {
 	if iter.hash {
 		code, ok = iter.NextHash()
+		return
 	}
 	code, ok, err = iter.NextKmer()
 	return
+}
+
+// CurrentIndex returns current  0-baesd index
+func (iter *Iterator) CurrentIndex() int {
+	return iter.idx - 1
 }

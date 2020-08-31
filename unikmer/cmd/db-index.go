@@ -639,7 +639,7 @@ Attentions:
 							chNames <- names
 							chSizes <- sizes
 							if opt.Verbose {
-								log.Infof("%s batch #%03d%d: %d signatures loaded", prefix, bb, nBatchFiles, len(sigs))
+								log.Infof("%s batch #%03d/%d: %d signatures loaded", prefix, bb, nBatchFiles, len(sigs))
 							}
 						}
 

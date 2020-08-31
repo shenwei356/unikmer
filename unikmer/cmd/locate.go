@@ -132,12 +132,13 @@ Attention:
 		var iter *unikmer.Iterator
 		var code uint64
 		var ok bool
+
 		if opt.Verbose {
 			log.Infof("reading genome file: %s", genomeFile)
 		}
 		fastxReader, err = fastx.NewDefaultReader(genomeFile)
 		checkError(errors.Wrap(err, genomeFile))
-		var seqIdx, kmerIdx int
+		var seqIdx int
 		for {
 			record, err = fastxReader.Read()
 			if err != nil {
@@ -155,43 +156,27 @@ Attention:
 			}
 			checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
-			kmerIdx = 0
-			if hashed {
-				if !showHash {
-					sequences = append(sequences, record.Seq.Clone().Seq)
+			if !showHash {
+				sequences = append(sequences, record.Seq.Clone().Seq)
+			}
+			for {
+				code, ok, err = iter.Next()
+				if !hashed && err != nil {
+					checkError(errors.Wrapf(err, "%s: %s: %s", genomeFile, record.Name, sequences[iter.CurrentIndex():iter.CurrentIndex()+k]))
 				}
-				for {
-					code, ok = iter.NextHash()
-					if !ok {
-						break
-					}
-
-					if _, ok = m[code]; !ok {
-						m[code] = make([]int, 0, 1)
-
-						if hashed && !showHash {
-							hash2loc[code] = [2]int{seqIdx, kmerIdx}
-						}
-					}
-					m[code] = append(m[code], kmerIdx)
-
-					kmerIdx++
+				if !ok {
+					break
 				}
-			} else {
-				for {
-					code, ok, err = iter.NextKmer()
-					checkError(errors.Wrapf(err, "seq: %s", record.Name))
-					if !ok {
-						break
-					}
 
-					if _, ok = m[code]; !ok {
-						m[code] = make([]int, 0, 1)
-					}
-					m[code] = append(m[code], kmerIdx)
+				if _, ok = m[code]; !ok {
+					m[code] = make([]int, 0, 1)
 
-					kmerIdx++
+					if hashed && !showHash {
+						hash2loc[code] = [2]int{seqIdx, iter.CurrentIndex()}
+					}
 				}
+				m[code] = append(m[code], iter.CurrentIndex())
+
 			}
 
 			seqIdx++
