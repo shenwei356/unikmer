@@ -1,7 +1,7 @@
 - v0.12.0
     - `unikmer`:
-      - support longer k (k>32) by saving ntHash.
-      - new flag `-nocheck-file` for not checking binary file.
+        - support longer k (k>32) by saving ntHash.
+        - new flag `-nocheck-file` for not checking binary file.
     - new commands:
         - `unikmer db index`: constructing index from binary files
         - `unikmer db info`: printing information of index file
@@ -13,6 +13,11 @@
         - new flag `-n/--number` for setting number of k-mers.
     - `unikmer num`:
         - new flag `-f/--force` for counting k-mers.
+    - `unikmer locate`: output in BED6.
+    - `unikmer locate/uniqs`: support multiple genome files.
+    - `unikmer uniqs`:
+        - stricter multiple mapping limit.
+        - new flag `-W/--seqs-in-a-file-as-one-genome`.
 - v0.11.0
     - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
     - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.
@@ -22,6 +27,7 @@
         - fix setting global taxid.
     - `unikmer count/diff/union`: slightly reduce memory and speedup when sorting k-mers.
     - `unikmer filter`: change scoring.
+    - `unikmer count/locate/uniqs`: remove flag `--circular`.
 - v0.10.0
     - `unikmer`: fix loading custom taxonomy files.
     - `unikmer count`:

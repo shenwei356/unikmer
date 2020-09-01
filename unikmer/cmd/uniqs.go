@@ -68,13 +68,21 @@ Attention:
 
 		outFile := getFlagString(cmd, "out-prefix")
 
-		genomeFile := getFlagNonEmptyString(cmd, "genome")
+		genomes := getFlagStringSlice(cmd, "genome")
+		if len(genomes) == 0 {
+			checkError(fmt.Errorf("flag -g/--genome needed"))
+		}
 
 		minLen := getFlagPositiveInt(cmd, "min-len")
 		mMapped := getFlagBool(cmd, "allow-muliple-mapped-kmer")
 		outputFASTA := getFlagBool(cmd, "output-fasta")
 		maxContNonUniqKmers := getFlagNonNegativeInt(cmd, "max-cont-non-uniq-kmers")
 		maxContNonUniqKmersNum := getFlagNonNegativeInt(cmd, "max-num-cont-non-uniq-kmers")
+		seqsAsOneGenome := getFlagBool(cmd, "seqs-in-a-file-as-one-genome")
+
+		if seqsAsOneGenome && mMapped {
+			checkError(fmt.Errorf("flag -M/--allow-muliple-mapped-kmer and -W/--seqs-in-a-file-as-one-genome are not compatible"))
+		}
 
 		if maxContNonUniqKmersNum > 0 && maxContNonUniqKmers == 0 {
 			log.Warningf("-X/--max-num-cont-non-uniq-kmers %d is ignored becaue value of -x/--max-cont-non-uniq-kmers is 0", maxContNonUniqKmersNum)
@@ -138,7 +146,8 @@ Attention:
 		}
 
 		// -----------------------------------------------------------------------
-		var m2 map[uint64]bool
+		var m2 map[int]map[uint64]bool // genome-id -> kmer -> mutiple-mapped
+		var _m2 map[uint64]bool
 
 		var record *fastx.Record
 		var fastxReader *fastx.Reader
@@ -148,60 +157,78 @@ Attention:
 		var multipleMapped bool
 
 		if !mMapped {
-			m2 = make(map[uint64]bool, mapInitSize)
-			if opt.Verbose {
-				log.Infof("pre-reading genome file: %s", genomeFile)
-			}
-			fastxReader, err = fastx.NewDefaultReader(genomeFile)
-			checkError(errors.Wrap(err, genomeFile))
-			for {
-				record, err = fastxReader.Read()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					checkError(errors.Wrap(err, genomeFile))
-					break
+			m2 = make(map[int]map[uint64]bool, 8)
+			var nKmers uint64
+			var genomeIdx int
+			for _, genomeFile := range genomes {
+				if opt.Verbose {
+					log.Infof("pre-reading genome file: %s", genomeFile)
 				}
 
-				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, true)
-				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
-				}
-				checkError(errors.Wrapf(err, "seq: %s", record.Name))
-
+				fastxReader, err = fastx.NewDefaultReader(genomeFile)
+				checkError(errors.Wrap(err, genomeFile))
 				for {
-					code, ok, err = iter.Next()
-					if hashed && err != nil {
-						checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
-					}
-					if !ok {
+					record, err = fastxReader.Read()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						checkError(errors.Wrap(err, genomeFile))
 						break
 					}
 
-					if multipleMapped, ok = m2[code]; !ok {
-						m2[code] = false
-					} else if !multipleMapped {
-						m2[code] = true
+					if hashed {
+						iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+					} else {
+						iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
+					}
+					checkError(errors.Wrapf(err, "file: %s, seq: %s", genomeFile, record.Name))
+
+					if _m2, ok = m2[genomeIdx]; !ok {
+						_m2 = make(map[uint64]bool, mapInitSize)
+						m2[genomeIdx] = _m2
+					}
+
+					for {
+						code, ok, err = iter.Next()
+						if hashed && err != nil {
+							checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
+						}
+						if !ok {
+							break
+						}
+
+						if multipleMapped, ok = _m2[code]; !ok {
+							nKmers++
+							_m2[code] = false
+						} else if !multipleMapped {
+							_m2[code] = true
+						}
+					}
+
+					if !seqsAsOneGenome {
+						genomeIdx++
 					}
 				}
-
-			}
-			if opt.Verbose {
-				log.Infof("finished pre-reading genome file: %s", genomeFile)
 			}
 
 			if opt.Verbose {
-				log.Infof("%d k-mers loaded from genome", len(m2))
+				log.Infof("%d k-mers loaded from %d genomes", nKmers, len(m2))
 			}
-			for code, flag := range m2 {
-				if !flag {
-					delete(m2, code)
+
+			for genomeIdx, _m2 = range m2 {
+				for code, multipleMapped = range _m2 {
+					if !multipleMapped {
+						delete(m2[genomeIdx], code)
+					}
 				}
 			}
+			n := 0
+			for _, _m2 = range m2 {
+				n += len(_m2)
+			}
 			if opt.Verbose {
-				log.Infof("%d k-mers in genome are multiple mapped", len(m2))
+				log.Infof("%d k-mers in genomes are multiple mapped", n)
 			}
 		}
 
@@ -217,67 +244,84 @@ Attention:
 			w.Close()
 		}()
 
-		var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch int
-		var flag bool = true
-		if opt.Verbose {
-			log.Infof("reading genome file: %s", genomeFile)
-		}
-		fastxReader, err = fastx.NewDefaultReader(genomeFile)
-		checkError(errors.Wrap(err, genomeFile))
-		for {
-			record, err = fastxReader.Read()
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				checkError(errors.Wrap(err, genomeFile))
-				break
-			}
-
+		var genomeIdx int
+		for _, genomeFile := range genomes {
+			var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch int
+			var flag bool = true
 			if opt.Verbose {
-				log.Infof("processinig sequence: %s", record.ID)
+				log.Infof("reading genome file: %s", genomeFile)
 			}
-
-			c = 0
-			start = -1
-			nonUniqs = 0
-			nonUniqsNum = 0
-
-			if hashed {
-				iter, err = unikmer.NewHashIterator(record.Seq, k, true)
-			} else {
-				iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
-			}
-			checkError(errors.Wrapf(err, "seq: %s", record.Name))
-
+			fastxReader, err = fastx.NewDefaultReader(genomeFile)
+			checkError(errors.Wrap(err, genomeFile))
 			for {
-				code, ok, err = iter.Next()
-				if !hashed && err != nil {
-					checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
-				}
-				if !ok {
+				record, err = fastxReader.Read()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					checkError(errors.Wrap(err, genomeFile))
 					break
 				}
 
-				i = iter.CurrentIndex()
+				if opt.Verbose {
+					log.Infof("processinig sequence: %s", record.ID)
+				}
 
-				if _, ok = m[code]; ok {
-					nonUniqs = 0
-					if !mMapped {
-						if multipleMapped, ok = m2[code]; ok && multipleMapped {
-							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
-								start >= 0 && lastmatch-start+k >= minLen {
-								if outputFASTA {
-									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
-										record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
-								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+				c = 0
+				start = -1
+				nonUniqs = 0
+				nonUniqsNum = 0
+
+				if hashed {
+					iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+				} else {
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
+				}
+				checkError(errors.Wrapf(err, "seq: %s", record.Name))
+
+				if !mMapped {
+					_m2 = m2[genomeIdx]
+				}
+
+				for {
+					code, ok, err = iter.Next()
+					if !hashed && err != nil {
+						checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
+					}
+					if !ok {
+						break
+					}
+
+					i = iter.CurrentIndex()
+
+					if _, ok = m[code]; ok {
+						nonUniqs = 0
+						if !mMapped {
+							if multipleMapped, ok = _m2[code]; ok && multipleMapped {
+								if lastNonUniqsNum <= maxContNonUniqKmersNum &&
+									start >= 0 && lastmatch-start+k >= minLen {
+									if outputFASTA {
+										outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+											record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
+									} else {
+										outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+									}
+								}
+
+								c = 0
+								start = -1
+								flag = true
+							} else {
+								c++
+								if c == 1 { // re-count
+									if flag {
+										start = i
+										nonUniqsNum = 0
+										nonUniqs = 0
+										lastNonUniqsNum = 0
+									}
 								}
 							}
-
-							c = 0
-							start = -1
-							flag = true
 						} else {
 							c++
 							if c == 1 { // re-count
@@ -289,57 +333,52 @@ Attention:
 								}
 							}
 						}
-					} else {
-						c++
-						if c == 1 { // re-count
-							if flag {
-								start = i
-								nonUniqsNum = 0
-								nonUniqs = 0
-								lastNonUniqsNum = 0
+
+						if c >= 1 { // at least 1 continuous sites.
+							lastmatch = i
+							lastNonUniqsNum = nonUniqsNum
+						}
+					} else { // k-mer not found
+						nonUniqs++
+						if nonUniqs == 1 {
+							nonUniqsNum++
+						}
+						if nonUniqs <= maxContNonUniqKmers && nonUniqsNum <= maxContNonUniqKmersNum {
+							c = 0
+							if start > 0 {
+								flag = false
 							}
+						} else {
+							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
+								start >= 0 && lastmatch-start+k >= minLen {
+								if outputFASTA {
+									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+										record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
+								} else {
+									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+								}
+							}
+							// re-count
+							c = 0
+							start = -1
+							flag = true
 						}
 					}
 
-					if c >= 1 { // at least 1 continuous sites.
-						lastmatch = i
-						lastNonUniqsNum = nonUniqsNum
+					if !seqsAsOneGenome {
+						genomeIdx++
 					}
-				} else { // k-mer not found
-					nonUniqs++
-					if nonUniqs == 1 {
-						nonUniqsNum++
-					}
-					if nonUniqs <= maxContNonUniqKmers && nonUniqsNum <= maxContNonUniqKmersNum {
-						c = 0
-						if start > 0 {
-							flag = false
-						}
-					} else {
-						if lastNonUniqsNum <= maxContNonUniqKmersNum &&
-							start >= 0 && lastmatch-start+k >= minLen {
-							if outputFASTA {
-								outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
-									record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
-							} else {
-								outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
-							}
-						}
-						// re-count
-						c = 0
-						start = -1
-						flag = true
-					}
+
+					// debug.WriteString(fmt.Sprintln(i, c, start, lastmatch, nonUniqs, nonUniqsNum, lastNonUniqsNum))
 				}
-				// debug.WriteString(fmt.Sprintln(i, c, start, lastmatch, nonUniqs, nonUniqsNum, lastNonUniqsNum))
-			}
-			if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
-				start >= 0 && lastmatch-start+k >= minLen {
-				if outputFASTA {
-					outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
-						record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
-				} else {
-					outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+				if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
+					start >= 0 && lastmatch-start+k >= minLen {
+					if outputFASTA {
+						outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+							record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
+					} else {
+						outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+					}
 				}
 			}
 		}
@@ -350,11 +389,13 @@ func init() {
 	RootCmd.AddCommand(uniqsCmd)
 
 	uniqsCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	uniqsCmd.Flags().BoolP("circular", "", false, "circular genome")
-	uniqsCmd.Flags().StringP("genome", "g", "", "genome in (gzipped) fasta file")
+	uniqsCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
 	uniqsCmd.Flags().IntP("min-len", "m", 200, "minimum length of subsequence")
 	uniqsCmd.Flags().BoolP("allow-muliple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
+	uniqsCmd.Flags().BoolP("seqs-in-a-file-as-one-genome", "W", false, "treat seqs in a genome file as one genome")
 	uniqsCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
+
 	uniqsCmd.Flags().IntP("max-cont-non-uniq-kmers", "x", 0, "max continuous non-unique k-mers")
 	uniqsCmd.Flags().IntP("max-num-cont-non-uniq-kmers", "X", 0, "max number of continuous non-unique k-mers")
+
 }
