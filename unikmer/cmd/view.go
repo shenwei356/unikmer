@@ -93,20 +93,20 @@ Attentions:
 		var reader0 *unikmer.Reader
 		var canonical bool
 		var hashed bool
-		var kcode unikmer.KmerCode
-		var taxid uint32
 
 		var k int = -1
 		var hasTaxid bool
 
 		var quality string
 
-		var hash uint64
-
 		var sequences [][]byte
 		var hash2loc map[uint64][2]int // hash -> [seq idx, seq loc]
 		var loc [2]int
 		var ok bool
+
+		var code uint64
+		var kmer []byte
+		var taxid uint32
 
 		for _, file := range files {
 			func() {
@@ -156,50 +156,12 @@ Attentions:
 					}
 				}
 
-				if reader.IsHashed() {
-					for {
-						hash, taxid, err = reader.ReadCodeWithTaxid()
-						if err != nil {
-							if err == io.EOF {
-								break
-							}
-							checkError(errors.Wrap(err, file))
-						}
-
-						if showTaxid {
-							if providingGenomes {
-								if loc, ok = hash2loc[hash]; ok {
-									outfh.WriteString(fmt.Sprintf("%s\t%d\n", sequences[loc[0]][loc[1]:loc[1]+k], taxid))
-								} else {
-									outfh.WriteString(fmt.Sprintf("%d\t%d\n", hash, taxid))
-									log.Warningf("fail to decode hash: %d, since not found in given genome", hash)
-								}
-							} else {
-								outfh.WriteString(fmt.Sprintf("%d\t%d\n", hash, taxid))
-							}
-						} else if showTaxidOnly {
-							outfh.WriteString(fmt.Sprintf("%d\n", taxid))
-						} else if providingGenomes {
-							if loc, ok = hash2loc[hash]; ok {
-								outfh.WriteString(fmt.Sprintf("%s\n", sequences[loc[0]][loc[1]:loc[1]+k]))
-							} else {
-								log.Warningf("fail to decode hash: %d, since not found in given genome", hash)
-								outfh.WriteString(fmt.Sprintf("%d\n", hash))
-							}
-						} else {
-							outfh.WriteString(fmt.Sprintf("%d\n", hash))
-						}
-
-					}
-					return
-				}
-
 				if outFastq {
 					quality = strings.Repeat("g", reader.K)
 				}
 
 				for {
-					kcode, taxid, err = reader.ReadWithTaxid()
+					code, taxid, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break
@@ -207,29 +169,43 @@ Attentions:
 						checkError(errors.Wrap(err, file))
 					}
 
-					// outfh.WriteString(fmt.Sprintf("%s\n", kcode.Bytes())) // slower
+					if !hashed {
+						kmer = unikmer.Decode(code, k)
+					} else {
+						if providingGenomes {
+							if loc, ok = hash2loc[code]; ok {
+								kmer = sequences[loc[0]][loc[1] : loc[1]+k]
+							} else {
+								kmer = []byte(fmt.Sprintf("%d", code))
+								log.Warningf("fail to decode hash: %d, which is not found in given genomes", code)
+							}
+						} else {
+							kmer = []byte(fmt.Sprintf("%d", code))
+						}
+					}
+
 					if outFasta {
 						if showTaxid {
-							outfh.WriteString(fmt.Sprintf(">%d %d\n%s\n", kcode.Code, taxid, kcode.String()))
+							outfh.WriteString(fmt.Sprintf(">%d %d\n%s\n", code, taxid, kmer))
 						} else {
-							outfh.WriteString(fmt.Sprintf(">%d\n%s\n", kcode.Code, kcode.String()))
+							outfh.WriteString(fmt.Sprintf(">%d\n%s\n", code, kmer))
 						}
 					} else if outFastq {
 						if showTaxid {
-							outfh.WriteString(fmt.Sprintf("@%d %d\n%s\n+\n%s\n", kcode.Code, taxid, kcode.String(), quality))
+							outfh.WriteString(fmt.Sprintf("@%d %d\n%s\n+\n%s\n", code, taxid, kmer, quality))
 						} else {
-							outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", kcode.Code, kcode.String(), quality))
+							outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", code, kmer, quality))
 						}
 					} else if showTaxid {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), taxid))
+						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kmer, taxid))
 					} else if showTaxidOnly {
 						outfh.WriteString(fmt.Sprintf("%d\n", taxid))
 					} else if showCodeOnly {
-						outfh.WriteString(fmt.Sprintf("%d\n", kcode.Code))
+						outfh.WriteString(fmt.Sprintf("%d\n", code))
 					} else if showCode {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kcode.String(), kcode.Code))
+						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kmer, code))
 					} else {
-						outfh.WriteString(kcode.String() + "\n")
+						outfh.WriteString(string(kmer) + "\n")
 					}
 				}
 
