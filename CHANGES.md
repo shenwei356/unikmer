@@ -1,5 +1,7 @@
 - v0.12.0
-    - `unikmer`: new flag `-nocheck-file` for not checking binary file.
+    - `unikmer`:
+      - support longer k (k>32) by saving ntHash.
+      - new flag `-nocheck-file` for not checking binary file.
     - new commands:
         - `unikmer db index`: constructing index from binary files
         - `unikmer db info`: printing information of index file

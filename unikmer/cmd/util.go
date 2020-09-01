@@ -23,12 +23,14 @@ package cmd
 import (
 	"compress/flate"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
@@ -324,4 +326,53 @@ var maxUint32 = uint64(^uint32(0))
 
 func maxUint32N(n int) uint32 {
 	return (1 << (n << 3)) - 1
+}
+
+func loadHash2Loc(files []string, k int) ([][]byte, map[uint64][2]int, error) {
+	var hash2loc map[uint64][2]int // hash -> [seq idx, seq loc]
+	var sequences [][]byte
+
+	sequences = make([][]byte, 0, 8)
+	hash2loc = make(map[uint64][2]int, mapInitSize)
+
+	var err error
+	var fastxReader *fastx.Reader
+	var record *fastx.Record
+	var iter *unikmer.Iterator
+	var code uint64
+	var ok bool
+	var seqIdx int
+
+	for _, file := range files {
+		fastxReader, err = fastx.NewDefaultReader(file)
+		checkError(errors.Wrap(err, file))
+		for {
+			record, err = fastxReader.Read()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				checkError(errors.Wrap(err, file))
+				break
+			}
+			iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+			checkError(errors.Wrapf(err, "seq: %s", record.Name))
+
+			sequences = append(sequences, record.Seq.Clone().Seq)
+
+			for {
+				code, ok = iter.NextHash()
+				if !ok {
+					break
+				}
+
+				if _, ok = hash2loc[code]; !ok {
+					hash2loc[code] = [2]int{seqIdx, iter.CurrentIndex()}
+				}
+			}
+			seqIdx++
+		}
+
+	}
+	return sequences, hash2loc, nil
 }

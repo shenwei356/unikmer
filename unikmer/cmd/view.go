@@ -70,6 +70,8 @@ Attentions:
 		outFastq := getFlagBool(cmd, "fastq")
 		showCodeOnly := getFlagBool(cmd, "show-code-only")
 		showTaxidOnly := getFlagBool(cmd, "show-taxid-only")
+		genomes := getFlagStringSlice(cmd, "genome")
+		providingGenomes := len(genomes) != 0
 
 		showTaxid := getFlagBool(cmd, "show-taxid")
 		if opt.IgnoreTaxid {
@@ -89,6 +91,8 @@ Attentions:
 		var infh *bufio.Reader
 		var r *os.File
 		var reader0 *unikmer.Reader
+		var canonical bool
+		var hashed bool
 		var kcode unikmer.KmerCode
 		var taxid uint32
 
@@ -98,6 +102,11 @@ Attentions:
 		var quality string
 
 		var hash uint64
+
+		var sequences [][]byte
+		var hash2loc map[uint64][2]int // hash -> [seq idx, seq loc]
+		var loc [2]int
+		var ok bool
 
 		for _, file := range files {
 			func() {
@@ -111,12 +120,30 @@ Attentions:
 				if k == -1 {
 					reader0 = reader
 					k = reader.K
+					canonical = reader.IsCanonical()
+					hashed = reader.IsHashed()
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 					if showTaxid && !reader.HasTaxidInfo() {
 						log.Warningf("flag -t/--show-taxid ignored when no taxids found in input")
 					}
 					if opt.IgnoreTaxid || !reader.HasTaxidInfo() {
 						showTaxid = false
+					}
+					if providingGenomes {
+						if !hashed {
+							log.Warningf("-g/--genome ignored since k-mers not hashed")
+						} else if !canonical {
+							log.Warningf("-g/--genome ignored since 'canonical' flag is off")
+						} else {
+							if opt.Verbose {
+								log.Infof("loading hash-k-mers mapping from genomes")
+							}
+							sequences, hash2loc, err = loadHash2Loc(genomes, k)
+							checkError(errors.Wrap(err, "load hash-kmer mapping"))
+							if opt.Verbose {
+								log.Infof("%d hash-k-mers pairs from %d genomes loaded", len(hash2loc), len(sequences))
+							}
+						}
 					}
 				} else {
 					checkCompatibility(reader0, reader, file)
@@ -140,9 +167,25 @@ Attentions:
 						}
 
 						if showTaxid {
-							outfh.WriteString(fmt.Sprintf("%d\t%d\n", hash, taxid))
+							if providingGenomes {
+								if loc, ok = hash2loc[hash]; ok {
+									outfh.WriteString(fmt.Sprintf("%s\t%d\n", sequences[loc[0]][loc[1]:loc[1]+k], taxid))
+								} else {
+									outfh.WriteString(fmt.Sprintf("%d\t%d\n", hash, taxid))
+									log.Warningf("fail to decode hash: %d, since not found in given genome", hash)
+								}
+							} else {
+								outfh.WriteString(fmt.Sprintf("%d\t%d\n", hash, taxid))
+							}
 						} else if showTaxidOnly {
 							outfh.WriteString(fmt.Sprintf("%d\n", taxid))
+						} else if providingGenomes {
+							if loc, ok = hash2loc[hash]; ok {
+								outfh.WriteString(fmt.Sprintf("%s\n", sequences[loc[0]][loc[1]:loc[1]+k]))
+							} else {
+								log.Warningf("fail to decode hash: %d, since not found in given genome", hash)
+								outfh.WriteString(fmt.Sprintf("%d\n", hash))
+							}
 						} else {
 							outfh.WriteString(fmt.Sprintf("%d\n", hash))
 						}
@@ -205,4 +248,5 @@ func init() {
 	viewCmd.Flags().BoolP("fastq", "q", false, `output in FASTQ format, with encoded integer as FASTQ header`)
 	viewCmd.Flags().BoolP("show-taxid", "t", false, "show taxid")
 	viewCmd.Flags().BoolP("show-taxid-only", "T", false, "show taxid only")
+	viewCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s) for decoding hashed k-mers")
 }
