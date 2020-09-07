@@ -18,6 +18,8 @@
     - `unikmer uniqs`:
         - stricter multiple mapping limit.
         - new flag `-W/--seqs-in-a-file-as-one-genome`.
+    - `unikmer count`:
+        - new flag `-u/--unique` for output unique (single copy) kmers
 - v0.11.0
     - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
     - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.

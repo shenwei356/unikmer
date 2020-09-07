@@ -75,10 +75,16 @@ var countCmd = &cobra.Command{
 		parseTaxidRegexp := getFlagString(cmd, "parse-taxid-regexp")
 
 		repeated := getFlagBool(cmd, "repeated")
+		unique := getFlagBool(cmd, "unique")
+
 		moreVerbose := getFlagBool(cmd, "more-verbose")
 
 		if moreVerbose {
 			opt.Verbose = true
+		}
+
+		if unique && repeated {
+			checkError(fmt.Errorf("flag -u/--unique and -d/--repeated are not compatible"))
 		}
 
 		var reParseTaxid *regexp.Regexp
@@ -126,34 +132,8 @@ var countCmd = &cobra.Command{
 			w.Close()
 		}()
 
-		var mode uint32
-		var writer *unikmer.Writer
-
 		if setGlobalTaxid && opt.Verbose {
 			log.Infof("set global taxid: %d", taxid)
-		}
-
-		if !parseTaxid && !sortKmers {
-			if sortKmers {
-				mode |= unikmer.UNIK_SORTED
-			} else if opt.Compact && !hashed {
-				mode |= unikmer.UNIK_COMPACT
-			}
-			if canonical {
-				mode |= unikmer.UNIK_CANONICAL
-			}
-			if parseTaxid {
-				mode |= unikmer.UNIK_INCLUDETAXID
-			}
-			if hashed {
-				mode |= unikmer.UNIK_HASHED
-			}
-			writer, err = unikmer.NewWriter(outfh, k, mode)
-			checkError(err)
-			writer.SetMaxTaxid(opt.MaxTaxid)
-			if setGlobalTaxid {
-				checkError(writer.SetGlobalTaxid(taxid))
-			}
 		}
 
 		var m map[uint64]struct{}
@@ -167,10 +147,10 @@ var countCmd = &cobra.Command{
 		if parseTaxid {
 			mt = make(map[uint64]uint32, mapInitSize)
 			taxondb = loadTaxonomy(opt, false)
-		} else {
+		} else if !(repeated || unique) {
 			m = make(map[uint64]struct{}, mapInitSize)
 		}
-		if repeated {
+		if repeated || unique {
 			marks = make(map[uint64]bool, mapInitSize)
 		}
 
@@ -249,13 +229,25 @@ var countCmd = &cobra.Command{
 					if parseTaxid {
 						if repeated {
 							if mark, ok = marks[code]; !ok {
+								mt[code] = taxid
 								marks[code] = false
-							} else if !mark {
+							} else {
 								if lca, ok = mt[code]; !ok {
 									mt[code] = taxid
 								} else {
 									mt[code] = taxondb.LCA(lca, taxid) // update with LCA
 								}
+								if !mark {
+									marks[code] = true
+								}
+							}
+
+							continue
+						} else if unique {
+							if mark, ok = marks[code]; !ok {
+								mt[code] = taxid // though added here, but can't ensure it's uniuqe.
+								marks[code] = false
+							} else if !mark {
 								marks[code] = true
 							}
 
@@ -270,16 +262,10 @@ var countCmd = &cobra.Command{
 						continue
 					}
 
-					if repeated {
+					if repeated || unique {
 						if mark, ok = marks[code]; !ok {
 							marks[code] = false
 						} else if !mark {
-							if !sortKmers {
-								writer.WriteCode(code)
-								n++
-							} else {
-								m[code] = struct{}{}
-							}
 							marks[code] = true
 						}
 
@@ -288,96 +274,154 @@ var countCmd = &cobra.Command{
 
 					if _, ok = m[code]; !ok {
 						m[code] = struct{}{}
-						if !sortKmers {
-							writer.WriteCode(code)
-							n++
-						}
 					}
 				}
 			}
 		}
 
-		if sortKmers || parseTaxid {
-			var mode uint32
-			if sortKmers {
-				mode |= unikmer.UNIK_SORTED
-			} else if opt.Compact && !hashed {
-				mode |= unikmer.UNIK_COMPACT
-			}
-			if canonical {
-				mode |= unikmer.UNIK_CANONICAL
-			}
-			if parseTaxid {
-				mode |= unikmer.UNIK_INCLUDETAXID
-			}
-			if hashed {
-				mode |= unikmer.UNIK_HASHED
-			}
-			writer, err = unikmer.NewWriter(outfh, k, mode)
-			checkError(errors.Wrap(err, outFile))
-			writer.SetMaxTaxid(opt.MaxTaxid)
-			if setGlobalTaxid {
-				checkError(writer.SetGlobalTaxid(taxid))
-			}
-
-			if parseTaxid {
-				n = int64(len(mt))
-			} else {
-				n = int64(len(m))
-			}
-			writer.Number = int64(n)
-
+		var writer *unikmer.Writer
+		var mode uint32
+		if sortKmers {
+			mode |= unikmer.UNIK_SORTED
+		} else if opt.Compact && !hashed {
+			mode |= unikmer.UNIK_COMPACT
 		}
+		if canonical {
+			mode |= unikmer.UNIK_CANONICAL
+		}
+		if parseTaxid {
+			mode |= unikmer.UNIK_INCLUDETAXID
+		}
+		if hashed {
+			mode |= unikmer.UNIK_HASHED
+		}
+		writer, err = unikmer.NewWriter(outfh, k, mode)
+		checkError(errors.Wrap(err, outFile))
+		writer.SetMaxTaxid(opt.MaxTaxid)
+		if setGlobalTaxid {
+			checkError(writer.SetGlobalTaxid(taxid))
+		}
+
+		n = 0
+
+		if repeated {
+			for _, mark = range marks {
+				if mark {
+					n++
+				}
+			}
+		} else if unique {
+			for _, mark = range marks {
+				if !mark {
+					n++
+				}
+			}
+		} else if parseTaxid {
+			n = int64(len(mt))
+		} else {
+			n = int64(len(m))
+		}
+
+		writer.Number = int64(n)
 
 		if !sortKmers {
 			if parseTaxid {
-				for code, taxid = range mt {
-					writer.WriteCodeWithTaxid(code, taxid)
+				if repeated {
+					for code, mark = range marks {
+						if mark {
+							writer.WriteCodeWithTaxid(code, mt[code])
+						}
+					}
+				} else if unique {
+					for code, mark = range marks {
+						if !mark {
+							writer.WriteCodeWithTaxid(code, mt[code])
+						}
+					}
+				} else {
+					for code, taxid = range mt {
+						writer.WriteCodeWithTaxid(code, taxid)
+					}
 				}
-				n = int64(len(mt))
+			} else if repeated {
+				for code, mark = range marks {
+					if mark {
+						writer.WriteCode(code)
+					}
+				}
+			} else if unique {
+				for code, mark = range marks {
+					if !mark {
+						writer.WriteCode(code)
+					}
+				}
+			} else {
+				for code = range m {
+					writer.WriteCode(code)
+				}
 			}
 		} else {
+			codes := make([]uint64, n)
+
+			i := 0
 			if parseTaxid {
-				codes := make([]uint64, len(mt))
-
-				i := 0
-				for code = range mt {
-					codes[i] = code
-					i++
+				if repeated {
+					for code, mark = range marks {
+						if mark {
+							codes[i] = code
+							i++
+						}
+					}
+				} else if unique {
+					for code, mark = range marks {
+						if !mark {
+							codes[i] = code
+							i++
+						}
+					}
+				} else {
+					for code = range mt {
+						codes[i] = code
+						i++
+					}
 				}
-
-				if opt.Verbose {
-					log.Infof("sorting %d k-mers", len(codes))
+			} else if repeated {
+				for code, mark = range marks {
+					if mark {
+						codes[i] = code
+						i++
+					}
 				}
-				sort.Sort(unikmer.CodeSlice(codes))
-				if opt.Verbose {
-					log.Infof("done sorting")
+			} else if unique {
+				for code, mark = range marks {
+					if !mark {
+						codes[i] = code
+						i++
+					}
 				}
-				for _, code = range codes {
-					writer.WriteCodeWithTaxid(code, mt[code])
-				}
-				n = int64(len(mt))
 			} else {
-				codes := make([]uint64, len(m))
-
-				i := 0
 				for code = range m {
 					codes[i] = code
 					i++
 				}
+			}
 
-				if opt.Verbose {
-					log.Infof("sorting %d k-mers", len(codes))
-				}
-				sort.Sort(unikmer.CodeSlice(codes))
-				if opt.Verbose {
-					log.Infof("done sorting")
-				}
+			if opt.Verbose {
+				log.Infof("sorting %d k-mers", len(codes))
+			}
+			sort.Sort(unikmer.CodeSlice(codes))
+			if opt.Verbose {
+				log.Infof("done sorting")
+			}
 
+			if parseTaxid {
+				for _, code = range codes {
+					writer.WriteCodeWithTaxid(code, mt[code])
+				}
+			} else {
 				for _, code = range codes {
 					writer.WriteCode(code)
 				}
-				n = int64(len(m))
 			}
 		}
 
@@ -399,6 +443,7 @@ func init() {
 	countCmd.Flags().BoolP("parse-taxid", "T", false, `parse taxid from FASTA/Q header`)
 	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
 	countCmd.Flags().BoolP("repeated", "d", false, `only count duplicated k-mers, for removing singleton in FASTQ`)
+	countCmd.Flags().BoolP("unique", "u", false, `only count unique k-mers, removing duplicated k-mers`)
 	countCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 	countCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
 }

@@ -361,3 +361,5 @@ func init() {
 	interCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	interCmd.Flags().BoolP("mix-taxid", "m", false, `allow part of files being whithout taxids`)
 }
+
+// TODO: set threshold to defined intersection/common/shared
