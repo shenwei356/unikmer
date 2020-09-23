@@ -39,9 +39,10 @@ var ErrShortSeq = fmt.Errorf("unikmer: sequence shorter than k")
 
 // Iterator is a kmer code (k<=32) or hash iterator.
 type Iterator struct {
-	s         *seq.Seq
+	s         *seq.Seq // only used for KmerIterator
 	k         int
 	canonical bool
+	circular  bool
 
 	hash bool
 
@@ -49,17 +50,19 @@ type Iterator struct {
 	revcomStrand bool
 	idx          int
 
+	// for KmerIterator
 	length        int
 	end, e        int
 	first         bool
 	kmer, preKmer []byte
 	preCode       uint64
 
+	// for HashIterator
 	hasher *nthash.NTHi
 }
 
 // NewHashIterator returns ntHash Iterator.
-func NewHashIterator(s *seq.Seq, k int, canonical bool) (*Iterator, error) {
+func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterator, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
@@ -67,11 +70,19 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool) (*Iterator, error) {
 		return nil, ErrShortSeq
 	}
 
-	iter := &Iterator{s: s, k: k, canonical: canonical}
+	iter := &Iterator{s: s, k: k, canonical: canonical, circular: circular}
 	iter.hash = true
 
 	var err error
-	iter.hasher, err = nthash.NewHasher(&s.Seq, uint(k))
+	var seq2 []byte
+	if circular {
+		seq2 = make([]byte, len(s.Seq), len(s.Seq)+k-1)
+		copy(seq2, s.Seq) // do not edit original sequence
+		seq2 = append(seq2, s.Seq[0:k-1]...)
+	} else {
+		seq2 = s.Seq
+	}
+	iter.hasher, err = nthash.NewHasher(&seq2, uint(k))
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +98,7 @@ func (iter *Iterator) NextHash() (code uint64, ok bool) {
 }
 
 // NewKmerIterator returns kmer code iterator
-func NewKmerIterator(s *seq.Seq, k int, canonical bool) (*Iterator, error) {
+func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterator, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
@@ -95,10 +106,18 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool) (*Iterator, error) {
 		return nil, ErrShortSeq
 	}
 
-	iter := &Iterator{s: s, k: k, canonical: canonical}
+	var s2 *seq.Seq
+	if circular {
+		s2 = s.Clone() // do not edit original sequence
+		s2.Seq = append(s2.Seq, s.Seq[0:k-1]...)
+	} else {
+		s2 = s
+	}
 
-	iter.length = len(s.Seq)
+	iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
+	iter.length = len(s2.Seq)
 	iter.end = iter.length - k
+
 	iter.first = true
 
 	return iter, nil

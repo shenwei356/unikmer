@@ -43,7 +43,13 @@ var uniqsCmd = &cobra.Command{
 Attention:
   1. All files should have the 'canonical' flag.
   2. Default output is in BED3 format, with left-closed and right-open
-     0-based interval
+	 0-based interval.
+  3. When using experimental flag --circular, leading subsequence of k-1 bp
+     is appending to end of sequence. 
+       1) End position of k-mers that crossing sequence end would be
+          greater than sequence length.
+       2) Longer subsequences are not further extended.
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
@@ -79,6 +85,7 @@ Attention:
 		maxContNonUniqKmers := getFlagNonNegativeInt(cmd, "max-cont-non-uniq-kmers")
 		maxContNonUniqKmersNum := getFlagNonNegativeInt(cmd, "max-num-cont-non-uniq-kmers")
 		seqsAsOneGenome := getFlagBool(cmd, "seqs-in-a-file-as-one-genome")
+		circular := getFlagBool(cmd, "circular")
 
 		if seqsAsOneGenome && mMapped {
 			checkError(fmt.Errorf("flag -M/--allow-muliple-mapped-kmer and -W/--seqs-in-a-file-as-one-genome are not compatible"))
@@ -178,9 +185,9 @@ Attention:
 					}
 
 					if hashed {
-						iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+						iter, err = unikmer.NewHashIterator(record.Seq, k, true, circular)
 					} else {
-						iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
+						iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
 					}
 					checkError(errors.Wrapf(err, "file: %s, seq: %s", genomeFile, record.Name))
 
@@ -263,6 +270,10 @@ Attention:
 					break
 				}
 
+				if circular {
+					record.Seq.Seq = append(record.Seq.Seq, record.Seq.Seq[0:k-1]...)
+				}
+
 				if opt.Verbose {
 					log.Infof("processinig sequence: %s", record.ID)
 				}
@@ -273,9 +284,9 @@ Attention:
 				nonUniqsNum = 0
 
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+					iter, err = unikmer.NewHashIterator(record.Seq, k, true, circular)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
@@ -397,5 +408,5 @@ func init() {
 
 	uniqsCmd.Flags().IntP("max-cont-non-uniq-kmers", "x", 0, "max continuous non-unique k-mers")
 	uniqsCmd.Flags().IntP("max-num-cont-non-uniq-kmers", "X", 0, "max number of continuous non-unique k-mers")
-
+	uniqsCmd.Flags().BoolP("circular", "", false, "circular genome (experimental)")
 }

@@ -66,6 +66,7 @@ Attentions:
 		keepTopN := topN > 0
 		noHeaderRow := getFlagBool(cmd, "no-header-row")
 		sortBy := getFlagString(cmd, "sort-by")
+		circular := getFlagBool(cmd, "circular")
 		if !(sortBy == "qcov" || sortBy == "tcov" || sortBy == "sum") {
 			checkError(fmt.Errorf("invalid value for flag -s/--sort-by: %s. Available: qcov/tsov/sum", sortBy))
 		}
@@ -182,9 +183,9 @@ Attentions:
 
 				// using ntHash
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical)
+					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical)
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
@@ -287,4 +288,5 @@ func init() {
 	searchCmd.Flags().IntP("keep-top", "n", 0, `keep top N hits, 0 for all`)
 	searchCmd.Flags().BoolP("no-header-row", "H", false, `do not print header row`)
 	searchCmd.Flags().StringP("sort-by", "s", "qcov", `sort hits by qcov, tcov or sum (qcov+tcov)`)
+	searchCmd.Flags().BoolP("circular", "", false, "circular genome")
 }

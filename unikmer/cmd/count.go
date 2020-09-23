@@ -58,6 +58,7 @@ var countCmd = &cobra.Command{
 
 		canonical := getFlagBool(cmd, "canonical")
 		sortKmers := getFlagBool(cmd, "sort")
+		circular := getFlagBool(cmd, "circular")
 
 		if opt.Compact {
 			if sortKmers {
@@ -209,9 +210,9 @@ var countCmd = &cobra.Command{
 
 				// using ntHash
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical)
+					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical)
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
@@ -446,4 +447,5 @@ func init() {
 	countCmd.Flags().BoolP("unique", "u", false, `only count unique k-mers, removing duplicated k-mers`)
 	countCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 	countCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
+	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 }

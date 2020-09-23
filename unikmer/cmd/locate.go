@@ -43,6 +43,9 @@ var locateCmd = &cobra.Command{
 Attention:
   1. All files should have the 'canonical' flag.
   2. Output is BED6 format.
+  3. When using experimental flag --circular, leading subsequence of k-1 bp
+     is appending to end of sequence. End position of k-mers that crossing
+     sequence end would be greater than sequence length.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -76,6 +79,8 @@ Attention:
 		if len(genomes) == 0 {
 			checkError(fmt.Errorf("flag -g/--genome needed"))
 		}
+
+		circular := getFlagBool(cmd, "circular")
 
 		// -----------------------------------------------------------------------
 
@@ -151,13 +156,17 @@ Attention:
 				}
 				// using ntHash
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, true)
+					iter, err = unikmer.NewHashIterator(record.Seq, k, true, circular)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, true)
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
-				sequences = append(sequences, record.Seq.Clone().Seq)
+				seqClone := record.Seq.Clone().Seq
+				if circular {
+					seqClone = append(seqClone, seqClone[0:k-1]...)
+				}
+				sequences = append(sequences, seqClone)
 				ids = append(ids, record.ID)
 
 				for {
@@ -242,5 +251,5 @@ func init() {
 
 	locateCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	locateCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
-
+	locateCmd.Flags().BoolP("circular", "", false, "circular genome (experimental)")
 }
