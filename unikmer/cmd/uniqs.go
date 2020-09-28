@@ -44,11 +44,8 @@ Attention:
   1. All files should have the 'canonical' flag.
   2. Default output is in BED3 format, with left-closed and right-open
 	 0-based interval.
-  3. When using experimental flag --circular, leading subsequence of k-1 bp
-     is appending to end of sequence. 
-       1) End position of k-mers that crossing sequence end would be
-          greater than sequence length.
-       2) Longer subsequences are not further extended.
+  3. When using flag --circular, end position of subsequences that 
+     crossing genome sequence end would be greater than sequence length.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -98,6 +95,7 @@ Attention:
 			checkError(fmt.Errorf("value of -X/--max-num-cont-non-uniq-kmers should be > 0 when value of -x/--max-cont-non-uniq-kmers is > 0"))
 		}
 
+		// all kmers in .unik files
 		m := make(map[uint64]struct{}, mapInitSize)
 
 		// -----------------------------------------------------------------------
@@ -254,6 +252,7 @@ Attention:
 		var genomeIdx int
 		for _, genomeFile := range genomes {
 			var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch int
+			var length0 int // origninal length of sequence
 			var flag bool = true
 			if opt.Verbose {
 				log.Infof("reading genome file: %s", genomeFile)
@@ -270,8 +269,10 @@ Attention:
 					break
 				}
 
-				if circular {
-					record.Seq.Seq = append(record.Seq.Seq, record.Seq.Seq[0:k-1]...)
+				length0 = len(record.Seq.Seq)
+
+				if circular { // concat two copies of sequence
+					record.Seq.Seq = append(record.Seq.Seq, record.Seq.Seq...)
 				}
 
 				if opt.Verbose {
@@ -284,9 +285,9 @@ Attention:
 				nonUniqsNum = 0
 
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, true, circular)
+					iter, err = unikmer.NewHashIterator(record.Seq, k, true, false)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, true, false)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
@@ -311,6 +312,12 @@ Attention:
 							if multipleMapped, ok = _m2[code]; ok && multipleMapped {
 								if lastNonUniqsNum <= maxContNonUniqKmersNum &&
 									start >= 0 && lastmatch-start+k >= minLen {
+
+									// subsequence longer than original sequence
+									if circular && lastmatch-start+k > length0 {
+										lastmatch = length0 - k + start
+									}
+
 									if outputFASTA {
 										outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
 											record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
@@ -330,6 +337,11 @@ Attention:
 										nonUniqsNum = 0
 										nonUniqs = 0
 										lastNonUniqsNum = 0
+
+										// 2nd clone of seq
+										if circular && start >= length0 {
+											break
+										}
 									}
 								}
 							}
@@ -341,6 +353,11 @@ Attention:
 									nonUniqsNum = 0
 									nonUniqs = 0
 									lastNonUniqsNum = 0
+
+									// 2nd clone of seq
+									if circular && start >= length0 {
+										break
+									}
 								}
 							}
 						}
@@ -362,6 +379,12 @@ Attention:
 						} else {
 							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
 								start >= 0 && lastmatch-start+k >= minLen {
+
+								// subsequence longer than original sequence
+								if circular && lastmatch-start+k > length0 {
+									lastmatch = length0 - k + start
+								}
+
 								if outputFASTA {
 									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
 										record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
@@ -384,6 +407,12 @@ Attention:
 				}
 				if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
 					start >= 0 && lastmatch-start+k >= minLen {
+
+					// subsequence longer than original sequence
+					if circular && lastmatch-start+k > length0 {
+						lastmatch = length0 - k + start
+					}
+
 					if outputFASTA {
 						outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
 							record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
@@ -408,5 +437,5 @@ func init() {
 
 	uniqsCmd.Flags().IntP("max-cont-non-uniq-kmers", "x", 0, "max continuous non-unique k-mers")
 	uniqsCmd.Flags().IntP("max-num-cont-non-uniq-kmers", "X", 0, "max number of continuous non-unique k-mers")
-	uniqsCmd.Flags().BoolP("circular", "", false, "circular genome (experimental)")
+	uniqsCmd.Flags().BoolP("circular", "", false, `circular genome. type "unikmer uniqs -h" for details`)
 }

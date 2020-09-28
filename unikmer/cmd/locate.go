@@ -251,5 +251,5 @@ func init() {
 
 	locateCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	locateCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
-	locateCmd.Flags().BoolP("circular", "", false, "circular genome (experimental)")
+	locateCmd.Flags().BoolP("circular", "", false, `circular genome. type "unikmer locate -h" for details`)
 }
