@@ -43,7 +43,7 @@ var uniqsCmd = &cobra.Command{
 Attention:
   1. All files should have the 'canonical' flag.
   2. Default output is in BED3 format, with left-closed and right-open
-	 0-based interval.
+     0-based interval.
   3. When using flag --circular, end position of subsequences that 
      crossing genome sequence end would be greater than sequence length.
 

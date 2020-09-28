@@ -79,7 +79,7 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 
 1. Counting
 
-        count           Count k-mers from FASTA/Q sequences
+        count           Generate k-mers from FASTA/Q sequences
 
 1. Information
 
@@ -99,6 +99,7 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
         head            Extract the first N k-mers
         concat          Concatenate multiple binary files without removing duplicates
         inter           Intersection of multiple binary files
+        common          Find k-mers shared by most of multiple binary files
         union           Union of multiple binary files
         diff            Set difference of multiple binary files
         grep            Search k-mers from binary files

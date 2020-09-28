@@ -37,8 +37,8 @@ import (
 
 var countCmd = &cobra.Command{
 	Use:   "count",
-	Short: "Count k-mers from FASTA/Q sequences",
-	Long: `Count k-mers from FASTA/Q sequences
+	Short: "Generate k-mers from FASTA/Q sequences",
+	Long: `Generate k-mers from FASTA/Q sequences
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
