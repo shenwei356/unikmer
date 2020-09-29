@@ -1,6 +1,7 @@
 - v0.12.1
     - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.
     - `unikmer uniqs`: better result for flag `--circular`.
+    - `unikmer search`: fix a bug when searching on database with >1 hashes.
 - v0.12.0
     - `unikmer`:
         - support longer k (k>32) by saving ntHash.

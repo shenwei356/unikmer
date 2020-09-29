@@ -332,8 +332,6 @@ type UnikIndex struct {
 	_data  [][]uint8
 	buffs  [][]byte
 	buffsT [][128]byte // cache line size 64
-
-	// pospopcnt func(*[8]int32, []byte)
 }
 
 func (idx *UnikIndex) String() string {
@@ -394,12 +392,6 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	idx.buffs = buffs
 	idx.buffsT = buffsT
 
-	// if AVX2Available {
-	// 	idx.pospopcnt = Pospopcnt
-	// } else {
-	// 	idx.pospopcnt = PospopcntGo
-	// }
-
 	idx.moreThanOneHash = reader.NumHashes > 1
 	return idx, nil
 }
@@ -456,7 +448,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		var and []byte // must creat a new local variable
 		if moreThanOneHash {
 			and = make([]byte, numRowBytes) // create new slice to avoid edit original data source
-			copy(and, data[i])
+			copy(and, data[0])
 			for _, row = range data[1:] {
 				for i, b = range row {
 					and[i] &= b
