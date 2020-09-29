@@ -313,6 +313,17 @@ func (db *UnikIndexDB) searchHashes(hashes [][]uint64, threads int, queryCov flo
 
 // ------------------------------------------------------------------
 
+// PosPopCountBufSize defines the buffer size of byte slice feeding to
+// pospopcount (github.com/clausecker/pospop).
+//
+// Theoretically, size >240 is better, but in this scenario,
+// we need firstly transposing the signature matrix, which is the performance
+// bottleneck. Column size of the matrix is fixed, therefore we must control
+// the row size to balance time of matrix transposing and popopcount.
+//
+// 128 is the best value for my machine (AMD ryzen 2700X).
+const PosPopCountBufSize = 128
+
 type UnikIndex struct {
 	Path   string
 	Header index.Header
@@ -331,7 +342,7 @@ type UnikIndex struct {
 
 	_data  [][]uint8
 	buffs  [][]byte
-	buffsT [][128]byte // cache line size 64
+	buffsT [][PosPopCountBufSize]byte // cache line size 64
 }
 
 func (idx *UnikIndex) String() string {
@@ -379,15 +390,15 @@ func NewUnixIndex(file string, useMmap bool) (*UnikIndex, error) {
 	}
 
 	// byte matrix for counting
-	buffs := make([][]byte, 128)
-	for i := 0; i < 128; i++ {
+	buffs := make([][]byte, PosPopCountBufSize)
+	for i := 0; i < PosPopCountBufSize; i++ {
 		buffs[i] = make([]byte, reader.NumRowBytes)
 	}
 
 	// transpose of buffs
-	buffsT := make([][128]byte, reader.NumRowBytes)
+	buffsT := make([][PosPopCountBufSize]byte, reader.NumRowBytes)
 	for i := 0; i < reader.NumRowBytes; i++ {
-		buffsT[i] = [128]byte{}
+		buffsT[i] = [PosPopCountBufSize]byte{}
 	}
 	idx.buffs = buffs
 	idx.buffsT = buffsT
@@ -424,7 +435,7 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 	buffs := idx.buffs
 	buffsT := idx.buffsT
 	bufIdx := 0
-	var buf *[128]byte
+	var buf *[PosPopCountBufSize]byte
 
 	for _, hs = range hashes {
 		if useMmap {
@@ -465,11 +476,11 @@ func (idx *UnikIndex) Search(hashes [][]uint64, queryCov float64, targetCov floa
 		buffs[bufIdx] = and
 		bufIdx++
 
-		if bufIdx == 128 {
+		if bufIdx == PosPopCountBufSize {
 			// transpose
 			for i = 0; i < numRowBytes; i++ { // every column in matrix
 				buf = &buffsT[i]
-				for j = 0; j < 128; j++ {
+				for j = 0; j < PosPopCountBufSize; j++ {
 					(*buf)[j] = buffs[j][i]
 				}
 			}
