@@ -1,4 +1,4 @@
-- v0.12.1
+- v0.13.0
     - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.
     - `unikmer uniqs`: better result for flag `--circular`.
     - `unikmer search`: fix a bug when searching on database with >1 hashes.

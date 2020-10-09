@@ -39,7 +39,7 @@ var commonCmd = &cobra.Command{
 	Long: `Find k-mers shared by most of multiple binary files
 
 This command is similar to "unikmer inter" but with looser restriction,
-k-mers shared by some proportion of multiple files are outputed.
+k-mers shared by some number/proportion of multiple files are outputed.
 
 Attentions:
   0. All input files should be sorted, and output file is sorted.
@@ -87,9 +87,20 @@ Tips:
 			checkError(fmt.Errorf("value of -p/--proprotion should be in range of (0, 1]"))
 		}
 
-		threshold := uint16(float64(len(files)) * proportion)
-		if opt.Verbose {
-			log.Infof("searching k-mers shared by >= %d files ...", threshold)
+		number := getFlagNonNegativeInt(cmd, "number")
+
+		var threshold uint16
+
+		if number == 0 {
+			threshold = uint16(float64(len(files)) * proportion)
+			if opt.Verbose {
+				log.Infof("searching k-mers shared by >= %d (%f) files ...", threshold, proportion)
+			}
+		} else {
+			threshold = uint16(number)
+			if opt.Verbose {
+				log.Infof("searching k-mers shared by >= %d files ...", threshold)
+			}
 		}
 
 		var taxondb *unikmer.Taxonomy
@@ -352,5 +363,6 @@ func init() {
 
 	commonCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	commonCmd.Flags().BoolP("mix-taxid", "m", false, `allow part of files being whithout taxids`)
-	commonCmd.Flags().Float64P("proportion", "p", 1, `proportion of files that share a k-mer`)
+	commonCmd.Flags().Float64P("proportion", "p", 1, `minimum proportion of files that share a k-mer`)
+	commonCmd.Flags().IntP("number", "n", 0, `minimum number of files that share a k-mer (overides -p/--proportion)`)
 }
