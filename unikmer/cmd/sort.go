@@ -27,13 +27,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var sortCmd = &cobra.Command{
@@ -60,6 +61,7 @@ Tips:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 
 		outFile0 := getFlagString(cmd, "out-prefix")
 		unique := getFlagBool(cmd, "unique")
@@ -261,12 +263,14 @@ Tips:
 								if opt.Verbose {
 									log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(mt))
 								}
-								sort.Sort(unikmer.CodeTaxidSlice(mt))
+								// sort.Sort(unikmer.CodeTaxidSlice(mt))
+								sorts.Quicksort(unikmer.CodeTaxidSlice(mt))
 							} else {
 								if opt.Verbose {
 									log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
 								}
-								sort.Sort(unikmer.CodeSlice(m))
+								// sort.Sort(unikmer.CodeSlice(m))
+								sortutil.Uint64s(m)
 							}
 							if opt.Verbose {
 								log.Infof("[chunk %d] done sorting", iTmpFile)
@@ -322,12 +326,14 @@ Tips:
 						if opt.Verbose {
 							log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(mt))
 						}
-						sort.Sort(unikmer.CodeTaxidSlice(mt))
+						// sort.Sort(unikmer.CodeTaxidSlice(mt))
+						sorts.Quicksort(unikmer.CodeTaxidSlice(mt))
 					} else {
 						if opt.Verbose {
 							log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
 						}
-						sort.Sort(unikmer.CodeSlice(m))
+						// sort.Sort(unikmer.CodeSlice(m))
+						sortutil.Uint64s(m)
 					}
 					if opt.Verbose {
 						log.Infof("[chunk %d] done sorting", iTmpFile)
@@ -446,12 +452,14 @@ Tips:
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(mt))
 			}
-			sort.Sort(unikmer.CodeTaxidSlice(mt))
+			// sort.Sort(unikmer.CodeTaxidSlice(mt))
+			sorts.Quicksort(unikmer.CodeTaxidSlice(mt))
 		} else {
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(m))
 			}
-			sort.Sort(unikmer.CodeSlice(m))
+			// sort.Sort(unikmer.CodeSlice(m))
+			sortutil.Uint64s(m)
 		}
 		if opt.Verbose {
 			log.Infof("done sorting")

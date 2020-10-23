@@ -27,7 +27,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"sync"
 
@@ -37,6 +36,8 @@ import (
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var grepCmd = &cobra.Command{
@@ -58,6 +59,7 @@ Tips:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 
@@ -681,12 +683,14 @@ Tips:
 						if opt.Verbose {
 							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codesTaxids))
 						}
-						sort.Sort(unikmer.CodeTaxidSlice(_codesTaxids))
+						// sort.Sort(unikmer.CodeTaxidSlice(_codesTaxids))
+						sorts.Quicksort(unikmer.CodeTaxidSlice(_codesTaxids))
 					} else {
 						if opt.Verbose {
 							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codes))
 						}
-						sort.Sort(unikmer.CodeSlice(_codes))
+						// sort.Sort(unikmer.CodeSlice(_codes))
+						sortutil.Uint64s(_codes)
 					}
 
 					if opt.Verbose {
@@ -787,12 +791,14 @@ Tips:
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codesTaxids))
 				}
-				sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+				// sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
+				sorts.Quicksort(unikmer.CodeTaxidSlice(codesTaxids))
 			} else {
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeSlice(codes))
+				// sort.Sort(unikmer.CodeSlice(codes))
+				sortutil.Uint64s(codes)
 			}
 			if opt.Verbose {
 				log.Infof("done sorting")

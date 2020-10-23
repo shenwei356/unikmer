@@ -26,11 +26,12 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var unionCmd = &cobra.Command{
@@ -51,6 +52,7 @@ Tips:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 
@@ -272,7 +274,8 @@ Tips:
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeSlice(codes))
+				// sort.Sort(unikmer.CodeSlice(codes))
+				sortutil.Uint64s(codes)
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}
@@ -292,7 +295,8 @@ Tips:
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeSlice(codes))
+				// sort.Sort(unikmer.CodeSlice(codes))
+				sortutil.Uint64s(codes)
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}

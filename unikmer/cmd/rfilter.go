@@ -36,6 +36,7 @@ import (
 	"github.com/shenwei356/util/pathutil"
 	"github.com/shenwei356/util/stringutil"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
 )
 
 // rfilterCmd represents
@@ -61,6 +62,7 @@ Rank file:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 

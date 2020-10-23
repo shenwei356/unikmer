@@ -26,12 +26,13 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var diffCmd = &cobra.Command{
@@ -81,6 +82,7 @@ Tips:
 		threads := opt.NumCPUs
 
 		runtime.GOMAXPROCS(threads)
+		sorts.MaxProcs = opt.NumCPUs
 
 		mc := make([]unikmer.CodeTaxid, 0, mapInitSize)
 
@@ -585,7 +587,8 @@ Tips:
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))
 				}
-				sort.Sort(unikmer.CodeSlice(codes))
+				// sort.Sort(unikmer.CodeSlice(codes))
+				sortutil.Uint64s(codes)
 				if opt.Verbose {
 					log.Infof("done sorting")
 				}

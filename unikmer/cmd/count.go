@@ -25,7 +25,6 @@ import (
 	"io"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -33,6 +32,8 @@ import (
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var countCmd = &cobra.Command{
@@ -44,6 +45,7 @@ var countCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 		seq.ValidateSeq = false
 
 		var err error
@@ -410,7 +412,8 @@ var countCmd = &cobra.Command{
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(codes))
 			}
-			sort.Sort(unikmer.CodeSlice(codes))
+			// sort.Sort(unikmer.CodeSlice(codes))
+			sortutil.Uint64s(codes)
 			if opt.Verbose {
 				log.Infof("done sorting")
 			}
