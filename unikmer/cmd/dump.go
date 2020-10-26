@@ -148,7 +148,7 @@ Attentions:
 					if includeTaxid {
 						items = strings.Split(line, "\t")
 						if len(items) < 2 {
-							checkError(fmt.Errorf("inconsistant two column tabular format"))
+							checkError(fmt.Errorf("inconsistent two column tabular format"))
 						}
 						line = items[0]
 						l = len(line)

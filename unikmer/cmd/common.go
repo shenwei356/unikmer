@@ -40,7 +40,7 @@ var commonCmd = &cobra.Command{
 	Long: `Find k-mers shared by most of multiple binary files
 
 This command is similar to "unikmer inter" but with looser restriction,
-k-mers shared by some number/proportion of multiple files are outputed.
+k-mers shared by some number/proportion of multiple files are outputted.
 
 Attentions:
   0. All input files should be sorted, and output file is sorted.
@@ -52,7 +52,7 @@ Tips:
   1. For comparing TWO files with really huge number of k-mers,
      you can use 'unikmer sort -u -m 100M' for each file,
      and then 'unikmer merge -' from them.
-  2. Put the smallest file in the begining to reduce memory usage.
+  2. Put the smallest file in the beginning to reduce memory usage.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -86,7 +86,7 @@ Tips:
 
 		proportion := getFlagFloat64(cmd, "proportion")
 		if proportion <= 0 || proportion > 1 {
-			checkError(fmt.Errorf("value of -p/--proprotion should be in range of (0, 1]"))
+			checkError(fmt.Errorf("value of -p/--proportion should be in range of (0, 1]"))
 		}
 
 		number := getFlagNonNegativeInt(cmd, "number")

@@ -46,7 +46,7 @@ var grepCmd = &cobra.Command{
 	Long: `Search k-mers from binary files
 
 Attentions:
-  1. Canonical k-mers are used and outputed.
+  1. Canonical k-mers are used and outputted.
   2. Input files should ALL have or don't have taxid information.
 
 Tips:
@@ -327,7 +327,7 @@ Tips:
 			}
 			for _, file := range files {
 				if isStdin(file) {
-					checkError(fmt.Errorf("stdin detected, should not use -m/--mutliple-outfiles"))
+					checkError(fmt.Errorf("stdin detected, should not use -m/--multiple-outfiles"))
 				}
 			}
 

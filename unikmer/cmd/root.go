@@ -45,7 +45,7 @@ and serialized in binary file with extension '.unik'.
 
 TaxIDs can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
-including computing union, intersecton, set difference, unique and
+including computing union, intersection, set difference, unique and
 repeated k-mers.
 
 Version: v%s
@@ -65,7 +65,7 @@ Dataset (optional):
   --data-dir or environment variable UNIKMER_DB.
 
   For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump 
-  for taxonomy convertion.
+  for taxonomy conversion.
 
   Note that TaxIDs are represented using uint32 and stored in 4 or
   less bytes, all TaxIDs should be in range of [1, %d]

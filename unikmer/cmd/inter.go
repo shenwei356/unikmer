@@ -46,7 +46,7 @@ Tips:
   1. For comparing TWO files with really huge number of k-mers,
      you can use 'unikmer sort -u -m 100M' for each file,
      and then 'unikmer merge -' from them.
-  2. Put the smallest file in the begining to reduce memory usage.
+  2. Put the smallest file in the beginning to reduce memory usage.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -45,7 +45,7 @@ var ErrBrokenFile = errors.New("unikmer: broken file")
 // ErrKMismatch means K size mismatch.
 var ErrKMismatch = errors.New("unikmer: K mismatch")
 
-// ErrDescTooLong means lenght of description two long
+// ErrDescTooLong means length of description two long
 var ErrDescTooLong = errors.New("unikmer: description too long, 128 bytes at most")
 
 // ErrCallOrder means WriteTaxid/ReadTaxid should be called after WriteCode/ReadCode
@@ -75,7 +75,7 @@ type Header struct {
 	K            int
 	Flag         uint32
 	Number       int64  // -1 for unknown
-	globalTaxid  uint32 // univeral taxid, 0 for no record
+	globalTaxid  uint32 // universal taxid, 0 for no record
 	maxTaxid     uint32
 	Description  []byte // let's limit it to 128 Bytes
 }
@@ -260,7 +260,7 @@ func (reader *Reader) readHeader() (err error) {
 	}
 	reader.taxidByteLen = int(taxidByteLen)
 
-	// lenght of description
+	// length of description
 	var lenDesc uint8
 	err = binary.Read(r, be, &lenDesc)
 	if err != nil {

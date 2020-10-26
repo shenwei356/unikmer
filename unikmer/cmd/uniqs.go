@@ -77,7 +77,7 @@ Attention:
 		}
 
 		minLen := getFlagPositiveInt(cmd, "min-len")
-		mMapped := getFlagBool(cmd, "allow-muliple-mapped-kmer")
+		mMapped := getFlagBool(cmd, "allow-multiple-mapped-kmer")
 		outputFASTA := getFlagBool(cmd, "output-fasta")
 		maxContNonUniqKmers := getFlagNonNegativeInt(cmd, "max-cont-non-uniq-kmers")
 		maxContNonUniqKmersNum := getFlagNonNegativeInt(cmd, "max-num-cont-non-uniq-kmers")
@@ -85,7 +85,7 @@ Attention:
 		circular := getFlagBool(cmd, "circular")
 
 		if seqsAsOneGenome && mMapped {
-			checkError(fmt.Errorf("flag -M/--allow-muliple-mapped-kmer and -W/--seqs-in-a-file-as-one-genome are not compatible"))
+			checkError(fmt.Errorf("flag -M/--allow-multiple-mapped-kmer and -W/--seqs-in-a-file-as-one-genome are not compatible"))
 		}
 
 		if maxContNonUniqKmersNum > 0 && maxContNonUniqKmers == 0 {
@@ -431,7 +431,7 @@ func init() {
 	uniqsCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	uniqsCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
 	uniqsCmd.Flags().IntP("min-len", "m", 200, "minimum length of subsequence")
-	uniqsCmd.Flags().BoolP("allow-muliple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
+	uniqsCmd.Flags().BoolP("allow-multiple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
 	uniqsCmd.Flags().BoolP("seqs-in-a-file-as-one-genome", "W", false, "treat seqs in a genome file as one genome")
 	uniqsCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
 

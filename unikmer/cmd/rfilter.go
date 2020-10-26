@@ -395,7 +395,7 @@ func (f *rankFilter) isPassed(rank string) (bool, error) {
 		return false, nil
 	}
 
-	pass := false
+	var pass bool
 
 	order, ok := f.rankOrder[rank]
 	if !ok {
