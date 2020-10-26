@@ -187,7 +187,9 @@ Attention:
 					} else {
 						iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
 					}
-					checkError(errors.Wrapf(err, "file: %s, seq: %s", genomeFile, record.Name))
+					if err != nil {
+						checkError(errors.Wrapf(err, "file: %s, seq: %s", genomeFile, record.Name))
+					}
 
 					if _m2, ok = m2[genomeIdx]; !ok {
 						_m2 = make(map[uint64]bool, mapInitSize)

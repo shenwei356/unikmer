@@ -248,7 +248,9 @@ Rank file:
 					}
 
 					pass, err = filter.isPassed(rank)
-					checkError(errors.Wrapf(err, "file: %s, rank: %s", file, rank))
+					if err != nil {
+						checkError(errors.Wrapf(err, "file: %s, rank: %s", file, rank))
+					}
 					if !pass {
 						continue
 					}

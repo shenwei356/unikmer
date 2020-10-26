@@ -161,11 +161,11 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 		code, err = MustEncodeFromFormerKmer(iter.kmer, iter.preKmer, iter.preCode)
 
 		// compute code of revcomp kmer from previous one
-		v := base2bit[iter.kmer[iter.k-1]]
-		if v == 4 {
+		// v := base2bit[iter.kmer[iter.k-1]]
+		if 4 == base2bit[iter.kmer[iter.k-1]] {
 			err = ErrIllegalBase
 		}
-		codeRC = (v^3)<<(uint(iter.k-1)<<1) | iter.preCodeRC>>2
+		codeRC = (base2bit[iter.kmer[iter.k-1]]^3)<<(uint(iter.k-1)<<1) | iter.preCodeRC>>2
 	}
 	if err != nil {
 		return 0, false, errors.Wrapf(err, "encode %s", iter.kmer)

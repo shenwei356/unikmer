@@ -223,7 +223,9 @@ var countCmd = &cobra.Command{
 						code, ok = iter.NextHash()
 					} else {
 						code, ok, err = iter.NextKmer()
-						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+						if err != nil {
+							checkError(errors.Wrapf(err, "seq: %s", record.Name))
+						}
 					}
 					if !ok {
 						break

@@ -356,7 +356,9 @@ func loadHash2Loc(files []string, k int) ([][]byte, map[uint64][2]int, error) {
 				break
 			}
 			iter, err = unikmer.NewHashIterator(record.Seq, k, true, true)
-			checkError(errors.Wrapf(err, "seq: %s", record.Name))
+			if err != nil {
+				checkError(errors.Wrapf(err, "seq: %s", record.Name))
+			}
 
 			sequences = append(sequences, record.Seq.Clone().Seq)
 
