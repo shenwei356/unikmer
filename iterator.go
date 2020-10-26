@@ -25,7 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
-	"github.com/shenwei356/nthash"
+	"github.com/will-rowe/nthash"
 )
 
 // ErrInvalidK means k < 1.
