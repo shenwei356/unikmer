@@ -170,7 +170,7 @@ Attentions:
 					}
 
 					if !hashed {
-						kmer = unikmer.Decode(code, k)
+						kmer = unikmer.MustDecode(code, k)
 					} else {
 						if providingGenomes {
 							if loc, ok = hash2loc[code]; ok {

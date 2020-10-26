@@ -223,9 +223,6 @@ func Reverse(code uint64, k int) (c uint64) {
 
 // MustReverse is similar to Reverse, but does not check k.
 func MustReverse(code uint64, k int) (c uint64) {
-	if k <= 0 || k > 32 {
-		panic(ErrKOverflow)
-	}
 	for i := 0; i < k; i++ {
 		c = (c << 2) | (code & 3)
 		code >>= 2
@@ -234,27 +231,16 @@ func MustReverse(code uint64, k int) (c uint64) {
 }
 
 // Complement returns code of complement sequence.
-func Complement(code uint64, k int) (c uint64) {
+func Complement(code uint64, k int) uint64 {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
 	}
-	for i := 0; i < k; i++ {
-		c |= (code&3 ^ 3) << uint(i<<1)
-		code >>= 2
-	}
-	return
+	return code ^ (1<<uint(k<<1) - 1)
 }
 
 // MustComplement is similar to Complement, but does not check k.
-func MustComplement(code uint64, k int) (c uint64) {
-	if k <= 0 || k > 32 {
-		panic(ErrKOverflow)
-	}
-	for i := 0; i < k; i++ {
-		c |= (code&3 ^ 3) << uint(i<<1)
-		code >>= 2
-	}
-	return
+func MustComplement(code uint64, k int) uint64 {
+	return code ^ (1<<uint(k<<1) - 1)
 }
 
 // RevComp returns code of reverse complement sequence.
@@ -280,7 +266,16 @@ func MustRevComp(code uint64, k int) (c uint64) {
 
 // Canonical returns code of its canonical kmer.
 func Canonical(code uint64, k int) uint64 {
-	rc := RevComp(code, k)
+	if k <= 0 || k > 32 {
+		panic(ErrKOverflow)
+	}
+
+	var rc uint64
+	c := code
+	for i := 0; i < k; i++ {
+		rc = (rc << 2) | (c&3 ^ 3)
+		c >>= 2
+	}
 	if rc < code {
 		return rc
 	}
@@ -315,6 +310,16 @@ func Decode(code uint64, k int) []byte {
 	if code > MaxCode[k] {
 		panic(ErrCodeOverflow)
 	}
+	kmer := make([]byte, k)
+	for i := 0; i < k; i++ {
+		kmer[k-1-i] = bit2base[code&3]
+		code >>= 2
+	}
+	return kmer
+}
+
+// MustDecode is similar to Decode, but does not check k and code.
+func MustDecode(code uint64, k int) []byte {
 	kmer := make([]byte, k)
 	for i := 0; i < k; i++ {
 		kmer[k-1-i] = bit2base[code&3]

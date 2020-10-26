@@ -53,13 +53,15 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
     goos: linux
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
-    BenchmarkEncodeK32-16                           50000000                25.8 ns/op             0 B/op          0 allocs/op
-    BenchmarkEncodeFromFormerKmerK32-16             200000000               9.42 ns/op             0 B/op          0 allocs/op
-    BenchmarkMustEncodeFromFormerKmerK32-16         1000000000              1.95 ns/op             0 B/op          0 allocs/op
-    BenchmarkDecodeK32-16                           20000000                82.2 ns/op            32 B/op          1 allocs/op
-    BenchmarkRevK32-16                              50000000                20.2 ns/op             0 B/op          0 allocs/op
-    BenchmarkCompK32-16                             50000000                27.8 ns/op             0 B/op          0 allocs/op
-    BenchmarkRevCompK32-16                          100000000               21.9 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeK32-16                           40442450                25.7 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeFromFormerKmerK32-16             133755378               8.76 ns/op             0 B/op          0 allocs/op
+    BenchmarkMustEncodeFromFormerKmerK32-16         582894313               1.73 ns/op             0 B/op          0 allocs/op
+    BenchmarkDecodeK32-16                           13966992                83.7 ns/op            32 B/op          1 allocs/op
+    BenchmarkMustDecodeK32-16                       14369139                84.0 ns/op            32 B/op          1 allocs/op
+    BenchmarkRevK32-16                              56101986                18.1 ns/op             0 B/op          0 allocs/op
+    BenchmarkCompK32-16                             1000000000             0.276 ns/op             0 B/op          0 allocs/op
+    BenchmarkRevCompK32-16                          62414572                18.9 ns/op             0 B/op          0 allocs/op
+    BenchmarkCannonalK32-16                         51656888                22.8 ns/op             0 B/op          0 allocs/op
 
 ## The toolkit
 

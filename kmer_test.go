@@ -227,6 +227,12 @@ func BenchmarkDecodeK32(b *testing.B) {
 	}
 }
 
+func BenchmarkMustDecodeK32(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		MustDecode(benchCode, len(benchMer))
+	}
+}
+
 // BenchmarkRevK32 tests speed of rev
 func BenchmarkRevK32(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -245,5 +251,11 @@ func BenchmarkCompK32(b *testing.B) {
 func BenchmarkRevCompK32(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchKmerCode.RevComp()
+	}
+}
+
+func BenchmarkCannonalK32(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		benchKmerCode.Canonical()
 	}
 }
