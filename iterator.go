@@ -41,6 +41,9 @@ var ErrShortSeq = fmt.Errorf("unikmer: sequence shorter than k")
 type Iterator struct {
 	s         *seq.Seq // only used for KmerIterator
 	k         int
+	kUint     uint // uint(k)
+	kP1       int  // k -1
+	kP1Uint   uint // uint(k-1)
 	canonical bool
 	circular  bool
 
@@ -51,12 +54,14 @@ type Iterator struct {
 	idx          int
 
 	// for KmerIterator
-	length        int
-	end, e        int
-	first         bool
-	kmer, preKmer []byte
-	preCode       uint64
-	preCodeRC     uint64
+	length    int
+	end, e    int
+	first     bool
+	kmer      []byte
+	codeBase  uint64
+	preCode   uint64
+	preCodeRC uint64
+	codeRC    uint64
 
 	// for HashIterator
 	hasher *nthash.NTHi
@@ -73,6 +78,9 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 
 	iter := &Iterator{s: s, k: k, canonical: canonical, circular: circular}
 	iter.hash = true
+	iter.kUint = uint(k)
+	iter.kP1 = k - 1
+	iter.kP1Uint = uint(k - 1)
 
 	var err error
 	var seq2 []byte
@@ -118,6 +126,9 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
 	iter.length = len(s2.Seq)
 	iter.end = iter.length - k - 1
+	iter.kUint = uint(k)
+	iter.kP1 = k - 1
+	iter.kP1Uint = uint(k - 1)
 
 	iter.first = true
 
@@ -152,31 +163,32 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 		iter.kmer = iter.s.Seq[iter.idx:iter.e]
 	}
 
-	var codeRC uint64
-	if iter.first {
-		code, err = Encode(iter.kmer)
-		codeRC = MustRevComp(code, iter.k)
-		iter.first = false
-	} else {
-		code, err = MustEncodeFromFormerKmer(iter.kmer, iter.preKmer, iter.preCode)
-
-		// compute code of revcomp kmer from previous one
-		// v := base2bit[iter.kmer[iter.k-1]]
-		if 4 == base2bit[iter.kmer[iter.k-1]] {
+	if !iter.first {
+		iter.codeBase = base2bit[iter.kmer[iter.kP1]]
+		if iter.codeBase == 4 {
 			err = ErrIllegalBase
 		}
-		codeRC = (base2bit[iter.kmer[iter.k-1]]^3)<<(uint(iter.k-1)<<1) | iter.preCodeRC>>2
+
+		// compute code from previous one
+		code = iter.preCode&((1<<(iter.kP1Uint<<1))-1)<<2 | iter.codeBase
+
+		// compute code of revcomp kmer from previous one
+		iter.codeRC = (iter.codeBase^3)<<(iter.kP1Uint<<1) | (iter.preCodeRC >> 2)
+	} else {
+		code, err = Encode(iter.kmer)
+		iter.codeRC = MustRevComp(code, iter.k)
+		iter.first = false
 	}
 	if err != nil {
 		return 0, false, errors.Wrapf(err, "encode %s", iter.kmer)
 	}
 
-	iter.preKmer, iter.preCode, iter.preCodeRC = iter.kmer, code, codeRC
+	iter.preCode = code
+	iter.preCodeRC = iter.codeRC
 	iter.idx++
 
-	if iter.canonical && code > codeRC {
-		code = codeRC
-		// code = MustCanonical(code, iter.k) // slower
+	if iter.canonical && code > iter.codeRC {
+		code = iter.codeRC
 	}
 
 	return code, true, nil
