@@ -1,5 +1,5 @@
 - v0.13.1
-    - `unikmer count`: small performance improvement.
+    - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.
 - v0.13.0
     - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.
     - `unikmer common/count/diff/grep/rfilter/sort/split/union`: faster sorting.

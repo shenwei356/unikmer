@@ -56,6 +56,7 @@ type Iterator struct {
 	first         bool
 	kmer, preKmer []byte
 	preCode       uint64
+	preCodeRC     uint64
 
 	// for HashIterator
 	hasher *nthash.NTHi
@@ -116,7 +117,7 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 
 	iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
 	iter.length = len(s2.Seq)
-	iter.end = iter.length - k
+	iter.end = iter.length - k - 1
 
 	iter.first = true
 
@@ -129,7 +130,7 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 		return 0, false, nil
 	}
 
-	if iter.idx-1 == iter.end {
+	if iter.idx == iter.end {
 		if iter.canonical || iter.revcomStrand {
 			iter.finished = true
 			return 0, false, nil
@@ -151,22 +152,31 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 		iter.kmer = iter.s.Seq[iter.idx:iter.e]
 	}
 
+	var codeRC uint64
 	if iter.first {
 		code, err = Encode(iter.kmer)
+		codeRC = MustRevComp(code, iter.k)
 		iter.first = false
 	} else {
 		code, err = MustEncodeFromFormerKmer(iter.kmer, iter.preKmer, iter.preCode)
 
+		// compute code of revcomp kmer from previous one
+		v := base2bit[iter.kmer[iter.k-1]]
+		if v == 4 {
+			err = ErrIllegalBase
+		}
+		codeRC = (v^3)<<(uint(iter.k-1)<<1) | iter.preCodeRC>>2
 	}
 	if err != nil {
 		return 0, false, errors.Wrapf(err, "encode %s", iter.kmer)
 	}
 
-	iter.preKmer, iter.preCode = iter.kmer, code
+	iter.preKmer, iter.preCode, iter.preCodeRC = iter.kmer, code, codeRC
 	iter.idx++
 
-	if iter.canonical {
-		code = MustCanonical(code, iter.k)
+	if iter.canonical && code > codeRC {
+		code = codeRC
+		// code = MustCanonical(code, iter.k) // slower
 	}
 
 	return code, true, nil
