@@ -31,11 +31,30 @@ var ErrIllegalBase = errors.New("unikmer: illegal base")
 // ErrKOverflow means K > 32.
 var ErrKOverflow = errors.New("unikmer: k-mer size (1-32) overflow")
 
-// ErrCodeOverflow means the encode interger is bigger than 4^k
+// ErrCodeOverflow means the encode interger is bigger than 4^k.
 var ErrCodeOverflow = errors.New("unikmer: code value overflow")
 
-// slice is much faster than switch and map
-var base2bit []uint64
+// slice is much faster than switch and map.
+var base2bit = [256]uint64{
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 0, 1, 1, 0, 4, 4, 2, 0, 4, 4, 2, 4, 0, 0, 4,
+	4, 4, 0, 1, 3, 3, 0, 0, 4, 1, 4, 4, 4, 4, 4, 4,
+	4, 0, 1, 1, 0, 4, 4, 2, 0, 4, 4, 2, 4, 0, 0, 4,
+	4, 4, 0, 1, 3, 3, 0, 0, 4, 1, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+}
+
+// var base2bit []uint64
 
 // MaxCode is the maxinum interger for all Ks.
 var MaxCode []uint64
@@ -46,45 +65,52 @@ func init() {
 		MaxCode[i] = 1<<uint(i*2) - 1
 	}
 
-	base2bit = make([]uint64, 255)
-	for i := range base2bit {
-		base2bit[i] = 4
-	}
-	base2bit['A'] = 0
-	base2bit['a'] = 0
-	base2bit['N'] = 0
-	base2bit['n'] = 0
-	base2bit['M'] = 0
-	base2bit['m'] = 0
-	base2bit['V'] = 0
-	base2bit['v'] = 0
-	base2bit['H'] = 0
-	base2bit['h'] = 0
-	base2bit['R'] = 0
-	base2bit['r'] = 0
-	base2bit['D'] = 0
-	base2bit['d'] = 0
-	base2bit['W'] = 0
-	base2bit['w'] = 0
+	// base2bit = make([]uint64, 256)
+	// for i := range base2bit {
+	// 	base2bit[i] = 4
+	// }
+	// base2bit['A'] = 0
+	// base2bit['a'] = 0
+	// base2bit['N'] = 0
+	// base2bit['n'] = 0
+	// base2bit['M'] = 0
+	// base2bit['m'] = 0
+	// base2bit['V'] = 0
+	// base2bit['v'] = 0
+	// base2bit['H'] = 0
+	// base2bit['h'] = 0
+	// base2bit['R'] = 0
+	// base2bit['r'] = 0
+	// base2bit['D'] = 0
+	// base2bit['d'] = 0
+	// base2bit['W'] = 0
+	// base2bit['w'] = 0
 
-	base2bit['C'] = 1
-	base2bit['c'] = 1
-	base2bit['S'] = 1
-	base2bit['s'] = 1
-	base2bit['B'] = 1
-	base2bit['b'] = 1
-	base2bit['Y'] = 1
-	base2bit['y'] = 1
+	// base2bit['C'] = 1
+	// base2bit['c'] = 1
+	// base2bit['S'] = 1
+	// base2bit['s'] = 1
+	// base2bit['B'] = 1
+	// base2bit['b'] = 1
+	// base2bit['Y'] = 1
+	// base2bit['y'] = 1
 
-	base2bit['G'] = 2
-	base2bit['g'] = 2
-	base2bit['K'] = 2
-	base2bit['k'] = 2
+	// base2bit['G'] = 2
+	// base2bit['g'] = 2
+	// base2bit['K'] = 2
+	// base2bit['k'] = 2
 
-	base2bit['T'] = 3
-	base2bit['t'] = 3
-	base2bit['U'] = 3
-	base2bit['u'] = 3
+	// base2bit['T'] = 3
+	// base2bit['t'] = 3
+	// base2bit['U'] = 3
+	// base2bit['u'] = 3
+
+	// for i := 0; i < 256; i++ {
+	// 	fmt.Fprintf(os.Stderr, "%d,", base2bit[i])
+	// 	if (i+1)%16 == 0 {
+	// 		fmt.Fprintln(os.Stderr)
+	// 	}
+	// }
 }
 
 // Encode converts byte slice to bits.
@@ -119,7 +145,8 @@ func Encode(kmer []byte) (code uint64, err error) {
 	for _, b := range kmer {
 		code <<= 2
 		v = base2bit[b]
-		if v > 3 {
+		// if v > 3 {
+		if v == 4 {
 			return code, ErrIllegalBase
 		}
 		code |= v
@@ -127,19 +154,19 @@ func Encode(kmer []byte) (code uint64, err error) {
 	return code, nil
 }
 
-// ErrNotConsecutiveKmers means the two k-mers are not consecutive
+// ErrNotConsecutiveKmers means the two k-mers are not consecutive.
 var ErrNotConsecutiveKmers = errors.New("unikmer: not consecutive k-mers")
 
 // MustEncodeFromFormerKmer encodes from former the k-mer,
 // assuming the k-mer and leftKmer are both OK.
 func MustEncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64, error) {
-	leftCode = leftCode & ((1 << (uint(len(kmer)-1) << 1)) - 1) << 2
 	v := base2bit[kmer[len(kmer)-1]]
-	if v > 3 {
+	// if v > 3 {
+	if v == 4 {
 		return leftCode, ErrIllegalBase
 	}
-	leftCode |= v
-	return leftCode, nil
+	// retrieve (k-1)*2 bits and << 2, and then add v
+	return leftCode&((1<<(uint(len(kmer)-1)<<1))-1)<<2 | v, nil
 }
 
 // EncodeFromFormerKmer encodes from the former k-mer, inspired by ntHash
@@ -150,7 +177,7 @@ func EncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64
 	if len(kmer) != len(leftKmer) {
 		return 0, ErrKMismatch
 	}
-	if !bytes.Equal(kmer[0:len(kmer)-1], leftKmer[1:len(leftKmer)]) {
+	if !bytes.Equal(kmer[0:len(kmer)-1], leftKmer[1:]) {
 		return 0, ErrNotConsecutiveKmers
 	}
 	return MustEncodeFromFormerKmer(kmer, leftKmer, leftCode)
@@ -159,13 +186,13 @@ func EncodeFromFormerKmer(kmer []byte, leftKmer []byte, leftCode uint64) (uint64
 // MustEncodeFromLatterKmer encodes from the latter k-mer,
 // assuming the k-mer and rightKmer are both OK.
 func MustEncodeFromLatterKmer(kmer []byte, rightKmer []byte, rightCode uint64) (uint64, error) {
-	rightCode >>= 2
 	v := base2bit[kmer[0]]
-	if v > 3 {
+	// if v > 3 {
+	if v == 4 {
 		return rightCode, ErrIllegalBase
 	}
-	rightCode |= v << (uint(len(kmer)-1) << 1)
-	return rightCode, nil
+
+	return v<<(uint(len(kmer)-1)<<1) | rightCode>>2, nil
 }
 
 // EncodeFromLatterKmer encodes from the former k-mer.
@@ -188,8 +215,19 @@ func Reverse(code uint64, k int) (c uint64) {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c <<= 2
-		c |= code & 3
+		c = (c << 2) | (code & 3)
+		code >>= 2
+	}
+	return
+}
+
+// MustReverse is similar to Reverse, but does not check k.
+func MustReverse(code uint64, k int) (c uint64) {
+	if k <= 0 || k > 32 {
+		panic(ErrKOverflow)
+	}
+	for i := 0; i < k; i++ {
+		c = (c << 2) | (code & 3)
 		code >>= 2
 	}
 	return
@@ -207,22 +245,56 @@ func Complement(code uint64, k int) (c uint64) {
 	return
 }
 
+// MustComplement is similar to Complement, but does not check k.
+func MustComplement(code uint64, k int) (c uint64) {
+	if k <= 0 || k > 32 {
+		panic(ErrKOverflow)
+	}
+	for i := 0; i < k; i++ {
+		c |= (code&3 ^ 3) << uint(i<<1)
+		code >>= 2
+	}
+	return
+}
+
 // RevComp returns code of reverse complement sequence.
 func RevComp(code uint64, k int) (c uint64) {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
 	}
 	for i := 0; i < k; i++ {
-		c <<= 2
-		c |= code&3 ^ 3
+		c = (c << 2) | (code&3 ^ 3)
 		code >>= 2
 	}
 	return
 }
 
-// Canonical returns code of its canonical kmer
-func Canonical(code uint64, k int) (c uint64) {
+// MustRevComp is similar to RevComp, but does not check k.
+func MustRevComp(code uint64, k int) (c uint64) {
+	for i := 0; i < k; i++ {
+		c = (c << 2) | (code&3 ^ 3)
+		code >>= 2
+	}
+	return
+}
+
+// Canonical returns code of its canonical kmer.
+func Canonical(code uint64, k int) uint64 {
 	rc := RevComp(code, k)
+	if rc < code {
+		return rc
+	}
+	return code
+}
+
+// MustCanonical is similar to Canonical, but does not check k.
+func MustCanonical(code uint64, k int) uint64 {
+	var rc uint64
+	c := code
+	for i := 0; i < k; i++ {
+		rc = (rc << 2) | (c&3 ^ 3)
+		c >>= 2
+	}
 	if rc < code {
 		return rc
 	}
@@ -292,17 +364,17 @@ func (kcode KmerCode) Equal(kcode2 KmerCode) bool {
 
 // Rev returns KmerCode of the reverse sequence.
 func (kcode KmerCode) Rev() KmerCode {
-	return KmerCode{Reverse(kcode.Code, kcode.K), kcode.K}
+	return KmerCode{MustReverse(kcode.Code, kcode.K), kcode.K}
 }
 
 // Comp returns KmerCode of the complement sequence.
 func (kcode KmerCode) Comp() KmerCode {
-	return KmerCode{Complement(kcode.Code, kcode.K), kcode.K}
+	return KmerCode{MustComplement(kcode.Code, kcode.K), kcode.K}
 }
 
 // RevComp returns KmerCode of the reverse complement sequence.
 func (kcode KmerCode) RevComp() KmerCode {
-	return KmerCode{RevComp(kcode.Code, kcode.K), kcode.K}
+	return KmerCode{MustRevComp(kcode.Code, kcode.K), kcode.K}
 }
 
 // Canonical returns its canonical kmer

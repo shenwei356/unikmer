@@ -166,7 +166,7 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 	iter.idx++
 
 	if iter.canonical {
-		code = Canonical(code, iter.k)
+		code = MustCanonical(code, iter.k)
 	}
 
 	return code, true, nil
