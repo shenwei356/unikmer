@@ -161,6 +161,13 @@ Attentions:
 		var iter *unikmer.Iterator
 		var code uint64
 		var ok bool
+
+		var kmers map[uint64]interface{}
+		var matched map[string][3]float64
+		var targets []string
+		var match [3]float64
+		var m, prefix2 string
+		var t, target string
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -179,7 +186,7 @@ Attentions:
 
 				nseq++
 
-				kmers := make(map[uint64]interface{}, 2048)
+				kmers = make(map[uint64]interface{}, 2048)
 
 				// using ntHash
 				if hashed {
@@ -210,15 +217,10 @@ Attentions:
 					}
 				}
 
-				kmerList := make([]uint64, 0, len(kmers))
-				for code := range kmers {
-					kmerList = append(kmerList, code)
-				}
+				matched = db.SearchMap(kmers, opt.NumCPUs, queryCov, targetCov)
 
-				matched := db.Search(kmerList, opt.NumCPUs, queryCov, targetCov)
-
-				targets := make([]string, 0, len(matched))
-				for m := range matched {
+				targets = make([]string, 0, len(matched))
+				for m = range matched {
 					targets = append(targets, m)
 				}
 
@@ -244,26 +246,25 @@ Attentions:
 					targets = targets[0:topN]
 				}
 
-				var ok bool
-				var t string
-				prefix2 := fmt.Sprintf("%s\t%d\t%e\t%d",
+				prefix2 = fmt.Sprintf("%s\t%d\t%e\t%d",
 					record.ID, len(record.Seq.Seq), maxFPR(db.Info.FPR, queryCov, len(record.Seq.Seq)), len(matched))
 
 				if keepUnmatched && len(matched) == 0 {
 					outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%d\t%d\n",
-						prefix2, t, len(kmerList), 0, 0))
+						prefix2, t, len(kmers), 0, 0))
 				}
-				for _, k := range targets {
+				for _, target = range targets {
 					if mappingNames {
-						if t, ok = namesMap[k]; !ok {
-							t = k
+						if t, ok = namesMap[target]; !ok {
+							t = target
 						}
 					} else {
-						t = k
+						t = target
 					}
 
+					match = matched[target]
 					outfh.WriteString(fmt.Sprintf("%s\t%s\t%.0f\t%0.4f\t%0.4f\n",
-						prefix2, t, matched[k][0], matched[k][1], matched[k][2]))
+						prefix2, t, match[0], match[1], match[2]))
 				}
 
 			}
