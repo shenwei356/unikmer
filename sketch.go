@@ -22,6 +22,7 @@ package unikmer
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/cespare/xxhash"
 	"github.com/shenwei356/bio/seq"
@@ -49,6 +50,9 @@ type Sketch struct {
 	i, mI     int
 	v, mV     uint64
 	maxUint64 uint64
+
+	buf []idxValue
+	i2v idxValue
 }
 
 // NewSyncmerSketch returns ntHash SyncmerSketch.
@@ -84,6 +88,8 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 		return nil, err
 	}
 
+	sketch.buf = make([]idxValue, 0, 1024)
+
 	return sketch, nil
 }
 
@@ -104,14 +110,52 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		// fmt.Fprintf(os.Stderr, "%d:%d-%s: %d\n", s.idx, s.idx+s.k, s.S[s.idx:s.idx+s.k], code)
 
 		// find min s-mer
-		s.mV = s.maxUint64
-		for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
-			s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
-			// fmt.Fprintf(os.Stderr, "  %d:%d-%s: %d\n", s.i, s.i+s.s, s.S[s.i:s.i+s.s], s.v)
-			if s.v < s.mV {
-				s.mI, s.mV = s.i, s.v
+
+		// [method 1] brute force
+		// s.mV = s.maxUint64
+		// for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
+		// 	s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
+		// 	// fmt.Fprintf(os.Stderr, "  %d:%d-%s: %d\n", s.i, s.i+s.s, s.S[s.i:s.i+s.s], s.v)
+		// 	if s.v < s.mV {
+		// 		s.mI, s.mV = s.i, s.v
+		// 	}
+		// }
+
+		if s.idx == 0 {
+			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
+				s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
+				s.buf = append(s.buf, idxValue{idx: s.i, val: s.v})
 			}
+			sort.Sort(idxValues(s.buf))
+			// fmt.Fprintf(os.Stderr, "  s.buf: %v\n", s.buf)
+			// fmt.Fprintf(os.Stderr, "  len(s.buf): %d, r:%d\n", len(s.buf), s.r)
+		} else {
+			// fmt.Fprintf(os.Stderr, "  before: s.buf: %v\n", s.buf)
+			for s.i, s.i2v = range s.buf {
+				if s.i2v.idx == s.idx-1 { // remove this
+					// fmt.Fprintf(os.Stderr, "  delete: %d at %d\n", s.i2v.idx, s.i2v.idx)
+					copy(s.buf[s.i:s.r], s.buf[s.i+1:])
+					s.buf = s.buf[:s.r]
+					break
+				}
+			}
+			// fmt.Fprintf(os.Stderr, "   after: s.buf: %v\n", s.buf)
+
+			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
+			for s.i = s.r - 1; s.i >= 0; s.i-- {
+				if s.v < s.buf[s.i].val { // insert before this
+					// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.buf[s.i].idx, s.v, s.i)
+					s.buf = append(s.buf, idxValue{0, 0}) // append one element
+					copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
+					s.buf[s.i] = idxValue{s.idx + s.r, s.v}
+					break
+				}
+			}
+			// fmt.Fprintf(os.Stderr, "  inserted: %v\n", s.buf)
 		}
+		s.i2v = s.buf[0]
+		s.mI, s.mV = s.i2v.idx, s.i2v.val
+
 		// fmt.Fprintf(os.Stderr, "  min: %d-%s\n", s.mI, s.S[s.mI:s.mI+s.s])
 
 		// check if this k-mer is bounded syncmer
@@ -129,3 +173,15 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 func (s *Sketch) CurrentIndex() int {
 	return s.idx - 1
 }
+
+// for sorting s-mer
+type idxValue struct {
+	idx int    // index
+	val uint64 // hash
+}
+
+type idxValues []idxValue
+
+func (l idxValues) Len() int               { return len(l) }
+func (l idxValues) Less(i int, j int) bool { return l[i].val < l[j].val }
+func (l idxValues) Swap(i int, j int)      { l[i], l[j] = l[j], l[i] }
