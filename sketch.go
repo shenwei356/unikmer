@@ -32,7 +32,7 @@ import (
 // ErrInvalidS means s >= k.
 var ErrInvalidS = fmt.Errorf("unikmer: invalid s-mer size")
 
-// Sketch is a kmer sketch.
+// Sketch is a k-mer sketch iterator
 type Sketch struct {
 	S        []byte
 	k        int
@@ -47,16 +47,16 @@ type Sketch struct {
 	idx int // current location, 0-based
 	end int
 
-	i, mI     int
-	v, mV     uint64
-	maxUint64 uint64
+	i, mI int
+	v, mV uint64
+	// maxUint64 uint64
 
 	buf  []idxValue
 	i2v  idxValue
 	flag bool
 }
 
-// NewSyncmerSketch returns ntHash SyncmerSketch.
+// NewSyncmerSketch returns a SyncmerSketch Iterator.
 func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
@@ -69,7 +69,7 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 	}
 
 	sketch := &Sketch{S: S.Seq, s: s, k: k, l: 2*k - s - 1, circular: circular}
-	sketch.maxUint64 = ^uint64(0)
+	// sketch.maxUint64 = ^uint64(0)
 
 	var seq2 []byte
 	if circular {
@@ -107,7 +107,6 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		if !ok {
 			return code, false
 		}
-		// fmt.Fprintf(os.Stderr, "%d:%d-%s: %d\n", s.idx, s.idx+s.k, s.S[s.idx:s.idx+s.k], code)
 
 		// find min s-mer
 
@@ -129,42 +128,36 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 				s.buf = append(s.buf, idxValue{idx: s.i, val: s.v})
 			}
 			sort.Sort(idxValues(s.buf))
-			// fmt.Fprintf(os.Stderr, "  s.buf: %v\n", s.buf)
-			// fmt.Fprintf(os.Stderr, "  len(s.buf): %d, r:%d\n", len(s.buf), s.r)
 		} else {
-			// fmt.Fprintf(os.Stderr, "  before: s.buf: %v\n", s.buf)
+			// remove s-mer not in this window
 			for s.i, s.i2v = range s.buf {
-				if s.i2v.idx == s.idx-1 { // remove this
+				if s.i2v.idx == s.idx-1 {
 					// fmt.Fprintf(os.Stderr, "  delete: %d at %d\n", s.i2v.idx, s.i2v.idx)
 					copy(s.buf[s.i:s.r], s.buf[s.i+1:])
 					s.buf = s.buf[:s.r]
 					break
 				}
 			}
-			// fmt.Fprintf(os.Stderr, "   after: s.buf: %v\n", s.buf)
 
+			// add new s-mer
 			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
 			s.flag = false
 			for s.i = 0; s.i <= s.r-1; s.i++ {
 				if s.v < s.buf[s.i].val { // insert before this
-					// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.idx+s.r, s.v, s.buf[s.i].idx)
 					s.buf = append(s.buf, idxValue{0, 0}) // append one element
 					copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
 					s.buf[s.i] = idxValue{s.idx + s.r, s.v}
-					s.flag = true
+					s.flag = true // inserted in some node
 					break
 				}
 			}
-			if !s.flag { // append to the end
+			if !s.flag { // it's the biggest one, append to the end
 				s.buf = append(s.buf, idxValue{s.idx + s.r, s.v})
 			}
-			// fmt.Fprintf(os.Stderr, "  inserted: %v\n", s.buf)
 		}
 		s.i2v = s.buf[0]
 		s.mI, s.mV = s.i2v.idx, s.i2v.val
 		// [method 2] with buffer, 3X speed
-
-		// fmt.Fprintf(os.Stderr, "  min: %d-%s\n", s.mI, s.S[s.mI:s.mI+s.s])
 
 		// check if this k-mer is bounded syncmer
 		if s.mI == s.idx || s.mI == s.idx+s.kMs { // beginning || end

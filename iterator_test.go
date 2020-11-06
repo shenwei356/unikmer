@@ -69,7 +69,7 @@ var benchSeqs []*seq.Seq
 func init() {
 	rand.Seed(11)
 
-	sizes := []int{1 << 10, 1 << 20} //, 10 << 20}
+	sizes := []int{1 << 10} //, 1 << 20} //, 10 << 20}
 	benchSeqs = make([]*seq.Seq, len(sizes))
 	var err error
 	for i, size := range sizes {
