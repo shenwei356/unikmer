@@ -21,6 +21,7 @@
 package unikmer
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -57,7 +58,7 @@ func TestSyncmer(t *testing.T) {
 		_syncmerIdx = idx
 		_syncmer = code
 
-		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+		fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
 }
 
@@ -69,7 +70,7 @@ var benchSeqs []*seq.Seq
 func init() {
 	rand.Seed(11)
 
-	sizes := []int{1 << 10, 1 << 20, 10 << 20}
+	sizes := []int{1 << 10, 1 << 20} //, 10 << 20}
 	benchSeqs = make([]*seq.Seq, len(sizes))
 	var err error
 	for i, size := range sizes {

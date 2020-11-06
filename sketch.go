@@ -21,6 +21,7 @@
 package unikmer
 
 import (
+	"container/list"
 	"fmt"
 	"sort"
 
@@ -51,8 +52,12 @@ type Sketch struct {
 	v, mV     uint64
 	maxUint64 uint64
 
-	buf []idxValue
-	i2v idxValue
+	// buf []idxValue
+	buf0 []idxValue
+	buf  *list.List
+	e    *list.Element
+	i2v  idxValue
+	flag bool
 }
 
 // NewSyncmerSketch returns ntHash SyncmerSketch.
@@ -88,7 +93,9 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 		return nil, err
 	}
 
-	sketch.buf = make([]idxValue, 0, 1024)
+	// sketch.buf = make([]idxValue, 0, 1024)
+	sketch.buf0 = make([]idxValue, 0, 1024)
+	sketch.buf = list.New()
 
 	return sketch, nil
 }
@@ -108,7 +115,7 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		}
 		// fmt.Fprintf(os.Stderr, "%d:%d-%s: %d\n", s.idx, s.idx+s.k, s.S[s.idx:s.idx+s.k], code)
 
-		// find min s-mer
+		// ------------------- find min s-mer --------------------------
 
 		// [method 1] brute force
 		// s.mV = s.maxUint64
@@ -125,40 +132,89 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		if s.idx == 0 {
 			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
 				s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
-				s.buf = append(s.buf, idxValue{idx: s.i, val: s.v})
+				// s.buf = append(s.buf, idxValue{idx: s.i, val: s.v})
+				s.buf0 = append(s.buf0, idxValue{idx: s.i, val: s.v})
 			}
-			sort.Sort(idxValues(s.buf))
+			sort.Sort(idxValues(s.buf0))
+			for _, s.i2v = range s.buf0 {
+				s.buf.PushBack(s.i2v)
+			}
+
 			// fmt.Fprintf(os.Stderr, "  s.buf: %v\n", s.buf)
 			// fmt.Fprintf(os.Stderr, "  len(s.buf): %d, r:%d\n", len(s.buf), s.r)
 		} else {
 			// fmt.Fprintf(os.Stderr, "  before: s.buf: %v\n", s.buf)
-			for s.i, s.i2v = range s.buf {
+			// fmt.Fprintf(os.Stderr, "  before: ")
+			// for s.e = s.buf.Front(); s.e != nil; s.e = s.e.Next() {
+			// 	s.i2v = s.e.Value.(idxValue)
+			// 	fmt.Fprintf(os.Stderr, "%d-%d, ", s.i2v.idx, s.i2v.val)
+			// }
+			// fmt.Fprintln(os.Stderr)
+
+			// for s.i, s.i2v = range s.buf {
+			// 	if s.i2v.idx == s.idx-1 { // remove this
+			// 		// fmt.Fprintf(os.Stderr, "  delete: %d at %d\n", s.i2v.idx, s.i2v.idx)
+			// 		copy(s.buf[s.i:s.r], s.buf[s.i+1:])
+			// 		s.buf = s.buf[:s.r]
+			// 		break
+			// 	}
+			// }
+			for s.e = s.buf.Front(); s.e != nil; s.e = s.e.Next() {
+				s.i2v = s.e.Value.(idxValue)
 				if s.i2v.idx == s.idx-1 { // remove this
 					// fmt.Fprintf(os.Stderr, "  delete: %d at %d\n", s.i2v.idx, s.i2v.idx)
-					copy(s.buf[s.i:s.r], s.buf[s.i+1:])
-					s.buf = s.buf[:s.r]
+					s.buf.Remove(s.e)
 					break
 				}
 			}
+
 			// fmt.Fprintf(os.Stderr, "   after: s.buf: %v\n", s.buf)
 
 			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
-			for s.i = 0; s.i <= s.r-1; s.i++ {
-				if s.v < s.buf[s.i].val { // insert before this
-					// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.idx+s.r, s.v, s.buf[s.i].idx)
-					s.buf = append(s.buf, idxValue{0, 0}) // append one element
-					copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
-					s.buf[s.i] = idxValue{s.idx + s.r, s.v}
+			s.flag = false
+
+			// for s.i = 0; s.i <= s.r-1; s.i++ {
+			// 	if s.v < s.buf[s.i].val { // insert before this
+			// 		// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.idx+s.r, s.v, s.buf[s.i].idx)
+			// 		s.buf = append(s.buf, idxValue{0, 0}) // append one element
+			// 		copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
+			// 		s.buf[s.i] = idxValue{s.idx + s.r, s.v}
+			//		s.flag = true // insert before some element
+			// 		break
+			// 	}
+			// }
+			for s.e = s.buf.Front(); s.e != nil; s.e = s.e.Next() {
+				s.i2v = s.e.Value.(idxValue)
+				if s.v < s.i2v.val { // insert before this
+					// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.idx+s.r, s.v, s.i2v.idx)
+					s.buf.InsertBefore(idxValue{s.idx + s.r, s.v}, s.e)
+					s.flag = true // insert before some element
 					break
 				}
 			}
+			if !s.flag { // the smallest
+				s.buf.PushBack(idxValue{s.idx + s.r, s.v})
+			}
+
+			// fmt.Fprintf(os.Stderr, "  after: ")
+			// for s.e = s.buf.Front(); s.e != nil; s.e = s.e.Next() {
+			// 	s.i2v = s.e.Value.(idxValue)
+			// 	fmt.Fprintf(os.Stderr, "%d-%d, ", s.i2v.idx, s.i2v.val)
+			// }
+			// fmt.Fprintln(os.Stderr)
+
 			// fmt.Fprintf(os.Stderr, "  inserted: %v\n", s.buf)
 		}
-		s.i2v = s.buf[0]
+
+		// s.i2v = s.buf[0]
+		s.i2v = s.buf.Front().Value.(idxValue)
+
 		s.mI, s.mV = s.i2v.idx, s.i2v.val
 		// [method 2] with buffer, 3X speed
 
 		// fmt.Fprintf(os.Stderr, "  min: %d-%s\n", s.mI, s.S[s.mI:s.mI+s.s])
+
+		// ------------------- find min s-mer --------------------------
 
 		// check if this k-mer is bounded syncmer
 		if s.mI == s.idx || s.mI == s.idx+s.kMs { // beginning || end
