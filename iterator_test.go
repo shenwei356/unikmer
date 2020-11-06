@@ -29,8 +29,8 @@ import (
 )
 
 func TestSyncmer(t *testing.T) {
-	/// _s := "GGCAAGTTCGTCA"
-	_s := "GGCAAGTTC"
+	_s := "GGCAAGTTCGTCA"
+	// _s := "GGCAAGTTC"
 	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
 	if err != nil {
 		t.Errorf("fail to create sequence: %s", _s)
@@ -67,7 +67,9 @@ var _syncmerIdx int
 var benchSeqs []*seq.Seq
 
 func init() {
-	sizes := []int{1 << 10, 1 << 20} //, 10 << 20}
+	rand.Seed(11)
+
+	sizes := []int{1 << 10, 1 << 20, 10 << 20}
 	benchSeqs = make([]*seq.Seq, len(sizes))
 	var err error
 	for i, size := range sizes {
@@ -81,6 +83,7 @@ func init() {
 		if err != nil {
 			panic("should not happen")
 		}
+		// fmt.Println(benchSeqs[i])
 	}
 	// fmt.Printf("%d DNA sequences generated\n", len(sizes))
 }
@@ -141,13 +144,14 @@ func BenchmarkKmerIterator(b *testing.B) {
 	}
 }
 
+// go test -v -test.bench=BenchmarkSyncmerIterator -cpuprofile profile.out -test.run=damnit
 func BenchmarkSyncmerIterator(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
 		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
 			var code uint64
 			var ok bool
-			var n int
+			// var n int
 
 			for j := 0; j < b.N; j++ {
 				iter, err := NewSyncmerSketch(benchSeqs[i], 31, 16, false)
@@ -155,15 +159,17 @@ func BenchmarkSyncmerIterator(b *testing.B) {
 					b.Errorf("fail to create hash iterator. seq length: %d", size)
 				}
 
-				n = 0
+				// n = 0
 				for {
 					code, ok = iter.Next()
 					if !ok {
 						break
 					}
 
+					// fmt.Printf("syncmer: %d-%d\n", iter.CurrentIndex(), code)
+
 					_code = code
-					n++
+					// n++
 				}
 
 			}

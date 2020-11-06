@@ -95,7 +95,6 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 
 // Next returns next ntHash.
 func (s *Sketch) Next() (code uint64, ok bool) {
-
 	for {
 		// fmt.Println(s.idx, s.end, cap(s.S))
 		if s.idx > s.end {
@@ -120,7 +119,9 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		// 		s.mI, s.mV = s.i, s.v
 		// 	}
 		// }
+		// [method 1] brute force
 
+		// [method 2] with buffer, 3X speed
 		if s.idx == 0 {
 			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
 				s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
@@ -142,9 +143,9 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 			// fmt.Fprintf(os.Stderr, "   after: s.buf: %v\n", s.buf)
 
 			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
-			for s.i = s.r - 1; s.i >= 0; s.i-- {
+			for s.i = 0; s.i <= s.r-1; s.i++ {
 				if s.v < s.buf[s.i].val { // insert before this
-					// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.buf[s.i].idx, s.v, s.i)
+					// fmt.Fprintf(os.Stderr, "  insert: %d (%d) before %d\n", s.idx+s.r, s.v, s.buf[s.i].idx)
 					s.buf = append(s.buf, idxValue{0, 0}) // append one element
 					copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
 					s.buf[s.i] = idxValue{s.idx + s.r, s.v}
@@ -155,6 +156,7 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		}
 		s.i2v = s.buf[0]
 		s.mI, s.mV = s.i2v.idx, s.i2v.val
+		// [method 2] with buffer, 3X speed
 
 		// fmt.Fprintf(os.Stderr, "  min: %d-%s\n", s.mI, s.S[s.mI:s.mI+s.s])
 
