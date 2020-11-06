@@ -21,7 +21,6 @@
 package unikmer
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
@@ -58,7 +57,7 @@ func TestSyncmer(t *testing.T) {
 		_syncmerIdx = idx
 		_syncmer = code
 
-		fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
 }
 
