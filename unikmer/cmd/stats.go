@@ -97,16 +97,21 @@ Tips:
 			colnames := []string{
 				"file",
 				"k",
-				"hashed",
-				"gzipped",
-				"compact",
 				"canonical",
-				"sorted",
+				"hashed",
+				"scaled",
 				"include-taxid",
 				"global-taxid",
+				"sorted",
 			}
 			if all {
-				colnames = append(colnames, []string{"number"}...)
+				colnames = append(colnames,
+					[]string{
+						"compact",
+						"gzipped",
+						"version",
+						"number",
+					}...)
 			}
 			outfh.WriteString(strings.Join(colnames, "\t") + "\n")
 			outfh.Flush()
@@ -139,29 +144,40 @@ Tips:
 					if !tabular {
 						statInfos = append(statInfos, info)
 					} else {
+						var scaled string
+						if info.scaled {
+							scaled = fmt.Sprintf("%d", info.scale)
+						} else {
+							scaled = sFalse
+						}
+
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+							outfh.WriteString(fmt.Sprintf(
+								"%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
-								boolStr(sTrue, sFalse, info.hashed),
-								boolStr(sTrue, sFalse, info.gzipped),
-								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
-								boolStr(sTrue, sFalse, info.sorted),
+								boolStr(sTrue, sFalse, info.hashed),
+								scaled,
 								boolStr(sTrue, sFalse, info.includeTaxid),
 								info.globalTaxid,
+								boolStr(sTrue, sFalse, info.sorted),
 							))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+							outfh.WriteString(fmt.Sprintf(
+								"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\n",
 								info.file,
 								info.k,
-								boolStr(sTrue, sFalse, info.hashed),
-								boolStr(sTrue, sFalse, info.gzipped),
-								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
-								boolStr(sTrue, sFalse, info.sorted),
+								boolStr(sTrue, sFalse, info.hashed),
+								scaled,
 								boolStr(sTrue, sFalse, info.includeTaxid),
 								info.globalTaxid,
+								boolStr(sTrue, sFalse, info.sorted),
+
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.gzipped),
+								info.version,
 								info.number,
 							))
 						}
@@ -174,29 +190,40 @@ Tips:
 							if !tabular {
 								statInfos = append(statInfos, info1)
 							} else {
+								var scaled string
+								if info.scaled {
+									scaled = fmt.Sprintf("%d", info.scale)
+								} else {
+									scaled = sFalse
+								}
+
 								if !all {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+									outfh.WriteString(fmt.Sprintf(
+										"%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 										info.file,
 										info.k,
-										boolStr(sTrue, sFalse, info.hashed),
-										boolStr(sTrue, sFalse, info.gzipped),
-										boolStr(sTrue, sFalse, info.compact),
 										boolStr(sTrue, sFalse, info.canonical),
-										boolStr(sTrue, sFalse, info.sorted),
+										boolStr(sTrue, sFalse, info.hashed),
+										scaled,
 										boolStr(sTrue, sFalse, info.includeTaxid),
 										info.globalTaxid,
+										boolStr(sTrue, sFalse, info.sorted),
 									))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+									outfh.WriteString(fmt.Sprintf(
+										"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\n",
 										info.file,
 										info.k,
-										boolStr(sTrue, sFalse, info.hashed),
-										boolStr(sTrue, sFalse, info.gzipped),
-										boolStr(sTrue, sFalse, info.compact),
 										boolStr(sTrue, sFalse, info.canonical),
-										boolStr(sTrue, sFalse, info.sorted),
+										boolStr(sTrue, sFalse, info.hashed),
+										scaled,
 										boolStr(sTrue, sFalse, info.includeTaxid),
 										info.globalTaxid,
+										boolStr(sTrue, sFalse, info.sorted),
+
+										boolStr(sTrue, sFalse, info.compact),
+										boolStr(sTrue, sFalse, info.gzipped),
+										info.version,
 										info.number,
 									))
 								}
@@ -226,29 +253,40 @@ Tips:
 					if !tabular {
 						statInfos = append(statInfos, info)
 					} else {
+						var scaled string
+						if info.scaled {
+							scaled = fmt.Sprintf("%d", info.scale)
+						} else {
+							scaled = sFalse
+						}
+
 						if !all {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
+							outfh.WriteString(fmt.Sprintf(
+								"%s\t%v\t%v\t%v\t%v\t%v\t%v\t%s\n",
 								info.file,
 								info.k,
-								boolStr(sTrue, sFalse, info.hashed),
-								boolStr(sTrue, sFalse, info.gzipped),
-								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
-								boolStr(sTrue, sFalse, info.sorted),
+								boolStr(sTrue, sFalse, info.hashed),
+								scaled,
 								boolStr(sTrue, sFalse, info.includeTaxid),
 								info.globalTaxid,
+								boolStr(sTrue, sFalse, info.sorted),
 							))
 						} else {
-							outfh.WriteString(fmt.Sprintf("%s\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%s\t%d\n",
+							outfh.WriteString(fmt.Sprintf(
+								"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\n",
 								info.file,
 								info.k,
-								boolStr(sTrue, sFalse, info.hashed),
-								boolStr(sTrue, sFalse, info.gzipped),
-								boolStr(sTrue, sFalse, info.compact),
 								boolStr(sTrue, sFalse, info.canonical),
-								boolStr(sTrue, sFalse, info.sorted),
+								boolStr(sTrue, sFalse, info.hashed),
+								scaled,
 								boolStr(sTrue, sFalse, info.includeTaxid),
 								info.globalTaxid,
+								boolStr(sTrue, sFalse, info.sorted),
+
+								boolStr(sTrue, sFalse, info.compact),
+								boolStr(sTrue, sFalse, info.gzipped),
+								info.version,
 								info.number,
 							))
 						}
@@ -370,6 +408,9 @@ Tips:
 					includeTaxid: reader.IsIncludeTaxid(),
 					globalTaxid:  globalTaxid,
 					number:       n,
+					scaled:       reader.IsScaled(),
+					scale:        reader.GetScale(),
+					version:      fmt.Sprintf("v%d.%d", reader.MainVersion, reader.MinorVersion),
 
 					err: nil,
 					id:  id,
@@ -397,16 +438,18 @@ Tips:
 		columns := []prettytable.Column{
 			{Header: "file"},
 			{Header: "k", AlignRight: true},
-			{Header: "hashed"},
-			{Header: "gzipped"},
-			{Header: "compact"},
-			{Header: "canonical"},
-			{Header: "sorted"},
-			{Header: "include-taxid"},
-			{Header: "global-taxid"},
+			{Header: "canonical", AlignRight: true},
+			{Header: "hashed", AlignRight: true},
+			{Header: "scaled", AlignRight: true},
+			{Header: "include-taxid", AlignRight: true},
+			{Header: "global-taxid", AlignRight: true},
+			{Header: "sorted", AlignRight: true},
 		}
 		if all {
 			columns = append(columns, []prettytable.Column{
+				{Header: "compact", AlignRight: true},
+				{Header: "gzipped", AlignRight: true},
+				{Header: "version", AlignRight: true},
 				{Header: "number", AlignRight: true},
 			}...)
 		}
@@ -414,30 +457,40 @@ Tips:
 		checkError(err)
 		tbl.Separator = "  "
 
+		var scaled string
+
 		for _, info := range statInfos {
+			if info.scaled {
+				scaled = fmt.Sprintf("%d", info.scale)
+			} else {
+				scaled = sFalse
+			}
+
 			if !all {
 				tbl.AddRow(
 					info.file,
 					info.k,
-					boolStr(sTrue, sFalse, info.hashed),
-					boolStr(sTrue, sFalse, info.gzipped),
-					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
-					boolStr(sTrue, sFalse, info.sorted),
+					boolStr(sTrue, sFalse, info.hashed),
+					scaled,
 					boolStr(sTrue, sFalse, info.includeTaxid),
 					info.globalTaxid,
+					boolStr(sTrue, sFalse, info.sorted),
 				)
 			} else {
 				tbl.AddRow(
 					info.file,
 					info.k,
-					boolStr(sTrue, sFalse, info.hashed),
-					boolStr(sTrue, sFalse, info.gzipped),
-					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.canonical),
-					boolStr(sTrue, sFalse, info.sorted),
+					boolStr(sTrue, sFalse, info.hashed),
+					scaled,
 					boolStr(sTrue, sFalse, info.includeTaxid),
 					info.globalTaxid,
+					boolStr(sTrue, sFalse, info.sorted),
+
+					boolStr(sTrue, sFalse, info.compact),
+					boolStr(sTrue, sFalse, info.gzipped),
+					info.version,
 					humanize.Comma(info.number),
 				)
 			}
@@ -457,6 +510,10 @@ type statInfo struct {
 	includeTaxid bool
 	globalTaxid  string
 	number       int64
+
+	scaled  bool
+	scale   uint32
+	version string
 
 	err error
 	id  uint64

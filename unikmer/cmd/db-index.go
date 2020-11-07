@@ -180,6 +180,8 @@ Attentions:
 		var k int = -1
 		var hashed bool
 		var canonical bool
+		var scaled bool
+		var scale uint32
 		var n int64
 		var nfiles = len(files)
 
@@ -197,8 +199,13 @@ Attentions:
 				k = reader.K
 				hashed = reader.IsHashed()
 				canonical = reader.IsCanonical()
+				scaled = reader.IsScaled()
+				scale = reader.GetScale()
 			} else {
 				checkCompatibility(reader0, reader, file)
+				if scaled && scale != reader.GetScale() {
+					checkError(fmt.Errorf(`scales not consistent, please check with "unikmer stats": %s`, file))
+				}
 			}
 
 			if reader.Number < 0 {
@@ -737,6 +744,8 @@ Attentions:
 			dbInfo.Sizes = sizes0
 			dbInfo.NumHashes = numHashes
 			dbInfo.Canonical = canonical
+			dbInfo.Scaled = scaled
+			dbInfo.Scale = scale
 			checkError(dbInfo.WriteTo(filepath.Join(outDir, dbInfoFile)))
 		}
 

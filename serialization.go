@@ -31,7 +31,7 @@ import (
 const MainVersion uint8 = 4
 
 // MinorVersion is the minor version number.
-const MinorVersion uint8 = 0
+const MinorVersion uint8 = 1
 
 // Magic number of binary file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
@@ -66,7 +66,7 @@ var ErrVersionMismatch = errors.New("unikmer: version mismatch")
 var be = binary.BigEndian
 
 var descMaxLen = 128
-var conservedDataLen = 32
+var conservedDataLen = 20
 
 // Header contains metadata
 type Header struct {
@@ -78,6 +78,8 @@ type Header struct {
 	globalTaxid  uint32 // universal taxid, 0 for no record
 	maxTaxid     uint32
 	Description  []byte // let's limit it to 128 Bytes
+	Scale        uint32 // scale of down-sampling
+	MaxHash      uint64 // max hash for scaling/down-sampling
 }
 
 const (
@@ -89,8 +91,11 @@ const (
 	UnikSorted // when sorted, the serialization structure is very different
 	// UnikIncludeTaxID means a k-mer are followed it's LCA taxid
 	UnikIncludeTaxID
+
 	// UnikHashed means ntHash value are saved as code.
 	UnikHashed
+	// UnikScaled means only hashes smaller than or equal to max_hash are saved.
+	UnikScaled
 )
 
 func (h Header) String() string {
@@ -160,6 +165,11 @@ func (reader *Reader) IsHashed() bool {
 	return reader.Flag&UnikHashed > 0
 }
 
+// IsScaled tells if hashes is scaled
+func (reader *Reader) IsScaled() bool {
+	return reader.Flag&UnikHashed > 0 && reader.Flag&UnikScaled > 0
+}
+
 // HasGlobalTaxid means the file has a global taxid
 func (reader *Reader) HasGlobalTaxid() bool {
 	return reader.globalTaxid > 0
@@ -178,6 +188,22 @@ func (reader *Reader) GetGlobalTaxid() uint32 {
 // GetTaxidBytesLength returns number of byte to store a taxid
 func (reader *Reader) GetTaxidBytesLength() int {
 	return reader.taxidByteLen
+}
+
+// GetScale returns the scale of down-sampling
+func (reader *Reader) GetScale() uint32 {
+	if reader.Scale == 0 {
+		return uint32(1)
+	}
+	return reader.Scale
+}
+
+// GetMaxHash returns the max hash for scaling.
+func (reader *Reader) GetMaxHash() uint64 {
+	if reader.MaxHash == 0 {
+		return ^uint64(0)
+	}
+	return reader.MaxHash
 }
 
 func (reader *Reader) readHeader() (err error) {
@@ -271,6 +297,22 @@ func (reader *Reader) readHeader() (err error) {
 		return err
 	}
 	reader.Description = desc[0:int(lenDesc)]
+
+	// scale
+	var scale uint32
+	err = binary.Read(r, be, &scale)
+	if err != nil {
+		return err
+	}
+	reader.Scale = scale
+
+	// max hash
+	var maxHash uint64
+	err = binary.Read(r, be, &maxHash)
+	if err != nil {
+		return err
+	}
+	reader.MaxHash = maxHash
 
 	reserved := make([]byte, conservedDataLen)
 	err = binary.Read(r, be, &reserved)
@@ -566,7 +608,19 @@ func (writer *Writer) WriteHeader() (err error) {
 		return err
 	}
 
-	// reserved 32 bytes
+	// scale
+	err = binary.Write(w, be, writer.Scale)
+	if err != nil {
+		return err
+	}
+
+	// max hash
+	err = binary.Write(w, be, writer.MaxHash)
+	if err != nil {
+		return err
+	}
+
+	// reserved 24 bytes
 	reserved := make([]byte, conservedDataLen)
 	err = binary.Write(w, be, reserved)
 	if err != nil {
@@ -594,6 +648,36 @@ func (writer *Writer) SetMaxTaxid(taxid uint32) error {
 		return ErrCallLate
 	}
 	writer.maxTaxid = taxid
+	return nil
+}
+
+// SetScale set the scale
+func (writer *Writer) SetScale(scale uint32) error {
+	if writer.wroteHeader {
+		return ErrCallLate
+	}
+	if writer.Flag&UnikHashed == 0 {
+		writer.Flag |= UnikHashed
+	}
+	if writer.Flag&UnikScaled == 0 {
+		writer.Flag |= UnikScaled
+	}
+	writer.Scale = scale
+	return nil
+}
+
+// SetMaxHash set the max hash
+func (writer *Writer) SetMaxHash(maxHash uint64) error {
+	if writer.wroteHeader {
+		return ErrCallLate
+	}
+	if writer.Flag&UnikHashed == 0 {
+		writer.Flag += UnikHashed
+	}
+	if writer.Flag&UnikScaled == 0 {
+		writer.Flag += UnikScaled
+	}
+	writer.MaxHash = maxHash
 	return nil
 }
 

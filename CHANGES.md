@@ -1,5 +1,7 @@
-- v0.13.1
+- v0.14.0
     - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.
+    - `unikmer count/db`: support scaled sketch.
+    - `unikmer stats`: change format.
 - v0.13.0
     - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.
     - `unikmer common/count/diff/grep/rfilter/sort/split/union`: faster sorting.

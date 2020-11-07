@@ -118,7 +118,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 		chs = append(chs, ch)
 
 		wg.Add(1)
-		go func() {
+		go func(file string) {
 			for {
 				var _data []byte
 				_data, err = reader.Read()
@@ -134,7 +134,7 @@ func MergeUnikIndex(opt *Options, prefix string, files []string, outFile string)
 			close(ch)
 			r.Close()
 			wg.Done()
-		}()
+		}(file)
 	}
 
 	// fan in

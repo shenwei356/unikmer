@@ -38,8 +38,17 @@ import (
 
 var countCmd = &cobra.Command{
 	Use:   "count",
-	Short: "Generate k-mers from FASTA/Q sequences",
-	Long: `Generate k-mers from FASTA/Q sequences
+	Short: "Generate k-mers (sketch) from FASTA/Q sequences",
+	Long: `Generate k-mers (sketch) from FASTA/Q sequences
+
+K-mer:
+  1. K-mer code (k<=32):
+  2. Hased k-mer (ntHash):
+
+K-mer sketchs:
+  1. Scaled MinHash
+  2. Minimizer
+  3. Syncmer
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -52,13 +61,35 @@ var countCmd = &cobra.Command{
 
 		outFile := getFlagString(cmd, "out-prefix")
 		k := getFlagPositiveInt(cmd, "kmer-len")
+		canonical := getFlagBool(cmd, "canonical")
+
 		hashed := getFlagBool(cmd, "hash")
 		if k > 32 && !hashed {
 			hashed = true
 			log.Warning("flag -H/--hash is switched on for k > 32")
 		}
 
-		canonical := getFlagBool(cmd, "canonical")
+		scale := getFlagPositiveInt(cmd, "scale")
+		scaled := scale > 1
+		if scaled && !hashed {
+			hashed = true
+			log.Warning("flag -H/--hash is switched on for scale > 1")
+		}
+		maxHash := uint64(float64(^uint64(0)) / float64(scale))
+
+		syncmerS := getFlagNonNegativeInt(cmd, "syncmer-s")
+		syncmer := syncmerS > 0
+		if syncmer {
+			if !hashed {
+				hashed = true
+				log.Warning("flag -H/--hash is switched on for syncmer-s > 1")
+			}
+			if !canonical {
+				hashed = true
+				log.Warning("flag -K/--canonical is switched on for syncmer-s > 1")
+			}
+		}
+
 		sortKmers := getFlagBool(cmd, "sort")
 		circular := getFlagBool(cmd, "circular")
 
@@ -168,6 +199,7 @@ var countCmd = &cobra.Command{
 		var nseq int64
 		var code uint64
 		var iter *unikmer.Iterator
+		var sketch *unikmer.Sketch
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -212,7 +244,11 @@ var countCmd = &cobra.Command{
 
 				// using ntHash
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
+					if syncmer {
+						sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
+					} else {
+						iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
+					}
 				} else {
 					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
@@ -220,7 +256,11 @@ var countCmd = &cobra.Command{
 
 				for {
 					if hashed {
-						code, ok = iter.NextHash()
+						if syncmer {
+							code, ok = sketch.Next()
+						} else {
+							code, ok = iter.NextHash()
+						}
 					} else {
 						code, ok, err = iter.NextKmer()
 						if err != nil {
@@ -229,6 +269,10 @@ var countCmd = &cobra.Command{
 					}
 					if !ok {
 						break
+					}
+
+					if scaled && code > maxHash {
+						continue
 					}
 
 					if parseTaxid {
@@ -305,6 +349,9 @@ var countCmd = &cobra.Command{
 		writer.SetMaxTaxid(opt.MaxTaxid)
 		if setGlobalTaxid {
 			checkError(writer.SetGlobalTaxid(taxid))
+		}
+		if scaled {
+			writer.SetScale(uint32(scale))
 		}
 
 		n = 0
@@ -453,4 +500,8 @@ func init() {
 	countCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 	countCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
+
+	countCmd.Flags().IntP("scale", "", 1, `scale/down-sample factor`)
+	countCmd.Flags().IntP("minimizer-w", "", 0, `minimizer window size`)
+	countCmd.Flags().IntP("syncmer-s", "", 0, `syncmer s`)
 }

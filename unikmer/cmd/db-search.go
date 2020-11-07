@@ -135,8 +135,16 @@ Attentions:
 		}
 
 		k := db.Header.K
-		hashed := db.Info.Hashed
 		canonical := db.Header.Canonical
+
+		hashed := db.Info.Hashed
+		scaled := db.Info.Scaled
+		scale := db.Info.Scale
+
+		maxHash := ^uint64(0)
+		if scaled {
+			maxHash = uint64(float64(^uint64(0)) / float64(scale))
+		}
 
 		// if !isStdout(outFile) {
 		// 	outFile += ".txt"
@@ -203,6 +211,10 @@ Attentions:
 							break
 						}
 
+						if scaled && code > maxHash {
+							continue
+						}
+
 						kmers[code] = struct{}{}
 					}
 				} else {
@@ -211,6 +223,10 @@ Attentions:
 						checkError(errors.Wrapf(err, "seq: %s", record.Name))
 						if !ok {
 							break
+						}
+
+						if scaled && code > maxHash {
+							continue
 						}
 
 						kmers[code] = struct{}{}

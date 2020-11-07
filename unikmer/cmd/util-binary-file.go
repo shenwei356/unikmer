@@ -38,4 +38,7 @@ func checkCompatibility(reader0 *unikmer.Reader, reader *unikmer.Reader, file st
 	if reader0.IsHashed() != reader.IsHashed() {
 		checkError(fmt.Errorf(`'hashed' flags not consistent, please check with "unikmer stats": %s`, file))
 	}
+	if reader0.IsScaled() != reader.IsScaled() {
+		checkError(fmt.Errorf(`'scaled' flags not consistent, please check with "unikmer stats": %s`, file))
+	}
 }

@@ -109,19 +109,6 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		}
 
 		// find min s-mer
-
-		// [method 1] brute force
-		// s.mV = s.maxUint64
-		// for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
-		// 	s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
-		// 	// fmt.Fprintf(os.Stderr, "  %d:%d-%s: %d\n", s.i, s.i+s.s, s.S[s.i:s.i+s.s], s.v)
-		// 	if s.v < s.mV {
-		// 		s.mI, s.mV = s.i, s.v
-		// 	}
-		// }
-		// [method 1] brute force
-
-		// [method 2] with buffer, 3X speed. do not use linked list, which is slow too.
 		if s.idx == 0 {
 			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
 				s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
@@ -157,7 +144,6 @@ func (s *Sketch) Next() (code uint64, ok bool) {
 		}
 		s.i2v = s.buf[0]
 		s.mI, s.mV = s.i2v.idx, s.i2v.val
-		// [method 2] with buffer, 3X speed
 
 		// check if this k-mer is bounded syncmer
 		if s.mI == s.idx || s.mI == s.idx+s.kMs { // beginning || end
