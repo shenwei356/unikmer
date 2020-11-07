@@ -1,7 +1,7 @@
 # unikmer
 
 `unikmer` is a golang package and a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
-including set operation, indexing, and searching on k-mers optional with
+including set operation, indexing, and searching on k-mers (sketch) optional with
 TaxIDs but without count information.
 
 K-mers are either encoded (k<=32) or hashed (arbitrary k) into `uint64`,
@@ -53,15 +53,29 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
     goos: linux
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
-    BenchmarkEncodeK32-16                           40442450                25.7 ns/op             0 B/op          0 allocs/op
-    BenchmarkEncodeFromFormerKmerK32-16             133755378               8.76 ns/op             0 B/op          0 allocs/op
-    BenchmarkMustEncodeFromFormerKmerK32-16         582894313               1.73 ns/op             0 B/op          0 allocs/op
-    BenchmarkDecodeK32-16                           13966992                83.7 ns/op            32 B/op          1 allocs/op
-    BenchmarkMustDecodeK32-16                       14369139                84.0 ns/op            32 B/op          1 allocs/op
-    BenchmarkRevK32-16                              56101986                18.1 ns/op             0 B/op          0 allocs/op
-    BenchmarkCompK32-16                             1000000000             0.276 ns/op             0 B/op          0 allocs/op
-    BenchmarkRevCompK32-16                          62414572                18.9 ns/op             0 B/op          0 allocs/op
-    BenchmarkCannonalK32-16                         51656888                22.8 ns/op             0 B/op          0 allocs/op
+    
+    BenchmarkHashIterator/1.00_KB-16                  111454             10004 ns/op             240 B/op          3 allocs/op
+    BenchmarkHashIterator/1.00_MB-16                     111          12376147 ns/op             240 B/op          3 allocs/op
+    BenchmarkHashIterator/10.00_MB-16                     12          96054624 ns/op             240 B/op          3 allocs/op
+    BenchmarkKmerIterator/1.00_KB-16                   64482             15677 ns/op             160 B/op          1 allocs/op
+    BenchmarkKmerIterator/1.00_MB-16                      73          15671324 ns/op             160 B/op          1 allocs/op
+    BenchmarkKmerIterator/10.00_MB-16                      7         158528029 ns/op             160 B/op          1 allocs/op
+    BenchmarkMinimizerIterator/1.00_KB-16              13150             95089 ns/op           16688 B/op          5 allocs/op
+    BenchmarkMinimizerIterator/1.00_MB-16                 15          69625140 ns/op           16688 B/op          5 allocs/op
+    BenchmarkMinimizerIterator/10.00_MB-16                 2         674262795 ns/op           16688 B/op          5 allocs/op
+    BenchmarkSyncmerIterator/1.00_KB-16                 7276            141785 ns/op           16688 B/op          5 allocs/op
+    BenchmarkSyncmerIterator/1.00_MB-16                   10         104615736 ns/op           16688 B/op          5 allocs/op
+    BenchmarkSyncmerIterator/10.00_MB-16                   1        1067994337 ns/op           16688 B/op          5 allocs/op
+
+    BenchmarkEncodeK32-16                           58827567                20.0 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeFromFormerKmerK32-16             128119014               9.03 ns/op             0 B/op          0 allocs/op
+    BenchmarkMustEncodeFromFormerKmerK32-16         590404424               1.71 ns/op             0 B/op          0 allocs/op
+    BenchmarkDecodeK32-16                           17622177                74.1 ns/op            32 B/op          1 allocs/op
+    BenchmarkMustDecodeK32-16                       16684528                76.3 ns/op            32 B/op          1 allocs/op
+    BenchmarkRevK32-16                              59706452                18.3 ns/op             0 B/op          0 allocs/op
+    BenchmarkCompK32-16                             1000000000             0.270 ns/op             0 B/op          0 allocs/op
+    BenchmarkRevCompK32-16                          61192731                19.0 ns/op             0 B/op          0 allocs/op
+    BenchmarkCannonalK32-16                         51596818                22.5 ns/op             0 B/op          0 allocs/op
 
 ## The toolkit
 
@@ -81,7 +95,7 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 
 1. Counting
 
-        count           Generate k-mers from FASTA/Q sequences
+        count           Generate k-mers (sketch) from FASTA/Q sequences
 
 1. Information
 

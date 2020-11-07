@@ -47,17 +47,50 @@ func TestSyncmer(t *testing.T) {
 	var ok bool
 	var idx int
 	for {
-		code, ok = sketch.Next()
+		code, ok = sketch.NextSyncmer()
 		if !ok {
 			break
 		}
 
-		idx = sketch.CurrentIndex()
+		idx = sketch.Index()
 
 		_syncmerIdx = idx
 		_syncmer = code
 
 		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+	}
+}
+
+func TestMinimizer(t *testing.T) {
+	_s := "GGCAAGTTCGTCA"
+	// _s := "GGCAAGTTC"
+	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
+	if err != nil {
+		t.Errorf("fail to create sequence: %s", _s)
+	}
+	k := 5
+	w := 3
+
+	sketch, err := NewMinimizerSketch(sequence, k, w, false)
+	if err != nil {
+		t.Errorf("fail to create minizimer sketch")
+	}
+
+	var code uint64
+	var ok bool
+	var idx int
+	for {
+		code, ok = sketch.NextMinimizer()
+		if !ok {
+			break
+		}
+
+		idx = sketch.Index()
+
+		_syncmerIdx = idx
+		_syncmer = code
+
+		// fmt.Printf("minizimer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
 }
 
@@ -129,8 +162,8 @@ func BenchmarkKmerIterator(b *testing.B) {
 				for {
 					code, ok, err = iter.NextKmer()
 					if err != nil {
-						b.Errorf("fail to get kmer code: %d-%s", iter.CurrentIndex(),
-							benchSeqs[i].Seq[iter.CurrentIndex():iter.CurrentIndex()+31])
+						b.Errorf("fail to get kmer code: %d-%s", iter.Index(),
+							benchSeqs[i].Seq[iter.Index():iter.Index()+31])
 					}
 
 					if !ok {
@@ -140,6 +173,39 @@ func BenchmarkKmerIterator(b *testing.B) {
 					_code = code
 				}
 			}
+		})
+	}
+}
+
+func BenchmarkMinimizerIterator(b *testing.B) {
+	for i := range benchSeqs {
+		size := len(benchSeqs[i].Seq)
+		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
+			var code uint64
+			var ok bool
+			// var n int
+
+			for j := 0; j < b.N; j++ {
+				iter, err := NewMinimizerSketch(benchSeqs[i], 31, 15, false)
+				if err != nil {
+					b.Errorf("fail to create minizimer sketch. seq length: %d", size)
+				}
+
+				// n = 0
+				for {
+					code, ok = iter.NextMinimizer()
+					if !ok {
+						break
+					}
+
+					// fmt.Printf("minizimer: %d-%d\n", iter.Index(), code)
+
+					_code = code
+					// n++
+				}
+
+			}
+			// fmt.Printf("minizimer for %s DNA, c=%.6f\n", bytesize.ByteSize(size).String(), float64(size)/float64(n))
 		})
 	}
 }
@@ -156,17 +222,17 @@ func BenchmarkSyncmerIterator(b *testing.B) {
 			for j := 0; j < b.N; j++ {
 				iter, err := NewSyncmerSketch(benchSeqs[i], 31, 16, false)
 				if err != nil {
-					b.Errorf("fail to create hash iterator. seq length: %d", size)
+					b.Errorf("fail to create syncmer sketch. seq length: %d", size)
 				}
 
 				// n = 0
 				for {
-					code, ok = iter.Next()
+					code, ok = iter.NextSyncmer()
 					if !ok {
 						break
 					}
 
-					// fmt.Printf("syncmer: %d-%d\n", iter.CurrentIndex(), code)
+					// fmt.Printf("syncmer: %d-%d\n", iter.Index(), code)
 
 					_code = code
 					// n++

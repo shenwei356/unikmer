@@ -46,8 +46,9 @@ var grepCmd = &cobra.Command{
 	Long: `Search k-mers from binary files
 
 Attentions:
-  1. Canonical k-mers are used and outputted.
-  2. Input files should ALL have or don't have taxid information.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
+  2. Canonical k-mers are used and outputted.
+  3. Input files should ALL have or don't have taxid information.
 
 Tips:
   1. Increase value of '-j' for better performance when dealing with

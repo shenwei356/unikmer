@@ -41,7 +41,7 @@ var uniqsCmd = &cobra.Command{
 	Long: `Mapping k-mers back to genome and find unique subsequences
 
 Attention:
-  1. All files should have the 'canonical' flag.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Default output is in BED3 format, with left-closed and right-open
      0-based interval.
   3. When using flag --circular, end position of subsequences that 
@@ -199,7 +199,7 @@ Attention:
 					for {
 						code, ok, err = iter.Next()
 						if hashed && err != nil {
-							checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
+							checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.Index():iter.Index()+k]))
 						}
 						if !ok {
 							break
@@ -300,13 +300,13 @@ Attention:
 				for {
 					code, ok, err = iter.Next()
 					if !hashed && err != nil {
-						checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.CurrentIndex():iter.CurrentIndex()+k]))
+						checkError(errors.Wrapf(err, "%s: %s", record.Name, record.Seq.Seq[iter.Index():iter.Index()+k]))
 					}
 					if !ok {
 						break
 					}
 
-					i = iter.CurrentIndex()
+					i = iter.Index()
 
 					if _, ok = m[code]; ok {
 						nonUniqs = 0

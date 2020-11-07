@@ -106,7 +106,7 @@ func (iter *Iterator) NextHash() (code uint64, ok bool) {
 	return code, ok
 }
 
-// NewKmerIterator returns kmer code iterator
+// NewKmerIterator returns k-mer code iterator.
 func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterator, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
@@ -135,7 +135,7 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	return iter, nil
 }
 
-// NextKmer returns next kmer code
+// NextKmer returns next k-mer code.
 func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 	if iter.finished {
 		return 0, false, nil
@@ -194,7 +194,7 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 	return code, true, nil
 }
 
-// Next is a wrapter for NextHash and NextKmer
+// Next is a wrapter for NextHash and NextKmer.
 func (iter *Iterator) Next() (code uint64, ok bool, err error) {
 	if iter.hash {
 		code, ok = iter.NextHash()
@@ -204,7 +204,7 @@ func (iter *Iterator) Next() (code uint64, ok bool, err error) {
 	return
 }
 
-// CurrentIndex returns current  0-baesd index
-func (iter *Iterator) CurrentIndex() int {
+// Index returns current 0-baesd index.
+func (iter *Iterator) Index() int {
 	return iter.idx - 1
 }

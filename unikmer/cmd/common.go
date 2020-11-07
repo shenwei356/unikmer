@@ -44,7 +44,7 @@ k-mers shared by some number/proportion of multiple files are outputted.
 
 Attentions:
   0. All input files should be sorted, and output file is sorted.
-  1. The 'canonical' flags of all files should be consistent.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Taxid information could be inconsistent when using flag --mix-taxid.
   3. At most 65535 input files allowed.
   

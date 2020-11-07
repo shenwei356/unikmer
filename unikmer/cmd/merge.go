@@ -42,7 +42,7 @@ var mergeCmd = &cobra.Command{
 	Long: `Merge k-mers from sorted chunk files
 
 Attentions:
-  1. The 'canonical' flags of all files should be consistent.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Input files should ALL have or don't have taxid information.
   3. Input files should be sorted.
   

@@ -43,7 +43,7 @@ var tsplitCmd = &cobra.Command{
 	Long: `Split k-mers according to taxid
 
 Attentions:
-  1. The 'canonical' flags of all files should be consistent.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Input files should ALL have taxid information.
   3. Input files should be sorted using 'unikmer sort'.
   4. All k-mers will loaded into RAM, for big input files,

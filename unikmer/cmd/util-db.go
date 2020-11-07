@@ -45,13 +45,18 @@ var ErrVersionMismatch = errors.New("unikmer/index-db: version mismatch")
 const UnikIndexDBVersion uint8 = 2
 
 type UnikIndexDBInfo struct {
-	Version      uint8  `yaml:"version"`
-	IndexVersion uint8  `yaml:"unikiVersion"`
-	K            int    `yaml:"k"`
-	Hashed       bool   `yaml:"hashed"`
-	Canonical    bool   `yaml:"canonical"`
-	Scaled       bool   `yaml:"scaled"`
-	Scale        uint32 `yaml:"scale"`
+	Version      uint8 `yaml:"version"`
+	IndexVersion uint8 `yaml:"unikiVersion"`
+	K            int   `yaml:"k"`
+	Hashed       bool  `yaml:"hashed"`
+	Canonical    bool  `yaml:"canonical"`
+
+	Scaled     bool   `yaml:"scaled"`
+	Scale      uint32 `yaml:"scale"`
+	Minizimer  bool   `yaml:"minimizer"`
+	MinizimerW uint32 `yaml:"minimizer-w"`
+	Syncmer    bool   `yaml:"syncmer"`
+	SyncmerS   uint32 `yaml:"syncmer-s"`
 
 	NumHashes int      `yaml:"hashes"`
 	FPR       float64  `yaml:"fpr"`

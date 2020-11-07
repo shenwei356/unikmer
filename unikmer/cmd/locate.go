@@ -41,7 +41,8 @@ var locateCmd = &cobra.Command{
 	Long: `Locate k-mers in genome
 
 Attention:
-  1. All files should have the 'canonical' flag.
+  0. All files should have the 'canonical' flag.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Output is BED6 format.
   3. When using experimental flag --circular, leading subsequence of k-1 bp
      is appending to end of sequence. End position of k-mers that crossing
@@ -172,7 +173,7 @@ Attention:
 				for {
 					code, ok, err = iter.Next()
 					if !hashed && err != nil {
-						checkError(errors.Wrapf(err, "%s: %s: %s", file, record.Name, sequences[iter.CurrentIndex():iter.CurrentIndex()+k]))
+						checkError(errors.Wrapf(err, "%s: %s: %s", file, record.Name, sequences[iter.Index():iter.Index()+k]))
 					}
 					if !ok {
 						break
@@ -181,7 +182,7 @@ Attention:
 					if _, ok = m[code]; !ok {
 						m[code] = make([][2]int, 0, 1)
 					}
-					m[code] = append(m[code], [2]int{seqIdx, iter.CurrentIndex()})
+					m[code] = append(m[code], [2]int{seqIdx, iter.Index()})
 
 				}
 

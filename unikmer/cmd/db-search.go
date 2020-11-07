@@ -140,6 +140,10 @@ Attentions:
 		hashed := db.Info.Hashed
 		scaled := db.Info.Scaled
 		scale := db.Info.Scale
+		minimizer := db.Info.Minizimer
+		minimizerW := int(db.Info.MinizimerW)
+		syncmer := db.Info.Syncmer
+		syncmerS := int(db.Info.SyncmerS)
 
 		maxHash := ^uint64(0)
 		if scaled {
@@ -167,6 +171,7 @@ Attentions:
 		var record *fastx.Record
 		var nseq int64
 		var iter *unikmer.Iterator
+		var sketch *unikmer.Sketch
 		var code uint64
 		var ok bool
 
@@ -197,14 +202,44 @@ Attentions:
 				kmers = make(map[uint64]interface{}, 2048)
 
 				// using ntHash
-				if hashed {
+				if syncmer {
+					sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
+				} else if minimizer {
+					sketch, err = unikmer.NewMinimizerSketch(record.Seq, k, minimizerW, circular)
+				} else if hashed {
 					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
 				} else {
 					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
-				if hashed {
+				if syncmer {
+					for {
+						code, ok = sketch.NextSyncmer()
+						if !ok {
+							break
+						}
+
+						if scaled && code > maxHash {
+							continue
+						}
+
+						kmers[code] = struct{}{}
+					}
+				} else if minimizer {
+					for {
+						code, ok = sketch.NextMinimizer()
+						if !ok {
+							break
+						}
+
+						if scaled && code > maxHash {
+							continue
+						}
+
+						kmers[code] = struct{}{}
+					}
+				} else if hashed {
 					for {
 						code, ok = iter.NextHash()
 						if !ok {

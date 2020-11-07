@@ -369,7 +369,7 @@ func loadHash2Loc(files []string, k int) ([][]byte, map[uint64][2]int, error) {
 				}
 
 				if _, ok = hash2loc[code]; !ok {
-					hash2loc[code] = [2]int{seqIdx, iter.CurrentIndex()}
+					hash2loc[code] = [2]int{seqIdx, iter.Index()}
 				}
 			}
 			seqIdx++

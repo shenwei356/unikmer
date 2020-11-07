@@ -70,6 +70,9 @@ K-mer sketchs:
 		}
 
 		scale := getFlagPositiveInt(cmd, "scale")
+		if scale > 1<<32-1 {
+			checkError(fmt.Errorf("value of flag --scale is too big"))
+		}
 		scaled := scale > 1
 		if scaled && !hashed {
 			hashed = true
@@ -77,7 +80,26 @@ K-mer sketchs:
 		}
 		maxHash := uint64(float64(^uint64(0)) / float64(scale))
 
+		minimizerW := getFlagNonNegativeInt(cmd, "minimizer-w")
+		if minimizerW > 1<<32-1 {
+			checkError(fmt.Errorf("value of flag --minimizer-w is too big"))
+		}
+		minimizer := minimizerW > 0
+		if minimizer {
+			if !hashed {
+				hashed = true
+				log.Warning("flag -H/--hash is switched on for minimizer-w > 1")
+			}
+			if !canonical {
+				hashed = true
+				log.Warning("flag -K/--canonical is switched on for minimizer-w > 1")
+			}
+		}
+
 		syncmerS := getFlagNonNegativeInt(cmd, "syncmer-s")
+		if syncmerS > 1<<32-1 {
+			checkError(fmt.Errorf("value of flag --syncmer-s is too big"))
+		}
 		syncmer := syncmerS > 0
 		if syncmer {
 			if !hashed {
@@ -88,6 +110,9 @@ K-mer sketchs:
 				hashed = true
 				log.Warning("flag -K/--canonical is switched on for syncmer-s > 1")
 			}
+		}
+		if minimizer && syncmer {
+			checkError(fmt.Errorf("flag --minimizer-w and --syncmer-s can not be given simultaneously"))
 		}
 
 		sortKmers := getFlagBool(cmd, "sort")
@@ -242,31 +267,31 @@ K-mer sketchs:
 					}
 				}
 
-				// using ntHash
-				if hashed {
-					if syncmer {
-						sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
-					} else {
-						iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
-					}
+				if syncmer {
+					sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
+				} else if minimizer {
+					sketch, err = unikmer.NewMinimizerSketch(record.Seq, k, minimizerW, circular)
+				} else if hashed {
+					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
 				} else {
 					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 
 				for {
-					if hashed {
-						if syncmer {
-							code, ok = sketch.Next()
-						} else {
-							code, ok = iter.NextHash()
-						}
+					if syncmer {
+						code, ok = sketch.NextSyncmer()
+					} else if minimizer {
+						code, ok = sketch.NextMinimizer()
+					} else if hashed {
+						code, ok = iter.NextHash()
 					} else {
 						code, ok, err = iter.NextKmer()
 						if err != nil {
 							checkError(errors.Wrapf(err, "seq: %s", record.Name))
 						}
 					}
+
 					if !ok {
 						break
 					}
@@ -501,7 +526,7 @@ func init() {
 	countCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
 
-	countCmd.Flags().IntP("scale", "", 1, `scale/down-sample factor`)
-	countCmd.Flags().IntP("minimizer-w", "", 0, `minimizer window size`)
-	countCmd.Flags().IntP("syncmer-s", "", 0, `syncmer s`)
+	countCmd.Flags().IntP("scale", "D", 1, `scale/down-sample factor`)
+	countCmd.Flags().IntP("minimizer-w", "W", 0, `minimizer window size`)
+	countCmd.Flags().IntP("syncmer-s", "S", 0, `syncmer s`)
 }

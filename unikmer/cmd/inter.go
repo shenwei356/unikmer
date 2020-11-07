@@ -39,7 +39,7 @@ var interCmd = &cobra.Command{
 
 Attentions:
   0. All input files should be sorted, and output file is sorted.
-  1. The 'canonical' flags of all files should be consistent.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Taxid information could be inconsistent when using flag --mix-taxid.
   
 Tips:

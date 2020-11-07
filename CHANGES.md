@@ -1,7 +1,7 @@
 - v0.14.0
     - `unikmer union`: fix bug when flag `-s` not given.
     - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.
-    - `unikmer count/db`: support scaled sketch.
+    - `unikmer count/db`: support scaled/minizimer/syncmer sketch.
     - `unikmer stats`: change format.
 - v0.13.0
     - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.

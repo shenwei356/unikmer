@@ -47,15 +47,19 @@ var indexCmd = &cobra.Command{
 
 Attentions:
   0. All input files should be sorted.
-  1. The 'canonical' flags of all files should be consistent.
-  2. Increase value of -j/--threads for acceleratation in cost of more
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
+  2. If binary files contain minizimer/syncmer sketchs, you must set 
+     the same parameter in this command.
+
+Tips:
+  1. Increase value of -j/--threads for acceleratation in cost of more
      memory occupation and I/O pressure, sqrt(#cpus) is recommended.
      #threads * #threads files are simultaneously opened, and max number
      of opened files is limited by flag -F/--max-open-files.
-  3. Value of block size -b/--block-size better be multiple of 64.
-  4. Use --dry-run to adjust parameters and see final #index files 
+  2. Value of block size -b/--block-size better be multiple of 64.
+  3. Use --dry-run to adjust parameters and see final #index files 
      and total file size.
-  5. Use --in-memory for acceleratation in cost of more memory usage.
+  4. Use --in-memory for acceleratation in cost of more memory usage.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -94,6 +98,22 @@ Attentions:
 		}
 
 		inMemoryMode := getFlagBool(cmd, "in-memory")
+
+		minimizerW := getFlagNonNegativeInt(cmd, "minimizer-w")
+		if minimizerW > 1<<32-1 {
+			checkError(fmt.Errorf("value of flag --minimizer-w is too big"))
+		}
+		minimizer := minimizerW > 0
+
+		syncmerS := getFlagNonNegativeInt(cmd, "syncmer-s")
+		if syncmerS > 1<<32-1 {
+			checkError(fmt.Errorf("value of flag --syncmer-s is too big"))
+		}
+		syncmer := syncmerS > 0
+
+		if minimizer && syncmer {
+			checkError(fmt.Errorf("flag --minimizer-w and --syncmer-s can not be given simultaneously"))
+		}
 
 		// -------------------------------------------------------
 
@@ -198,6 +218,15 @@ Attentions:
 				reader0 = reader
 				k = reader.K
 				hashed = reader.IsHashed()
+				if !hashed {
+					if syncmer {
+						checkError(fmt.Errorf(`flag --syncmer-s given but the k-mers in .unik file are not hashed: %s`, file))
+					}
+					if minimizer {
+						checkError(fmt.Errorf(`flag --minizimer-w given but the k-mers in .unik file are not hashed: %s`, file))
+					}
+				}
+
 				canonical = reader.IsCanonical()
 				scaled = reader.IsScaled()
 				scale = reader.GetScale()
@@ -746,6 +775,10 @@ Attentions:
 			dbInfo.Canonical = canonical
 			dbInfo.Scaled = scaled
 			dbInfo.Scale = scale
+			dbInfo.Minizimer = minimizer
+			dbInfo.MinizimerW = uint32(minimizerW)
+			dbInfo.Syncmer = syncmer
+			dbInfo.SyncmerS = uint32(syncmerS)
 			checkError(dbInfo.WriteTo(filepath.Join(outDir, dbInfoFile)))
 		}
 
@@ -774,4 +807,8 @@ func init() {
 	indexCmd.Flags().IntP("max-open-files", "F", 256, "maximum number of opened files")
 	indexCmd.Flags().BoolP("dry-run", "", false, "dry run, useful to adjust parameters")
 	indexCmd.Flags().BoolP("in-memory", "", false, "compute signature matrix in memory, much faster by avoid frequent disk writes (recommended)")
+
+	indexCmd.Flags().IntP("minimizer-w", "W", 0, `minimizer window size`)
+	indexCmd.Flags().IntP("syncmer-s", "S", 0, `syncmer s`)
+
 }

@@ -38,7 +38,7 @@ var headCmd = &cobra.Command{
 	Long: `Extract the first N k-mers
 
 Attentions:
-  1. The 'canonical' flags of all files should be consistent.
+  1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Input files should ALL have or don't have taxid information.
 
 `,
