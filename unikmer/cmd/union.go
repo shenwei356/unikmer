@@ -205,9 +205,6 @@ Tips:
 					if _, ok = m[code]; !ok {
 						m[code] = struct{}{}
 						n++
-						if !sortKmers {
-							writer.WriteCode(code)
-						}
 					}
 				}
 

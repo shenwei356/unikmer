@@ -1,4 +1,5 @@
 - v0.14.0
+    - `unikmer union`: fix bug when flag `-s` not given.
     - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.
     - `unikmer count/db`: support scaled sketch.
     - `unikmer stats`: change format.
