@@ -30,9 +30,9 @@ func TestPackTwoTaxids(t *testing.T) {
 		c    uint64
 	}
 	tests := []Test{
-		Test{0, 0, 0},
-		Test{1, 1, 1<<32 + 1},
-		Test{2, 1, 1<<32 + 2},
+		{0, 0, 0},
+		{1, 1, 1<<32 + 1},
+		{2, 1, 1<<32 + 2},
 	}
 
 	for _, test := range tests {

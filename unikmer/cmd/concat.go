@@ -121,18 +121,18 @@ Attentions:
 
 					var mode uint32
 					if sortedKmers { // || (len(files) == 1 && reader.IsSorted()) {
-						mode |= unikmer.UNIK_SORTED
+						mode |= unikmer.UnikSorted
 					} else if opt.Compact && !hashed {
-						mode |= unikmer.UNIK_COMPACT
+						mode |= unikmer.UnikCompact
 					}
 					if canonical {
-						mode |= unikmer.UNIK_CANONICAL
+						mode |= unikmer.UnikCanonical
 					}
 					if hasTaxid && !hasGlobalTaxid {
-						mode |= unikmer.UNIK_INCLUDETAXID
+						mode |= unikmer.UnikIncludeTaxID
 					}
 					if hashed {
-						mode |= unikmer.UNIK_HASHED
+						mode |= unikmer.UnikHashed
 					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(err)

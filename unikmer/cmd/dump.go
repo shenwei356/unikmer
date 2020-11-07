@@ -173,18 +173,18 @@ Attentions:
 					if writer == nil {
 						var mode uint32
 						if sortedKmers {
-							mode |= unikmer.UNIK_SORTED
+							mode |= unikmer.UnikSorted
 						} else if opt.Compact && !hashed {
-							mode |= unikmer.UNIK_COMPACT
+							mode |= unikmer.UnikCompact
 						}
 						if canonical || canonicalOnly {
-							mode |= unikmer.UNIK_CANONICAL
+							mode |= unikmer.UnikCanonical
 						}
 						if includeTaxid {
-							mode |= unikmer.UNIK_INCLUDETAXID
+							mode |= unikmer.UnikIncludeTaxID
 						}
 						if hashed {
-							mode |= unikmer.UNIK_HASHED
+							mode |= unikmer.UnikHashed
 						}
 						writer, err = unikmer.NewWriter(outfh, l, mode)
 						checkError(errors.Wrap(err, outFile))

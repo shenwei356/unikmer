@@ -204,9 +204,9 @@ func mergeChunksFile(opt *Options, taxondb *unikmer.Taxonomy, files []string, ou
 	}()
 
 	var writer *unikmer.Writer
-	hasTaxid := mode&unikmer.UNIK_INCLUDETAXID > 0
+	hasTaxid := mode&unikmer.UnikIncludeTaxID > 0
 	if hasTaxid && taxondb == nil {
-		checkError(fmt.Errorf("taxon information is need when UNIK_INCLUDETAXID is one"))
+		checkError(fmt.Errorf("taxon information is need when UnikIncludeTaxID is one"))
 	}
 
 	writer, err = unikmer.NewWriter(outfh, k, mode)

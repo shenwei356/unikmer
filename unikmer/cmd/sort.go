@@ -202,15 +202,15 @@ Tips:
 					}
 
 					if canonical {
-						mode |= unikmer.UNIK_CANONICAL
+						mode |= unikmer.UnikCanonical
 					}
 					if hasTaxid {
-						mode |= unikmer.UNIK_INCLUDETAXID
+						mode |= unikmer.UnikIncludeTaxID
 					}
 					if hashed {
-						mode |= unikmer.UNIK_HASHED
+						mode |= unikmer.UnikHashed
 					}
-					mode |= unikmer.UNIK_SORTED
+					mode |= unikmer.UnikSorted
 				} else {
 					checkCompatibility(reader0, reader, file)
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {

@@ -111,7 +111,7 @@ Attentions:
 
 					mode := reader.Flag
 					if hasTaxid {
-						mode |= unikmer.UNIK_INCLUDETAXID // for multiple input files
+						mode |= unikmer.UnikIncludeTaxID // for multiple input files
 					}
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(errors.Wrap(err, outFile))

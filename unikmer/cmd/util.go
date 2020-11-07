@@ -193,7 +193,7 @@ var degenerateBaseMapNucl = map[byte]string{
 }
 
 func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
-	dseqs = [][]byte{[]byte{}}
+	dseqs = [][]byte{{}}
 	var i, j, k int
 	var ok bool
 	var dbases string

@@ -218,7 +218,7 @@ Rank file:
 					}
 
 					mode := reader.Flag
-					mode |= unikmer.UNIK_INCLUDETAXID
+					mode |= unikmer.UnikIncludeTaxID
 					writer, err = unikmer.NewWriter(outfh, k, mode)
 					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader

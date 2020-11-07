@@ -54,8 +54,8 @@ var ErrCallOrder = errors.New("unikmer: WriteTaxid/ReadTaxid should be called af
 // ErrCallLate means SetMaxTaxid/SetGlobalTaxid should be called before writing KmerCode/code/taxid
 var ErrCallLate = errors.New("unikmer: SetMaxTaxid/SetGlobalTaxid should be called before writing KmerCode/code/taxid")
 
-// ErrCallReadWriteTaxid means flag UNIK_INCLUDETAXID is off, but you call ReadTaxid/WriteTaxid
-var ErrCallReadWriteTaxid = errors.New("unikmer: can not call ReadTaxid/WriteTaxid when flag UNIK_INCLUDETAXID is off")
+// ErrCallReadWriteTaxid means flag UnikIncludeTaxID is off, but you call ReadTaxid/WriteTaxid
+var ErrCallReadWriteTaxid = errors.New("unikmer: can not call ReadTaxid/WriteTaxid when flag UnikIncludeTaxID is off")
 
 // ErrInvalidTaxid means zero given for a taxid.
 var ErrInvalidTaxid = errors.New("unikmer: invalid taxid, 0 not allowed")
@@ -81,17 +81,16 @@ type Header struct {
 }
 
 const (
-	// UNIK_COMPACT means k-mers are serialized in fix-length (n = int((K + 3) / 4) ) of byte array.
-	UNIK_COMPACT = 1 << iota
-	// UNIK_CANONICAL means only canonical k-mers kept.
-	UNIK_CANONICAL
-	// UNIK_SORTED means k-mers are sorted
-	UNIK_SORTED // when sorted, the serialization structure is very different
-	// UNIK_INCLUDETAXID means a k-mer are followed it's LCA taxid
-	UNIK_INCLUDETAXID
-
-	// UNIK_HASHED means ntHash value are saved as code.
-	UNIK_HASHED
+	// UnikCompact means k-mers are serialized in fix-length (n = int((K + 3) / 4) ) of byte array.
+	UnikCompact = 1 << iota
+	// UnikCanonical means only canonical k-mers kept.
+	UnikCanonical
+	// UnikSorted means k-mers are sorted
+	UnikSorted // when sorted, the serialization structure is very different
+	// UnikIncludeTaxID means a k-mer are followed it's LCA taxid
+	UnikIncludeTaxID
+	// UnikHashed means ntHash value are saved as code.
+	UnikHashed
 )
 
 func (h Header) String() string {
@@ -138,27 +137,27 @@ func NewReader(r io.Reader) (reader *Reader, err error) {
 
 // IsSorted tells if the k-mers in file sorted
 func (reader *Reader) IsSorted() bool {
-	return reader.Flag&UNIK_SORTED > 0
+	return reader.Flag&UnikSorted > 0
 }
 
 // IsCanonical tells if the only canonical k-mers stored
 func (reader *Reader) IsCanonical() bool {
-	return reader.Flag&UNIK_CANONICAL > 0
+	return reader.Flag&UnikCanonical > 0
 }
 
 // IsCompact tells if the k-mers are stored in a compact format
 func (reader *Reader) IsCompact() bool {
-	return reader.Flag&UNIK_COMPACT > 0
+	return reader.Flag&UnikCompact > 0
 }
 
 // IsIncludeTaxid tells if every k-mer is followed by its taxid
 func (reader *Reader) IsIncludeTaxid() bool {
-	return reader.Flag&UNIK_INCLUDETAXID > 0
+	return reader.Flag&UnikIncludeTaxID > 0
 }
 
 // IsHashed tells if ntHash values are saved.
 func (reader *Reader) IsHashed() bool {
-	return reader.Flag&UNIK_HASHED > 0
+	return reader.Flag&UnikHashed > 0
 }
 
 // HasGlobalTaxid means the file has a global taxid
@@ -481,19 +480,19 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 	}
 
 	writer.buf = make([]byte, 8)
-	if writer.Flag&UNIK_COMPACT > 0 &&
-		writer.Flag&UNIK_SORTED == 0 &&
-		writer.Flag&UNIK_HASHED == 0 {
+	if writer.Flag&UnikCompact > 0 &&
+		writer.Flag&UnikSorted == 0 &&
+		writer.Flag&UnikHashed == 0 {
 
 		writer.compact = true
 		writer.bufsize = int(k+3) / 4
 	}
-	if writer.Flag&UNIK_SORTED > 0 {
+	if writer.Flag&UnikSorted > 0 {
 		writer.sorted = true
 		writer.buf2 = make([]byte, 16)
 		writer.buf3 = make([]byte, 32)
 	}
-	if writer.Flag&UNIK_INCLUDETAXID > 0 {
+	if writer.Flag&UnikIncludeTaxID > 0 {
 		writer.includeTaxid = true
 		writer.bufTaxid = make([]byte, 4)
 	}
@@ -625,7 +624,7 @@ func (writer *Writer) Write(kcode KmerCode) (err error) {
 }
 
 // WriteWithTaxid writes one KmerCode and its taxid.
-// If UNIK_INCLUDETAXID is off, taxid will not be written.
+// If UnikIncludeTaxID is off, taxid will not be written.
 func (writer *Writer) WriteWithTaxid(kcode KmerCode, taxid uint32) (err error) {
 	err = writer.Write(kcode)
 	if err != nil {
@@ -635,7 +634,7 @@ func (writer *Writer) WriteWithTaxid(kcode KmerCode, taxid uint32) (err error) {
 }
 
 // WriteCodeWithTaxid writes a code and its taxid.
-// If UNIK_INCLUDETAXID is off, taxid will not be written.
+// If UnikIncludeTaxID is off, taxid will not be written.
 func (writer *Writer) WriteCodeWithTaxid(code uint64, taxid uint32) (err error) {
 	err = writer.WriteCode(code)
 	if err != nil {

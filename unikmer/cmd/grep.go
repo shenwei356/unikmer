@@ -495,20 +495,20 @@ Tips:
 
 						var mode uint32
 
-						mode |= unikmer.UNIK_CANONICAL // forcing using canonical
+						mode |= unikmer.UnikCanonical // forcing using canonical
 						if sortKmers {
-							mode |= unikmer.UNIK_SORTED
+							mode |= unikmer.UnikSorted
 						} else if len(files) == 1 && reader.IsSorted() {
 							// if the only input file is already sorted, we don't have to sort again.
-							mode |= unikmer.UNIK_SORTED
+							mode |= unikmer.UnikSorted
 						} else if opt.Compact && !_hashed {
-							mode |= unikmer.UNIK_COMPACT
+							mode |= unikmer.UnikCompact
 						}
 						if hasTaxid {
-							mode |= unikmer.UNIK_INCLUDETAXID
+							mode |= unikmer.UnikIncludeTaxID
 						}
 						if _hashed {
-							mode |= unikmer.UNIK_HASHED
+							mode |= unikmer.UnikHashed
 						}
 						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
 						checkError(errors.Wrap(err, outFile))
@@ -580,19 +580,19 @@ Tips:
 					}()
 
 					var mode uint32
-					mode |= unikmer.UNIK_CANONICAL
+					mode |= unikmer.UnikCanonical
 					if sortKmers {
-						mode |= unikmer.UNIK_SORTED
+						mode |= unikmer.UnikSorted
 					} else if reader.IsSorted() {
-						mode |= unikmer.UNIK_SORTED
+						mode |= unikmer.UnikSorted
 					} else if opt.Compact && !hashed {
-						mode |= unikmer.UNIK_COMPACT
+						mode |= unikmer.UnikCompact
 					}
 					if _isIncludeTaxid {
-						mode |= unikmer.UNIK_INCLUDETAXID
+						mode |= unikmer.UnikIncludeTaxID
 					}
 					if _hashed {
-						mode |= unikmer.UNIK_HASHED
+						mode |= unikmer.UnikHashed
 					}
 					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
 					checkError(errors.Wrap(err, _outFile))

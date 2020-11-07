@@ -287,18 +287,18 @@ var countCmd = &cobra.Command{
 		var writer *unikmer.Writer
 		var mode uint32
 		if sortKmers {
-			mode |= unikmer.UNIK_SORTED
+			mode |= unikmer.UnikSorted
 		} else if opt.Compact && !hashed {
-			mode |= unikmer.UNIK_COMPACT
+			mode |= unikmer.UnikCompact
 		}
 		if canonical {
-			mode |= unikmer.UNIK_CANONICAL
+			mode |= unikmer.UnikCanonical
 		}
 		if parseTaxid {
-			mode |= unikmer.UNIK_INCLUDETAXID
+			mode |= unikmer.UnikIncludeTaxID
 		}
 		if hashed {
-			mode |= unikmer.UNIK_HASHED
+			mode |= unikmer.UnikHashed
 		}
 		writer, err = unikmer.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))

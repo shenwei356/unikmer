@@ -156,18 +156,18 @@ Tips:
 					if !hasTaxid && !sortKmers {
 						var mode uint32
 						if sortKmers {
-							mode |= unikmer.UNIK_SORTED
+							mode |= unikmer.UnikSorted
 						} else if opt.Compact && !hashed {
-							mode |= unikmer.UNIK_COMPACT
+							mode |= unikmer.UnikCompact
 						}
 						if canonical {
-							mode |= unikmer.UNIK_CANONICAL
+							mode |= unikmer.UnikCanonical
 						}
 						if hasTaxid {
-							mode |= unikmer.UNIK_INCLUDETAXID
+							mode |= unikmer.UnikIncludeTaxID
 						}
 						if hashed {
-							mode |= unikmer.UNIK_HASHED
+							mode |= unikmer.UnikHashed
 						}
 						writer, err = unikmer.NewWriter(outfh, k, mode)
 						checkError(errors.Wrap(err, outFile))
@@ -224,18 +224,18 @@ Tips:
 		if sortKmers || hasTaxid {
 			var mode uint32
 			if sortKmers {
-				mode |= unikmer.UNIK_SORTED
+				mode |= unikmer.UnikSorted
 			} else if opt.Compact && !hashed {
-				mode |= unikmer.UNIK_COMPACT
+				mode |= unikmer.UnikCompact
 			}
 			if canonical {
-				mode |= unikmer.UNIK_CANONICAL
+				mode |= unikmer.UnikCanonical
 			}
 			if hasTaxid {
-				mode |= unikmer.UNIK_INCLUDETAXID
+				mode |= unikmer.UnikIncludeTaxID
 			}
 			if hashed {
-				mode |= unikmer.UNIK_HASHED
+				mode |= unikmer.UnikHashed
 			}
 			writer, err = unikmer.NewWriter(outfh, k, mode)
 			checkError(err)

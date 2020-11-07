@@ -312,15 +312,15 @@ Tips:
 		}()
 
 		var mode uint32
-		mode |= unikmer.UNIK_SORTED
+		mode |= unikmer.UnikSorted
 		if canonical {
-			mode |= unikmer.UNIK_CANONICAL
+			mode |= unikmer.UnikCanonical
 		}
 		if hasTaxid || hasMixTaxid {
-			mode |= unikmer.UNIK_INCLUDETAXID
+			mode |= unikmer.UnikIncludeTaxID
 		}
 		if hashed {
-			mode |= unikmer.UNIK_HASHED
+			mode |= unikmer.UnikHashed
 		}
 
 		writer, err := unikmer.NewWriter(outfh, k, mode)
