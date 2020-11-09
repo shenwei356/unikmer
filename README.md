@@ -37,7 +37,7 @@ repeated k-mers.
 [![GoDoc](https://godoc.org/github.com/shenwei356/unikmer?status.svg)](https://godoc.org/github.com/shenwei356/unikmer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
-The unikmer package provides basic manipulations of small K-mers
+The unikmer package provides basic manipulations of K-mers (sketch)
 optional with TaxIDs but without frequency information,
 and also provides serialization methods.
 
@@ -54,18 +54,18 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
     
-    BenchmarkHashIterator/1.00_KB-16                  111454             10004 ns/op             240 B/op          3 allocs/op
-    BenchmarkHashIterator/1.00_MB-16                     111          12376147 ns/op             240 B/op          3 allocs/op
-    BenchmarkHashIterator/10.00_MB-16                     12          96054624 ns/op             240 B/op          3 allocs/op
-    BenchmarkKmerIterator/1.00_KB-16                   64482             15677 ns/op             160 B/op          1 allocs/op
-    BenchmarkKmerIterator/1.00_MB-16                      73          15671324 ns/op             160 B/op          1 allocs/op
-    BenchmarkKmerIterator/10.00_MB-16                      7         158528029 ns/op             160 B/op          1 allocs/op
-    BenchmarkMinimizerIterator/1.00_KB-16              13150             95089 ns/op           16688 B/op          5 allocs/op
-    BenchmarkMinimizerIterator/1.00_MB-16                 15          69625140 ns/op           16688 B/op          5 allocs/op
-    BenchmarkMinimizerIterator/10.00_MB-16                 2         674262795 ns/op           16688 B/op          5 allocs/op
-    BenchmarkSyncmerIterator/1.00_KB-16                 7276            141785 ns/op           16688 B/op          5 allocs/op
-    BenchmarkSyncmerIterator/1.00_MB-16                   10         104615736 ns/op           16688 B/op          5 allocs/op
-    BenchmarkSyncmerIterator/10.00_MB-16                   1        1067994337 ns/op           16688 B/op          5 allocs/op
+    BenchmarkHashIterator/1.00_KB-16                  116676             10837 ns/op             240 B/op          3 allocs/op
+    BenchmarkHashIterator/1.00_MB-16                     100          13843650 ns/op             240 B/op          3 allocs/op
+    BenchmarkHashIterator/10.00_MB-16                     12          92711966 ns/op             240 B/op          3 allocs/op
+    BenchmarkKmerIterator/1.00_KB-16                   76557             15794 ns/op             160 B/op          1 allocs/op
+    BenchmarkKmerIterator/1.00_MB-16                      75          16050744 ns/op             160 B/op          1 allocs/op
+    BenchmarkKmerIterator/10.00_MB-16                      7         155706231 ns/op             160 B/op          1 allocs/op
+    BenchmarkMinimizerIterator/1.00_KB-16               9988            101337 ns/op           16720 B/op          5 allocs/op
+    BenchmarkMinimizerIterator/1.00_MB-16                 15          71735538 ns/op           16720 B/op          5 allocs/op
+    BenchmarkMinimizerIterator/10.00_MB-16                 2         689242954 ns/op           16720 B/op          5 allocs/op
+    BenchmarkSyncmerIterator/1.00_KB-16                 9571            122908 ns/op           16720 B/op          5 allocs/op
+    BenchmarkSyncmerIterator/1.00_MB-16                   12          99519135 ns/op           16720 B/op          5 allocs/op
+    BenchmarkSyncmerIterator/10.00_MB-16                   1        1013288700 ns/op           16720 B/op          5 allocs/op
 
     BenchmarkEncodeK32-16                           58827567                20.0 ns/op             0 B/op          0 allocs/op
     BenchmarkEncodeFromFormerKmerK32-16             128119014               9.03 ns/op             0 B/op          0 allocs/op

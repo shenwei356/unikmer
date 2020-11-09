@@ -52,9 +52,10 @@ type Sketch struct {
 	i, mI int
 	v, mV uint64
 
-	buf  []idxValue
-	i2v  idxValue
-	flag bool
+	buf     []idxValue
+	i2v     idxValue
+	flag    bool
+	t, b, e int
 
 	// ------ for minimizer -----
 	minimizer bool
@@ -154,7 +155,8 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 
 		// find min k-mer
 		if s.idx > s.r {
-			// remove k-mer not in this window
+			// remove k-mer not in this window.
+			// have to check position/index one by one
 			for s.i, s.i2v = range s.buf {
 				if s.i2v.idx == s.idx-s.w {
 					if s.i < s.r {
@@ -167,17 +169,39 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 
 			// add new k-mer
 			s.flag = false
-			for s.i = 0; s.i < s.r; s.i++ {
-				if code < s.buf[s.i].val { // insert before this
-					s.buf = append(s.buf, idxValue{0, 0}) // append one element
-					copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
-					s.buf[s.i] = idxValue{s.idx, code}
-					s.flag = true
-					break
+			// using binary search, faster han linnear search
+			s.b, s.e = 0, s.r-1
+			for {
+				s.t = s.b + (s.e-s.b)/2
+				if code < s.buf[s.t].val {
+					s.e = s.t - 1 // end search here
+					if s.e <= s.b {
+						s.flag = true
+						s.i = s.b
+						break
+					}
+				} else {
+					s.b = s.t + 1 // start here
+					if s.b >= s.r {
+						s.flag = false
+						break
+					}
+					if s.b >= s.e {
+						s.flag = true
+						s.i = s.e // right here
+						break
+					}
 				}
 			}
 			if !s.flag { // it's the biggest one, append to the end
 				s.buf = append(s.buf, idxValue{s.idx, code})
+			} else {
+				if code >= s.buf[s.i].val { // have to check again
+					s.i++
+				}
+				s.buf = append(s.buf, blankI2V)     // append one element
+				copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
+				s.buf[s.i] = idxValue{s.idx, code}
 			}
 
 			s.i2v = s.buf[0]
@@ -225,7 +249,8 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			}
 			sort.Sort(idxValues(s.buf))
 		} else {
-			// remove s-mer not in this window
+			// remove s-mer not in this window.
+			// have to check position/index one by one
 			for s.i, s.i2v = range s.buf {
 				if s.i2v.idx == s.idx-1 {
 					if s.i < s.r {
@@ -239,19 +264,43 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			// add new s-mer
 			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
 			s.flag = false
-			for s.i = 0; s.i < s.r; s.i++ {
-				if s.v < s.buf[s.i].val { // insert before this
-					s.buf = append(s.buf, idxValue{0, 0}) // append one element
-					copy(s.buf[s.i+1:], s.buf[s.i:s.r])   // move right
-					s.buf[s.i] = idxValue{s.idx + s.r, s.v}
-					s.flag = true // inserted in some node
-					break
+			// using binary search, faster han linnear search
+			s.b, s.e = 0, s.r-1
+			for {
+				s.t = s.b + (s.e-s.b)/2
+				if s.v < s.buf[s.t].val {
+					s.e = s.t - 1 // end search here
+					if s.e <= s.b {
+						s.flag = true
+						s.i = s.b
+						break
+					}
+				} else {
+					s.b = s.t + 1 // start here
+					if s.b >= s.r {
+						s.flag = false
+						break
+					}
+					if s.b >= s.e {
+						s.flag = true
+						s.i = s.e // right here
+						break
+					}
 				}
 			}
 			if !s.flag { // it's the biggest one, append to the end
 				s.buf = append(s.buf, idxValue{s.idx + s.r, s.v})
+			} else {
+				if s.v >= s.buf[s.i].val { // have to check again
+					s.i++
+				}
+				s.buf = append(s.buf, blankI2V)     // append one element
+				copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
+				s.buf[s.i] = idxValue{s.idx + s.r, s.v}
 			}
+
 		}
+
 		s.i2v = s.buf[0]
 		s.mI, s.mV = s.i2v.idx, s.i2v.val
 
@@ -286,6 +335,8 @@ type idxValue struct {
 	idx int    // index
 	val uint64 // hash
 }
+
+var blankI2V = idxValue{0, 0}
 
 type idxValues []idxValue
 

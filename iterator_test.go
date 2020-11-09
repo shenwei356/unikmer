@@ -46,6 +46,7 @@ func TestSyncmer(t *testing.T) {
 	var code uint64
 	var ok bool
 	var idx int
+	codes := make([]uint64, 0, 1024)
 	for {
 		code, ok = sketch.NextSyncmer()
 		if !ok {
@@ -57,7 +58,14 @@ func TestSyncmer(t *testing.T) {
 		_syncmerIdx = idx
 		_syncmer = code
 
+		codes = append(codes, code)
 		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+	}
+	if len(codes) == 2 &&
+		codes[0] == 7385093395039290540 &&
+		codes[1] == 1099502864234245338 {
+	} else {
+		t.Errorf("syncmer error")
 	}
 }
 
@@ -79,6 +87,7 @@ func TestMinimizer(t *testing.T) {
 	var code uint64
 	var ok bool
 	var idx int
+	codes := make([]uint64, 0, 1024)
 	for {
 		code, ok = sketch.NextMinimizer()
 		if !ok {
@@ -90,7 +99,17 @@ func TestMinimizer(t *testing.T) {
 		_syncmerIdx = idx
 		_syncmer = code
 
+		codes = append(codes, code)
 		// fmt.Printf("minizimer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+	}
+
+	if len(codes) == 4 &&
+		codes[0] == 2645801399420473919 &&
+		codes[1] == 1099502864234245338 &&
+		codes[2] == 6763474888237448943 &&
+		codes[3] == 2737971715116251183 {
+	} else {
+		t.Errorf("syncmer error")
 	}
 }
 
@@ -211,6 +230,7 @@ func BenchmarkMinimizerIterator(b *testing.B) {
 }
 
 // go test -v -test.bench=BenchmarkSyncmerIterator -cpuprofile profile.out -test.run=damnit
+// go tool pprof -http=:8080 profile.out
 func BenchmarkSyncmerIterator(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
