@@ -58,6 +58,7 @@ type Sketch struct {
 	t, b, e int
 
 	// ------ for minimizer -----
+	skip      bool
 	minimizer bool
 	w         int
 	l         int // k+w-1
@@ -65,11 +66,12 @@ type Sketch struct {
 }
 
 // NewMinimizerSketch returns a SyncmerSketch Iterator.
+// It returns the minHashes in all windows of w (w>=1) bp.
 func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
-	if w < 2 || w > (1<<32)-1 {
+	if w < 1 || w > (1<<32)-1 {
 		return nil, ErrInvalidW
 	}
 	if len(S.Seq) < k {
@@ -78,6 +80,7 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 
 	sketch := &Sketch{S: S.Seq, w: w, k: k, l: k + w - 1, circular: circular}
 	sketch.minimizer = true
+	sketch.skip = w == 1
 
 	var seq2 []byte
 	if circular {
@@ -103,11 +106,12 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 }
 
 // NewSyncmerSketch returns a SyncmerSketch Iterator.
+// 1<=s<=k.
 func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
-	if s >= k {
+	if s > k || s == 0 {
 		return nil, ErrInvalidS
 	}
 	if len(S.Seq) < k*2-s-1 {
@@ -116,6 +120,7 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 
 	sketch := &Sketch{S: S.Seq, s: s, k: k, circular: circular}
 	// sketch.maxUint64 = ^uint64(0)
+	sketch.skip = s == k
 
 	var seq2 []byte
 	if circular {
@@ -153,6 +158,11 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 			return code, false
 		}
 
+		if s.skip {
+			s.mI = s.idx
+			s.idx++
+			return code, true
+		}
 		// find min k-mer
 		if s.idx > s.r {
 			// remove k-mer not in this window.
@@ -239,6 +249,11 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 		code, ok = s.hasher.Next(true)
 		if !ok {
 			return code, false
+		}
+
+		if s.skip {
+			s.idx++
+			return code, true
 		}
 
 		// find min s-mer
