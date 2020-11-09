@@ -309,7 +309,7 @@ Attentions:
 				}
 
 				prefix2 = fmt.Sprintf("%s\t%d\t%e\t%d",
-					record.ID, len(record.Seq.Seq), maxFPR(db.Info.FPR, queryCov, len(record.Seq.Seq)), len(matched))
+					record.ID, len(record.Seq.Seq), maxFPR(db.Info.FPR, queryCov, len(kmers)), len(matched))
 
 				if keepUnmatched && len(matched) == 0 {
 					outfh.WriteString(fmt.Sprintf("%s\t%s\t%d\t%d\t%d\n",

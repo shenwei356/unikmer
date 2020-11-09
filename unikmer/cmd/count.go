@@ -241,9 +241,24 @@ K-mer sketchs:
 					break
 				}
 
-				if len(record.Seq.Seq) < k {
-					log.Warningf("skip sequence shorter than k: %s", record.Name)
-					continue
+				if syncmer {
+					sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
+				} else if minimizer {
+					sketch, err = unikmer.NewMinimizerSketch(record.Seq, k, minimizerW, circular)
+				} else if hashed {
+					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
+				} else {
+					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
+				}
+				if err != nil {
+					if err == unikmer.ErrShortSeq {
+						if opt.Verbose && moreVerbose {
+							log.Infof("ignore short seq: %s", record.Name)
+						}
+						continue
+					} else {
+						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+					}
 				}
 
 				if parseTaxid {
@@ -264,26 +279,6 @@ K-mer sketchs:
 						log.Infof("processing sequence #%d: %s, taxid: %d", nseq, record.ID, taxid)
 					} else {
 						log.Infof("processing sequence #%d: %s", nseq, record.ID)
-					}
-				}
-
-				if syncmer {
-					sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
-				} else if minimizer {
-					sketch, err = unikmer.NewMinimizerSketch(record.Seq, k, minimizerW, circular)
-				} else if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
-				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
-				}
-				if err != nil {
-					if err == unikmer.ErrShortSeq {
-						if opt.Verbose && moreVerbose {
-							log.Infof("ignore short seq: %s", record.Name)
-						}
-						continue
-					} else {
-						checkError(errors.Wrapf(err, "seq: %s", record.Name))
 					}
 				}
 
