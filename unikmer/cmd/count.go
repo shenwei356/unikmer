@@ -276,7 +276,16 @@ K-mer sketchs:
 				} else {
 					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
-				checkError(errors.Wrapf(err, "seq: %s", record.Name))
+				if err != nil {
+					if err == unikmer.ErrShortSeq {
+						if opt.Verbose && moreVerbose {
+							log.Infof("ignore short seq: %s", record.Name)
+						}
+						continue
+					} else {
+						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+					}
+				}
 
 				for {
 					if syncmer {

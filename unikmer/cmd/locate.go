@@ -161,7 +161,16 @@ Attention:
 				} else {
 					iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
 				}
-				checkError(errors.Wrapf(err, "seq: %s", record.Name))
+				if err != nil {
+					if err == unikmer.ErrShortSeq {
+						if opt.Verbose {
+							log.Infof("ignore short seq: %s", record.Name)
+						}
+						continue
+					} else {
+						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+					}
+				}
 
 				seqClone := record.Seq.Clone().Seq
 				if circular {

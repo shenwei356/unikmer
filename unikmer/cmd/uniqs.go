@@ -188,7 +188,14 @@ Attention:
 						iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
 					}
 					if err != nil {
-						checkError(errors.Wrapf(err, "file: %s, seq: %s", genomeFile, record.Name))
+						if err == unikmer.ErrShortSeq {
+							if opt.Verbose {
+								log.Infof("ignore short seq in file '%s': %s", genomeFile, record.Name)
+							}
+							continue
+						} else {
+							checkError(errors.Wrapf(err, "file: %s, seq: %s", genomeFile, record.Name))
+						}
 					}
 
 					if _m2, ok = m2[genomeIdx]; !ok {

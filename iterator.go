@@ -35,7 +35,7 @@ var ErrInvalidK = fmt.Errorf("unikmer: invalid k-mer size")
 var ErrEmptySeq = fmt.Errorf("unikmer: empty sequence")
 
 // ErrShortSeq means the sequence is shorter than k
-var ErrShortSeq = fmt.Errorf("unikmer: sequence shorter than k")
+var ErrShortSeq = fmt.Errorf("unikmer: sequence too short")
 
 // Iterator is a kmer code (k<=32) or hash iterator.
 type Iterator struct {

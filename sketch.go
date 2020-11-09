@@ -74,7 +74,7 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 	if w < 1 || w > (1<<32)-1 {
 		return nil, ErrInvalidW
 	}
-	if len(S.Seq) < k {
+	if len(S.Seq) < k+w-1 {
 		return nil, ErrShortSeq
 	}
 

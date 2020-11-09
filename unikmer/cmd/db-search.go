@@ -211,7 +211,16 @@ Attentions:
 				} else {
 					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
-				checkError(errors.Wrapf(err, "seq: %s", record.Name))
+				if err != nil {
+					if err == unikmer.ErrShortSeq {
+						if opt.Verbose {
+							log.Infof("ignore short seq: %s", record.Name)
+						}
+						continue
+					} else {
+						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+					}
+				}
 
 				if syncmer {
 					for {
@@ -255,7 +264,9 @@ Attentions:
 				} else {
 					for {
 						code, ok, err = iter.NextKmer()
-						checkError(errors.Wrapf(err, "seq: %s", record.Name))
+						if err != nil {
+							checkError(errors.Wrapf(err, "seq: %s", record.Name))
+						}
 						if !ok {
 							break
 						}
