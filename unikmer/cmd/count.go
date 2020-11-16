@@ -136,14 +136,22 @@ K-mer sketchs:
 		repeated := getFlagBool(cmd, "repeated")
 		unique := getFlagBool(cmd, "unique")
 
+		if unique && repeated {
+			checkError(fmt.Errorf("flag -u/--unique and -d/--repeated are not compatible"))
+		}
+
+		linear := getFlagBool(cmd, "linear")
+		if linear && (repeated || unique) {
+			log.Warningf("flag -d/repeated and -u/--unique are ignored when -l/--linear given")
+		}
+		if linear && sortKmers {
+			checkError(fmt.Errorf("flag -l/--linear and -s/--sort are not compatible"))
+		}
+
 		moreVerbose := getFlagBool(cmd, "more-verbose")
 
 		if moreVerbose {
 			opt.Verbose = true
-		}
-
-		if unique && repeated {
-			checkError(fmt.Errorf("flag -u/--unique and -d/--repeated are not compatible"))
 		}
 
 		var reParseTaxid *regexp.Regexp
@@ -195,6 +203,10 @@ K-mer sketchs:
 			log.Infof("set global taxid: %d", taxid)
 		}
 
+		var writer *unikmer.Writer
+		var mode uint32
+		var n int64
+
 		var m map[uint64]struct{}
 		var taxondb *unikmer.Taxonomy
 		var mt map[uint64]uint32
@@ -203,20 +215,45 @@ K-mer sketchs:
 		// a key exists means it appear once, value of true means it's appeared more than once.
 		var marks map[uint64]bool
 
-		if parseTaxid {
-			mt = make(map[uint64]uint32, mapInitSize)
-			taxondb = loadTaxonomy(opt, false)
-		} else if !(repeated || unique) {
-			m = make(map[uint64]struct{}, mapInitSize)
-		}
-		if repeated || unique {
-			marks = make(map[uint64]bool, mapInitSize)
+		if linear {
+			if opt.Compact && !hashed {
+				mode |= unikmer.UnikCompact
+			}
+			if canonical {
+				mode |= unikmer.UnikCanonical
+			}
+			if parseTaxid {
+				mode |= unikmer.UnikIncludeTaxID
+			}
+			if hashed {
+				mode |= unikmer.UnikHashed
+			}
+			writer, err = unikmer.NewWriter(outfh, k, mode)
+			checkError(errors.Wrap(err, outFile))
+			writer.SetMaxTaxid(opt.MaxTaxid)
+			if setGlobalTaxid {
+				checkError(writer.SetGlobalTaxid(taxid))
+			}
+			if scaled {
+				writer.SetScale(uint32(scale))
+			}
+
+			n = 0
+		} else {
+			if parseTaxid {
+				mt = make(map[uint64]uint32, mapInitSize)
+				taxondb = loadTaxonomy(opt, false)
+			} else if !(repeated || unique) {
+				m = make(map[uint64]struct{}, mapInitSize)
+			}
+			if repeated || unique {
+				marks = make(map[uint64]bool, mapInitSize)
+			}
 		}
 
 		var record *fastx.Record
 		var fastxReader *fastx.Reader
 		var ok bool
-		var n int64
 		var founds [][][]byte
 		var val uint64
 		var lca uint32
@@ -340,6 +377,17 @@ K-mer sketchs:
 						continue
 					}
 
+					if linear {
+						if parseTaxid {
+							writer.WriteCodeWithTaxid(code, taxid)
+						} else {
+							writer.WriteCode(code)
+						}
+						n++
+
+						continue
+					}
+
 					if repeated || unique {
 						if mark, ok = marks[code]; !ok {
 							marks[code] = false
@@ -357,8 +405,14 @@ K-mer sketchs:
 			}
 		}
 
-		var writer *unikmer.Writer
-		var mode uint32
+		if linear {
+			checkError(writer.Flush())
+			if opt.Verbose {
+				log.Infof("%d unique k-mers saved to %s", n, outFile)
+			}
+			return
+		}
+
 		if sortKmers {
 			mode |= unikmer.UnikSorted
 		} else if opt.Compact && !hashed {
@@ -525,7 +579,7 @@ func init() {
 	countCmd.Flags().BoolP("parse-taxid", "T", false, `parse taxid from FASTA/Q header`)
 	countCmd.Flags().StringP("parse-taxid-regexp", "r", "", `regular expression for passing taxid`)
 	countCmd.Flags().BoolP("repeated", "d", false, `only count duplicated k-mers, for removing singleton in FASTQ`)
-	countCmd.Flags().BoolP("unique", "u", false, `only count unique k-mers, removing duplicated k-mers`)
+	countCmd.Flags().BoolP("unique", "u", false, `only count unique k-mers, which are not duplicated`)
 	countCmd.Flags().BoolP("more-verbose", "V", false, `print extra verbose information`)
 	countCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
 	countCmd.Flags().BoolP("circular", "", false, "circular genome")
@@ -533,4 +587,6 @@ func init() {
 	countCmd.Flags().IntP("scale", "D", 1, `scale/down-sample factor`)
 	countCmd.Flags().IntP("minimizer-w", "W", 0, `minimizer window size`)
 	countCmd.Flags().IntP("syncmer-s", "S", 0, `syncmer s`)
+
+	countCmd.Flags().BoolP("linear", "l", false, `output k-mers in linear order`)
 }
