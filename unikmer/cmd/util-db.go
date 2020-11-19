@@ -34,7 +34,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer/index"
 	"github.com/shenwei356/util/pathutil"
-	"github.com/smallnest/ringbuffer"
 	"gopkg.in/yaml.v2"
 )
 
@@ -288,22 +287,22 @@ func (db *UnikIndexDB) searchHashes(hashes [][]uint64, threads int, queryCov flo
 	ch := make([]*map[string][3]float64, len(db.Indices))
 
 	var wg sync.WaitGroup
-	// tokens := make(chan int, threads)
-	tokens := ringbuffer.New(threads) // ringbufer is faster than channel
+	tokens := make(chan int, threads)
+	// tokens := ringbuffer.New(threads) // ringbufer is faster than channel
 	// for i, idx := range db.Indices {
 	for i := len(db.Indices) - 1; i >= 0; i-- { // start from bigger files
 		idx := db.Indices[i]
 
 		wg.Add(1)
-		// tokens <- 1
-		tokens.WriteByte(0)
+		tokens <- 1
+		// tokens.WriteByte(0)
 		go func(idx *UnikIndex, ch []*map[string][3]float64, i int) {
 			_m := idx.Search(hashes, queryCov, targetCov)
 			ch[i] = &_m
 
 			wg.Done()
-			// <-tokens
-			tokens.ReadByte()
+			<-tokens
+			// tokens.ReadByte()
 		}(idx, ch, i)
 	}
 	wg.Wait()
