@@ -27,17 +27,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/cznic/sortutil"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 	prettytable "github.com/tatsushid/go-prettytable"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var statCmd = &cobra.Command{
@@ -53,6 +53,7 @@ Tips:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 
@@ -241,13 +242,13 @@ Tips:
 			}
 
 			if len(buf) > 0 {
-				ids := make(sortutil.Uint64Slice, len(buf))
+				ids := make([]uint64, len(buf))
 				i := 0
 				for id := range buf {
 					ids[i] = id
 					i++
 				}
-				sort.Sort(ids)
+				sortutil.Uint64s(ids)
 				for _, id := range ids {
 					info := buf[id]
 					if !tabular {

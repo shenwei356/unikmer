@@ -28,7 +28,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -109,7 +108,7 @@ Rank file:
 			for r, o := range rankOrder {
 				orders = append(orders, stringutil.StringCount{Key: r, Count: o})
 			}
-			sort.Sort(stringutil.ReversedStringCountList{orders})
+			sorts.Quicksort(stringutil.ReversedStringCountList{orders})
 			preOrder := -1
 			for _, order := range orders {
 				// fmt.Printf("%d\t%s\n", order.Count, order.Key)
@@ -158,7 +157,7 @@ Rank file:
 				}
 				orders = append(orders, stringutil.StringCount{Key: rank, Count: rankOrder[rank]})
 			}
-			sort.Sort(stringutil.ReversedStringCountList{orders})
+			sorts.Quicksort(stringutil.ReversedStringCountList{orders})
 			for _, order := range orders {
 				// fmt.Printf("%d\t%s\n", order.Count, order.Key)
 				fmt.Printf("%s\n", order.Key)

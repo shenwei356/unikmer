@@ -29,7 +29,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -38,6 +37,8 @@ import (
 	"github.com/shenwei356/util/bytesize"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
+	"github.com/twotwotwo/sorts/sortutil"
 )
 
 var indexCmd = &cobra.Command{
@@ -65,6 +66,7 @@ Tips:
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
 		runtime.GOMAXPROCS(opt.NumCPUs)
+		sorts.MaxProcs = opt.NumCPUs
 
 		dryRun := getFlagBool(cmd, "dry-run")
 		if dryRun {
@@ -310,7 +312,7 @@ Tips:
 			log.Infof("finished checking %d .unik files", nfiles)
 		}
 
-		sort.Sort(UnikFileInfos(fileInfos))
+		sorts.Quicksort(UnikFileInfos(fileInfos))
 
 		names0 := make([]string, 0, len(files))
 		sizes0 := make([]uint64, 0, len(files))
@@ -761,7 +763,7 @@ Tips:
 		<-doneFileSize
 
 		if !dryRun {
-			sort.Strings(indexFiles)
+			sortutil.Strings(indexFiles)
 			dbInfo := NewUnikIndexDBInfo(indexFiles)
 			dbInfo.K = k
 			dbInfo.Hashed = hashed

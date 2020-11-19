@@ -34,6 +34,7 @@ import (
 	"github.com/shenwei356/unikmer"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
+	"github.com/twotwotwo/sorts"
 )
 
 var mapInitSize = 1 << 20 // 1M
@@ -77,6 +78,8 @@ func getOptions(cmd *cobra.Command) *Options {
 	if threads >= 1000 {
 		checkError(fmt.Errorf("are your seriously? %d threads? It will exhaust your RAM", threads))
 	}
+
+	sorts.MaxProcs = threads
 
 	return &Options{
 		NumCPUs:          threads,
