@@ -521,6 +521,11 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 		w:      w,
 	}
 
+	// prevent wrong use of compact
+	if writer.Flag&UnikCompact > 0 && (writer.Flag&UnikSorted > 0 || writer.Flag&UnikHashed > 0) {
+		writer.Flag ^= UnikCompact
+	}
+
 	writer.buf = make([]byte, 8)
 	if writer.Flag&UnikCompact > 0 &&
 		writer.Flag&UnikSorted == 0 &&
@@ -528,8 +533,7 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 
 		writer.compact = true
 		writer.bufsize = int(k+3) / 4
-	}
-	if writer.Flag&UnikSorted > 0 {
+	} else if writer.Flag&UnikSorted > 0 {
 		writer.sorted = true
 		writer.buf2 = make([]byte, 16)
 		writer.buf3 = make([]byte, 32)

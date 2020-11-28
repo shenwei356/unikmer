@@ -805,7 +805,7 @@ func init() {
 	indexCmd.Flags().StringP("block-max-kmers-t2", "M", "200M", `if kmers of single .unik file exceeds this threshold, we creat individual index for this file. unit supported: K, M, G`)
 
 	indexCmd.Flags().BoolP("force", "", false, "overwrite tmp dir")
-	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extract name from .unik file name. if not given, base name are saved")
+	indexCmd.Flags().StringP("name-regexp", "r", "", "regular expression for extracting name from .unik file name. if not given, base name are saved")
 	indexCmd.Flags().IntP("max-open-files", "F", 256, "maximum number of opened files")
 	indexCmd.Flags().BoolP("dry-run", "", false, "dry run, useful to adjust parameters")
 	indexCmd.Flags().BoolP("in-memory", "", false, "compute signature matrix in memory, much faster by avoid frequent disk writes (recommended)")
