@@ -100,7 +100,7 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 		return nil, err
 	}
 
-	sketch.buf = make([]idxValue, 0, 1024)
+	sketch.buf = make([]idxValue, 0, sketch.r+1)
 
 	return sketch, nil
 }
@@ -140,7 +140,7 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 		return nil, err
 	}
 
-	sketch.buf = make([]idxValue, 0, 1024)
+	sketch.buf = make([]idxValue, 0, sketch.r+1)
 
 	return sketch, nil
 }
