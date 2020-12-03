@@ -194,7 +194,7 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 	}
 	sketch.end = len(seq2) - 2*k + s + 1 // len(sequence) - L (2*k - s - 1)
 	sketch.r = 2*k - s - 1 - s           // L-s
-	sketch.kMs = k - s
+	sketch.kMs = k - s                   // k-s
 
 	var err error
 	sketch.hasher, err = nthash.NewHasher(&seq2, uint(k))
