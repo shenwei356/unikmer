@@ -270,7 +270,7 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 
 			// add new k-mer
 			s.flag = false
-			// using binary search, faster han linnear search
+			// using binary search, faster han linear search
 			s.b, s.e = 0, s.r-1
 			for {
 				s.t = s.b + (s.e-s.b)/2
@@ -370,7 +370,7 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			// add new s-mer
 			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
 			s.flag = false
-			// using binary search, faster han linnear search
+			// using binary search, faster han linear search
 			s.b, s.e = 0, s.r-1
 			for {
 				s.t = s.b + (s.e-s.b)/2
