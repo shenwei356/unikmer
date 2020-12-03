@@ -35,6 +35,12 @@ var ErrInvalidS = fmt.Errorf("unikmer: invalid s-mer size")
 // ErrInvalidW means w < 2 or w > (1<<32)-1
 var ErrInvalidW = fmt.Errorf("unikmer: invalid minimimzer window")
 
+// ErrBufNil means the buffer is nil
+var ErrBufNil = fmt.Errorf("unikmer: buffer slice is nil")
+
+// ErrBufNotEmpty means the buffer has some elements
+var ErrBufNotEmpty = fmt.Errorf("unikmer: buffer has elements")
+
 // Sketch is a k-mer sketch iterator
 type Sketch struct {
 	S        []byte
@@ -43,7 +49,7 @@ type Sketch struct {
 	circular bool
 	hasher   *nthash.NTHi
 
-	kMs int // k-s
+	kMs int // k-s, just for syncmer
 	r   int // L-s
 
 	idx int // current location, 0-based
@@ -52,12 +58,12 @@ type Sketch struct {
 	i, mI int
 	v, mV uint64
 
-	buf     []idxValue
-	i2v     idxValue
+	buf     []IdxValue
+	i2v     IdxValue
 	flag    bool
 	t, b, e int
 
-	// ------ for minimizer -----
+	// ------ just for minimizer -----
 	skip      bool
 	minimizer bool
 	w         int
@@ -68,6 +74,14 @@ type Sketch struct {
 // NewMinimizerSketch returns a SyncmerSketch Iterator.
 // It returns the minHashes in all windows of w (w>=1) bp.
 func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error) {
+	return NewMinimizerSketchWithBuffer(S, k, w, circular, make([]IdxValue, 0, w))
+}
+
+// NewMinimizerSketchWithBuffer returns a SyncmerSketch Iterator.
+// It returns the minHashes in all windows of w (w>=1) bp.
+// Giving a buffer can reduce GC load when compute sketches for large number of sequence,
+// where you can recycle the buffer.
+func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf []IdxValue) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
@@ -76,6 +90,12 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 	}
 	if len(S.Seq) < k+w-1 {
 		return nil, ErrShortSeq
+	}
+	if buf == nil {
+		return nil, ErrBufNil
+	}
+	if len(buf) != 0 {
+		return nil, ErrBufNotEmpty
 	}
 
 	sketch := &Sketch{S: S.Seq, w: w, k: k, l: k + w - 1, circular: circular}
@@ -100,14 +120,55 @@ func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error
 		return nil, err
 	}
 
-	sketch.buf = make([]idxValue, 0, sketch.r+1)
+	sketch.buf = buf
 
 	return sketch, nil
+}
+
+// ResetMinimizer resets the sketch with new sequence.
+func (s *Sketch) ResetMinimizer(S *seq.Seq) error {
+	if len(S.Seq) < s.k+s.w-1 {
+		return ErrShortSeq
+	}
+
+	s.S = S.Seq
+
+	var seq2 []byte
+	if s.circular {
+		seq2 = make([]byte, len(S.Seq), len(S.Seq)+s.k-1)
+		copy(seq2, S.Seq) // do not edit original sequence
+		seq2 = append(seq2, S.Seq[0:s.k-1]...)
+		s.S = seq2
+	} else {
+		seq2 = S.Seq
+	}
+	s.end = len(seq2) - 1
+	s.r = s.w - 1 // L-k
+
+	var err error
+	s.hasher, err = nthash.NewHasher(&seq2, uint(s.k))
+	if err != nil {
+		return err
+	}
+
+	s.buf = s.buf[:0]
+	s.idx = 0
+	s.i = 0
+	s.preMI = 0
+	return nil
 }
 
 // NewSyncmerSketch returns a SyncmerSketch Iterator.
 // 1<=s<=k.
 func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) {
+	return NewSyncmerSketchWithBuffer(S, k, s, circular, make([]IdxValue, 0, (k-s)<<1))
+}
+
+// NewSyncmerSketchWithBuffer returns a SyncmerSketch Iterator.
+// Giving a buffer can reduce GC load when compute sketches for large number of sequence,
+// where you can recycle the buffer.
+// 1<=s<=k.
+func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []IdxValue) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
@@ -133,6 +194,7 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 	}
 	sketch.end = len(seq2) - 2*k + s + 1 // len(sequence) - L (2*k - s - 1)
 	sketch.r = 2*k - s - 1 - s           // L-s
+	sketch.kMs = k - s
 
 	var err error
 	sketch.hasher, err = nthash.NewHasher(&seq2, uint(k))
@@ -140,9 +202,38 @@ func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) 
 		return nil, err
 	}
 
-	sketch.buf = make([]idxValue, 0, sketch.r+1)
+	sketch.buf = make([]IdxValue, 0, sketch.r+1)
 
 	return sketch, nil
+}
+
+// ResetSyncmer resets the sketch with new sequence.
+func (s *Sketch) ResetSyncmer(S *seq.Seq) error {
+	if len(S.Seq) < s.k*2-s.s-1 {
+		return ErrShortSeq
+	}
+
+	var seq2 []byte
+	if s.circular {
+		seq2 = make([]byte, len(S.Seq), len(S.Seq)+s.k-1)
+		copy(seq2, S.Seq) // do not edit original sequence
+		seq2 = append(seq2, S.Seq[0:s.k-1]...)
+		s.S = seq2
+	} else {
+		seq2 = S.Seq
+	}
+	s.end = len(seq2) - 2*s.k + s.s + 1 // len(sequence) - L (2*k - s - 1)
+
+	var err error
+	s.hasher, err = nthash.NewHasher(&seq2, uint(s.k))
+	if err != nil {
+		return err
+	}
+
+	s.buf = s.buf[:0]
+	s.idx = 0
+	s.i = 0
+	return nil
 }
 
 // NextMinimizer returns next minimizer.
@@ -168,7 +259,7 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 			// remove k-mer not in this window.
 			// have to check position/index one by one
 			for s.i, s.i2v = range s.buf {
-				if s.i2v.idx == s.idx-s.w {
+				if s.i2v.Idx == s.idx-s.w {
 					if s.i < s.r {
 						copy(s.buf[s.i:s.r], s.buf[s.i+1:])
 					} // happen to be at the end
@@ -183,7 +274,7 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 			s.b, s.e = 0, s.r-1
 			for {
 				s.t = s.b + (s.e-s.b)/2
-				if code < s.buf[s.t].val {
+				if code < s.buf[s.t].Val {
 					s.e = s.t - 1 // end search here
 					if s.e <= s.b {
 						s.flag = true
@@ -204,34 +295,34 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 				}
 			}
 			if !s.flag { // it's the biggest one, append to the end
-				s.buf = append(s.buf, idxValue{s.idx, code})
+				s.buf = append(s.buf, IdxValue{s.idx, code})
 			} else {
-				if code >= s.buf[s.i].val { // have to check again
+				if code >= s.buf[s.i].Val { // have to check again
 					s.i++
 				}
 				s.buf = append(s.buf, blankI2V)     // append one element
 				copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
-				s.buf[s.i] = idxValue{s.idx, code}
+				s.buf[s.i] = IdxValue{s.idx, code}
 			}
 
 			s.i2v = s.buf[0]
-			if s.i2v.val == s.preMI { // deduplicate
+			if s.i2v.Val == s.preMI { // deduplicate
 				s.idx++
 				continue
 			}
 
-			s.mI, s.mV = s.i2v.idx, s.i2v.val
+			s.mI, s.mV = s.i2v.Idx, s.i2v.Val
 			s.preMI = s.mV
 
 			s.idx++
-			return s.i2v.val, true
+			return s.i2v.Val, true
 		}
 
 		if s.idx == s.r { // position w
-			s.buf = append(s.buf, idxValue{idx: s.idx, val: code})
+			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
 			sort.Sort(idxValues(s.buf)) // sort
 		} else { // front of w
-			s.buf = append(s.buf, idxValue{idx: s.idx, val: code})
+			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
 		}
 
 		s.idx++
@@ -260,14 +351,14 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 		if s.idx == 0 {
 			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
 				s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
-				s.buf = append(s.buf, idxValue{idx: s.i, val: s.v})
+				s.buf = append(s.buf, IdxValue{Idx: s.i, Val: s.v})
 			}
 			sort.Sort(idxValues(s.buf))
 		} else {
 			// remove s-mer not in this window.
 			// have to check position/index one by one
 			for s.i, s.i2v = range s.buf {
-				if s.i2v.idx == s.idx-1 {
+				if s.i2v.Idx == s.idx-1 {
 					if s.i < s.r {
 						copy(s.buf[s.i:s.r], s.buf[s.i+1:])
 					} // happen to be at the end
@@ -283,7 +374,7 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			s.b, s.e = 0, s.r-1
 			for {
 				s.t = s.b + (s.e-s.b)/2
-				if s.v < s.buf[s.t].val {
+				if s.v < s.buf[s.t].Val {
 					s.e = s.t - 1 // end search here
 					if s.e <= s.b {
 						s.flag = true
@@ -304,20 +395,20 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 				}
 			}
 			if !s.flag { // it's the biggest one, append to the end
-				s.buf = append(s.buf, idxValue{s.idx + s.r, s.v})
+				s.buf = append(s.buf, IdxValue{s.idx + s.r, s.v})
 			} else {
-				if s.v >= s.buf[s.i].val { // have to check again
+				if s.v >= s.buf[s.i].Val { // have to check again
 					s.i++
 				}
 				s.buf = append(s.buf, blankI2V)     // append one element
 				copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
-				s.buf[s.i] = idxValue{s.idx + s.r, s.v}
+				s.buf[s.i] = IdxValue{s.idx + s.r, s.v}
 			}
 
 		}
 
 		s.i2v = s.buf[0]
-		s.mI, s.mV = s.i2v.idx, s.i2v.val
+		s.mI, s.mV = s.i2v.Idx, s.i2v.Val
 
 		// check if this k-mer is bounded syncmer
 		if s.mI == s.idx || s.mI == s.idx+s.kMs { // beginning || end
@@ -345,16 +436,16 @@ func (s *Sketch) Index() int {
 	return s.idx - 1
 }
 
-// for sorting s-mer
-type idxValue struct {
-	idx int    // index
-	val uint64 // hash
+// IdxValue is for storing k-mer hash and it's location when computing k-mer sketches.
+type IdxValue struct {
+	Idx int    // index
+	Val uint64 // hash
 }
 
-var blankI2V = idxValue{0, 0}
+var blankI2V = IdxValue{0, 0}
 
-type idxValues []idxValue
+type idxValues []IdxValue
 
 func (l idxValues) Len() int               { return len(l) }
-func (l idxValues) Less(i int, j int) bool { return l[i].val < l[j].val }
+func (l idxValues) Less(i int, j int) bool { return l[i].Val < l[j].Val }
 func (l idxValues) Swap(i int, j int)      { l[i], l[j] = l[j], l[i] }
