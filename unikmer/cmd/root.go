@@ -37,8 +37,8 @@ var RootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
 
 unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
-including set operation, indexing, and searching on k-mers optional with
-TaxIDs but without count information.
+including set operation on k-mers optional with TaxIDs but without count
+information.
 
 K-mers are either encoded (k<=32) or hashed (arbitrary k) into 'uint64',
 and serialized in binary file with extension '.unik'.

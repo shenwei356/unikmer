@@ -1,7 +1,7 @@
 # unikmer
 
 `unikmer` is a golang package and a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
-including set operation, indexing, and searching on k-mers (sketch) optional with
+including set operation k-mers (sketch) optional with
 TaxIDs but without count information.
 
 K-mers are either encoded (k<=32) or hashed (arbitrary k) into `uint64`,
@@ -133,12 +133,6 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 
         locate          Locate k-mers in genome
         uniqs           Mapping k-mers back to genome and find unique subsequences
-
-1. Indexing and searching
-
-        db index       Construct index from binary files
-        db search      Search sequence from index database
-        db info        Information of index file
 
 1. Misc
 

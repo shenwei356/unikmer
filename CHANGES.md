@@ -1,142 +1,145 @@
+# Changelog
+
+- v0.15.0
+  - Separating k-mers (sketches) indexing and searching from `unikmer`, including `unikmer db info/index/search`.
+  - `unikmer count`: fix syncmer.
 - v0.14.0
-    - `unikmer count/db`: fix syncmer.
-- v0.14.0
-    - `unikmer union`: fix bug when flag `-s` not given.
-    - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.
-    - `unikmer count/db`: support scaled/minizimer/syncmer sketch.
-    - `unikmer stats`: change format.
+  - `unikmer union`: fix bug when flag `-s` not given.
+  - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.
+  - `unikmer count/db`: support scaled/minizimer/syncmer sketch.
+  - `unikmer stats`: change format.
 - v0.13.0
-    - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.
-    - `unikmer common/count/diff/grep/rfilter/sort/split/union`: faster sorting.
-    - `unikmer uniqs`: better result for flag `--circular`.
-    - `unikmer search`: fix a bug when searching on database with more than one hash.
+  - new command `unikmer common`: Finding k-mers shared by most of multiple binary files.
+  - `unikmer common/count/diff/grep/rfilter/sort/split/union`: faster sorting.
+  - `unikmer uniqs`: better result for flag `--circular`.
+  - `unikmer search`: fix a bug when searching on database with more than one hash.
 - v0.12.0
-    - `unikmer`:
-        - support longer k (k>32) by saving ntHash.
-        - new flag `-nocheck-file` for not checking binary file.
-    - new commands:
-        - `unikmer db index`: constructing index from binary files
-        - `unikmer db info`: printing information of index file
-        - `unikmer db search`: searching sequence from index database
-    - `unikmer rfilter`: change format of rank order file.
-    - `unikmer inter/union`: speedup for single input file.
-    - `unikmer concat`:
-        - new flag `-t/--taxid` for assigning global taxid, this can slightly reduce file size.
-        - new flag `-n/--number` for setting number of k-mers.
-    - `unikmer num`:
-        - new flag `-f/--force` for counting k-mers.
-    - `unikmer locate`: output in BED6.
-    - `unikmer locate/uniqs`: support multiple genome files.
-    - `unikmer uniqs`:
-        - stricter multiple mapping limit.
-        - new flag `-W/--seqs-in-a-file-as-one-genome`.
-    - `unikmer count`:
-        - new flag `-u/--unique` for output unique (single copy) kmers
+  - `unikmer`:
+    - support longer k (k>32) by saving ntHash.
+    - new flag `-nocheck-file` for not checking binary file.
+  - new commands:
+    - `unikmer db index`: constructing index from binary files
+    - `unikmer db info`: printing information of index file
+    - `unikmer db search`: searching sequence from index database
+  - `unikmer rfilter`: change format of rank order file.
+  - `unikmer inter/union`: speedup for single input file.
+  - `unikmer concat`:
+    - new flag `-t/--taxid` for assigning global taxid, this can slightly reduce file size.
+    - new flag `-n/--number` for setting number of k-mers.
+  - `unikmer num`:
+    - new flag `-f/--force` for counting k-mers.
+  - `unikmer locate`: output in BED6.
+  - `unikmer locate/uniqs`: support multiple genome files.
+  - `unikmer uniqs`:
+    - stricter multiple mapping limit.
+    - new flag `-W/--seqs-in-a-file-as-one-genome`.
+  - `unikmer count`:
+    - new flag `-u/--unique` for output unique (single copy) kmers
 - v0.11.0
-    - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
-    - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.
-    - `unikmer dump`: fix a nil pointer bug.
-    - `unikmer count`:
-        - fix checking taxid in sequence header.
-        - fix setting global taxid.
-    - `unikmer count/diff/union`: slightly reduce memory and speedup when sorting k-mers.
-    - `unikmer filter`: change scoring.
-    - `unikmer count/locate/uniqs`: remove flag `--circular`.
+  - new command: `unikmer rfilter` for filtering k-mers by taxonomic rank.
+  - `unikmer inter`: new flag `-m/--mix-taxid` allowing part of files being whithout taxids.
+  - `unikmer dump`: fix a nil pointer bug.
+  - `unikmer count`:
+    - fix checking taxid in sequence header.
+    - fix setting global taxid.
+  - `unikmer count/diff/union`: slightly reduce memory and speedup when sorting k-mers.
+  - `unikmer filter`: change scoring.
+  - `unikmer count/locate/uniqs`: remove flag `--circular`.
 - v0.10.0
-    - `unikmer`: fix loading custom taxonomy files.
-    - `unikmer count`:
-        - new flag `-d` for only count duplicated k-mers, for removing singleton in FASTQ.
-        - fix nil pointer bug of `-t`.
-    - `unikmer split`: fix memery and last odd k-mer mising bug for given ONE sorted input file.
-    - `unikmer sort`: skip loading taxonomy data when neither `-u` or `-d` given.
-    - `unikmer diff`: 2X speedup, and requiring 1th file being sorted.
-    - `unikmer inter`: 2-5X speedup, and requiring all files being sorted, sorted output by default.
+  - `unikmer`: fix loading custom taxonomy files.
+  - `unikmer count`:
+    - new flag `-d` for only count duplicated k-mers, for removing singleton in FASTQ.
+    - fix nil pointer bug of `-t`.
+  - `unikmer split`: fix memery and last odd k-mer mising bug for given ONE sorted input file.
+  - `unikmer sort`: skip loading taxonomy data when neither `-u` or `-d` given.
+  - `unikmer diff`: 2X speedup, and requiring 1th file being sorted.
+  - `unikmer inter`: 2-5X speedup, and requiring all files being sorted, sorted output by default.
 - v0.9.0
-    - `unikmer`: **new binary format supporting optional Taxids**.
-    - deleted command: `unikmer subset`.
-    - new command: `unikmer head` for extracting the first N k-mers.
-    - new command: `unikmer tsplit` for splitting k-mers according to taxid.
-    - `unikmer grep`: support searching with taxids.
-    - `unikmer count`: support parsing taxid from FASTA/Q header.
+  - `unikmer`: **new binary format supporting optional Taxids**.
+  - deleted command: `unikmer subset`.
+  - new command: `unikmer head` for extracting the first N k-mers.
+  - new command: `unikmer tsplit` for splitting k-mers according to taxid.
+  - `unikmer grep`: support searching with taxids.
+  - `unikmer count`: support parsing taxid from FASTA/Q header.
 - v0.8.0
-    - `unikmer`:
-         - new option `-i/--infile-list`, if given, files in the list file are appended to files from cli arguments.
-         - improve performance of binary file reading and writing.
-    - `unikmer sort/split/merge`: safer forcing deletion of existed outdir, and better log.
-    - `unikmer split`: performance improvement for single sorted input file.
-    - `unikmer sort`: performance improvement for using `-m/--chunk-size`.
-    - `unikmer grep`: rewrite, support loading queries from .unik files.
-    - `unikmer dump`: fix number information in output file.
-    - `unikmer concat`: new flag `-s/--sorted`.
+  - `unikmer`:
+    - new option `-i/--infile-list`, if given, files in the list file are appended to files from cli arguments.
+    - improve performance of binary file reading and writing.
+  - `unikmer sort/split/merge`: safer forcing deletion of existed outdir, and better log.
+  - `unikmer split`: performance improvement for single sorted input file.
+  - `unikmer sort`: performance improvement for using `-m/--chunk-size`.
+  - `unikmer grep`: rewrite, support loading queries from .unik files.
+  - `unikmer dump`: fix number information in output file.
+  - `unikmer concat`: new flag `-s/--sorted`.
 - v0.7.0
-    - new command `unikmer filter`: filter low-complexity k-mers.
-    - new command `unikmer split`: split k-mers into sorted chunk files.
-    - new command `unikmer merge`: merge from sorted chunk files.
-    - `unikmer view`:
-        - new option `-N/--show-code-only` for only showing encoded integers.
-        - fix output error for `-q/--fastq`.
-    - `unikmer uniqs`:
-        - new option `-x/--max-cont-non-uniq-kmers` for limiting max continuous non-unique k-mers.
-        - new option `-X/--max-num-cont-non-uniq-kmers` for limiting max number of continuous non-unique k-mers.
-        - fix bug for `-m/--min-len`.
-    - `unikmer union`:
-        - new option `-d/--repeated` for only printing duplicate k-mers.
-    - `unikmer sort`:
-        - new option `-u/--unique` for removing duplicated k-mers.
-        - new option `-d/--repeated` for only printing duplicate k-mers.
-        - new option `-m/--chunk-size` for limiting maximum memory for sorting.
-    - `unikmer diff`:
-        - small speed improvements.
+  - new command `unikmer filter`: filter low-complexity k-mers.
+  - new command `unikmer split`: split k-mers into sorted chunk files.
+  - new command `unikmer merge`: merge from sorted chunk files.
+  - `unikmer view`:
+    - new option `-N/--show-code-only` for only showing encoded integers.
+    - fix output error for `-q/--fastq`.
+  - `unikmer uniqs`:
+    - new option `-x/--max-cont-non-uniq-kmers` for limiting max continuous non-unique k-mers.
+    - new option `-X/--max-num-cont-non-uniq-kmers` for limiting max number of continuous non-unique k-mers.
+    - fix bug for `-m/--min-len`.
+  - `unikmer union`:
+    - new option `-d/--repeated` for only printing duplicate k-mers.
+  - `unikmer sort`:
+    - new option `-u/--unique` for removing duplicated k-mers.
+    - new option `-d/--repeated` for only printing duplicate k-mers.
+    - new option `-m/--chunk-size` for limiting maximum memory for sorting.
+  - `unikmer diff`:
+    - small speed improvements.
 - v0.6.2
-    - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
+  - `unikmer encode`: better output for bits presentation of encoded k-mers (`-a/--all`)
 - v0.6.1
-    - `unikmer dump`: 
-        - new option `-K/--canonical` to keep the canonical k-mers.
-        - new option `-k/--canonical-only` to only keep the canonical k-mers.
-        - new option `-s/--sorted` to save sorted k-mers.
-    - `unikmer encode`: add option `-K/--canonical` to keep the canonical k-mers.
+  - `unikmer dump`: 
+    - new option `-K/--canonical` to keep the canonical k-mers.
+    - new option `-k/--canonical-only` to only keep the canonical k-mers.
+    - new option `-s/--sorted` to save sorted k-mers.
+  - `unikmer encode`: add option `-K/--canonical` to keep the canonical k-mers.
 - v0.6.0
-    - `unikmer`: check encoded integer overflow
-    - new command `unikmer encode`: encode plain k-mer text to integer
-    - new command `unikmer decode`: decode encoded integer to k-mer text
+  - `unikmer`: check encoded integer overflow
+  - new command `unikmer encode`: encode plain k-mer text to integer
+  - new command `unikmer decode`: decode encoded integer to k-mer text
 - v0.5.3
-    - `unikmer count/dump`: check file before handling them.
+  - `unikmer count/dump`: check file before handling them.
 - v0.5.2
-    - `unikmer locate`: fix bug.
-    - `unikmer`: doc update.
+  - `unikmer locate`: fix bug.
+  - `unikmer`: doc update.
 - v0.5.1
-    - `unikmer locate/uniqs`: fix options checking.
+  - `unikmer locate/uniqs`: fix options checking.
 - v0.5.0
-    - `unikmer diff`: fix concurrency bug when cloning kmers from first file.
-    - new command `unikmer locate`: locate Kmers in genome.
-    - new command `unikmer uniqs`: mapping Kmers back to genome and find unique subsequences.
+  - `unikmer diff`: fix concurrency bug when cloning kmers from first file.
+  - new command `unikmer locate`: locate Kmers in genome.
+  - new command `unikmer uniqs`: mapping Kmers back to genome and find unique subsequences.
 - v0.4.4
-    - `unikmer`: add global option `-L/--compression-level`.
-    - `unikmer diff`: reduce memory occupation, speed not affected.
+  - `unikmer`: add global option `-L/--compression-level`.
+  - `unikmer diff`: reduce memory occupation, speed not affected.
 - v0.4.3
-    - `unikmer diff`: fix bug of hanging when the first file having no Kmers.
+  - `unikmer diff`: fix bug of hanging when the first file having no Kmers.
 - v0.4.2
-    - `unikmer stats/diff`: more intuitional output
+  - `unikmer stats/diff`: more intuitional output
 - v0.4.1
-    - Better performance of writing and reading binary files 
+  - Better performance of writing and reading binary files 
 - v0.4.0
-    - **Binary serialization format changed.**
-    - new command `unikmer sort`: sort binary files
-    - `unikmer count/diff/union/inter`: better performance, add option to sort Kmers which significantly reduces file size
-    - `unikmer dump`: changed option
-    - `unikmer count`: changed option
+  - **Binary serialization format changed.**
+  - new command `unikmer sort`: sort binary files
+  - `unikmer count/diff/union/inter`: better performance, add option to sort Kmers which significantly reduces file size
+  - `unikmer dump`: changed option
+  - `unikmer count`: changed option
 - v0.3.1
-    - **Binary serialization format changed.**
-    - new command `unikmer stats`: statistics of binary files.
-    - `unikmer`: adding global option `-i/--infile-list` for reading files listed in file.
-    - `unikmer diff`: fixed a concurrency bug when no diff found.
+  - **Binary serialization format changed.**
+  - new command `unikmer stats`: statistics of binary files.
+  - `unikmer`: adding global option `-i/--infile-list` for reading files listed in file.
+  - `unikmer diff`: fixed a concurrency bug when no diff found.
 - v0.2.1
-    - `unikmer count`: performance improvement and new option `--canonical` for only keeping canonical Kmers.
+  - `unikmer count`: performance improvement and new option `--canonical` for only keeping canonical Kmers.
 - v0.2
-    - new command `unikmer sample`: sample Kmers from binary files.
-    - new global options:
-        - `-c, --compact`:       write more compact binary file with little loss of speed.
-        - `-C, --no-compress`:   do not compress binary file (not recommended).
-    - some improvements.
+  - new command `unikmer sample`: sample Kmers from binary files.
+  - new global options:
+    - `-c, --compact`:     write more compact binary file with little loss of speed.
+    - `-C, --no-compress`:   do not compress binary file (not recommended).
+  - some improvements.
 - v0.1.0
-    - first release
+  - first release
