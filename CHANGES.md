@@ -3,6 +3,8 @@
 - v0.15.0
   - Separating k-mers (sketches) indexing and searching from `unikmer`, including `unikmer db info/index/search`.
   - `unikmer count`: fix syncmer.
+  - `unikmer dump`: new flag `--hashed`.
+  - rename `unikmer stats` to `unikmer info`, and add new column `description`.
 - v0.14.0
   - `unikmer union`: fix bug when flag `-s` not given.
   - `unikmer count/uniqs/locate`: performance improvement on generating k-mers.

@@ -69,10 +69,21 @@ Attentions:
 		canonicalOnly := getFlagBool(cmd, "canonical-only")
 		sortedKmers := getFlagBool(cmd, "sorted")
 		taxid := getFlagUint32(cmd, "taxid")
-		hashed := getFlagBool(cmd, "hash")
+		hashed := getFlagBool(cmd, "hash")          // to compue the hash values of k-mers
+		hashedAlready := getFlagBool(cmd, "hashed") // what given are hash values
 
 		if hashed && canonicalOnly {
 			checkError(fmt.Errorf("flag -H/--hash and -k/--canonical-only are not compatible"))
+		}
+
+		var k int = -1
+		if hashedAlready {
+			canonical = true
+
+			k = getFlagNonNegativeInt(cmd, "kmer-len")
+			if k == 0 {
+				checkError(fmt.Errorf("flag -k/--kmer-len should be given when --hashed given"))
+			}
 		}
 
 		if !isStdout(outFile) {
@@ -95,7 +106,6 @@ Attentions:
 			m = make(map[uint64]struct{}, mapInitSize)
 		}
 
-		var k int = -1
 		var l int
 		var reader *breader.BufferedReader
 		var chunk breader.Chunk
@@ -129,20 +139,34 @@ Attentions:
 						continue
 					}
 
-					if k == -1 {
-						if strings.Index(line, "\t") > 0 {
-							includeTaxid = true
-							if hasGlobalTaxid {
-								log.Warningf("since input has more than one column, global taxid is ignored")
+					if !hashedAlready {
+						if k == -1 {
+							if strings.Index(line, "\t") > 0 {
+								includeTaxid = true
+								if hasGlobalTaxid {
+									log.Warningf("since input has more than one column, global taxid is ignored")
+								}
+							} else if hasGlobalTaxid {
+								_taxid = taxid
+								k = l
+							} else {
+								k = l
 							}
-						} else if hasGlobalTaxid {
-							_taxid = taxid
-							k = l
-						} else {
-							k = l
+						} else if !includeTaxid && l != k {
+							checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
 						}
-					} else if !includeTaxid && l != k {
-						checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
+					} else {
+						if once {
+							if strings.Index(line, "\t") > 0 {
+								includeTaxid = true
+								if hasGlobalTaxid {
+									log.Warningf("since input has more than one column, global taxid is ignored")
+								}
+							} else if hasGlobalTaxid {
+								_taxid = taxid
+							}
+							once = false
+						}
 					}
 
 					if includeTaxid {
@@ -153,12 +177,14 @@ Attentions:
 						line = items[0]
 						l = len(line)
 
-						if once {
-							k = len(line)
-							once = false
-						} else {
-							if l != k {
-								checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
+						if !hashedAlready {
+							if once {
+								k = len(line)
+								once = false
+							} else {
+								if l != k {
+									checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
+								}
 							}
 						}
 
@@ -183,21 +209,51 @@ Attentions:
 						if includeTaxid {
 							mode |= unikmer.UnikIncludeTaxID
 						}
-						if hashed {
+						if hashed || hashedAlready {
 							mode |= unikmer.UnikHashed
 						}
-						writer, err = unikmer.NewWriter(outfh, l, mode)
-						checkError(errors.Wrap(err, outFile))
+						writer, err = unikmer.NewWriter(outfh, k, mode)
+						if err != nil {
+							checkError(errors.Wrap(err, outFile))
+						}
 						writer.SetMaxTaxid(opt.MaxTaxid)
 						if !includeTaxid && hasGlobalTaxid {
 							checkError(writer.SetGlobalTaxid(taxid))
 						}
 					}
 
+					if hashedAlready {
+						hash, err = strconv.ParseUint(line, 10, 64)
+						if err != nil {
+							checkError(err)
+						}
+
+						if unique {
+							if _, ok = m[hash]; !ok {
+								m[hash] = struct{}{}
+								checkError(writer.WriteCode(hash))
+								if includeTaxid {
+									checkError(writer.WriteTaxid(_taxid))
+								}
+								n++
+							}
+						} else {
+							checkError(writer.WriteCode(hash))
+							if includeTaxid {
+								checkError(writer.WriteTaxid(_taxid))
+							}
+							n++
+						}
+
+						continue
+					}
+
 					if hashed {
 						linebytes = []byte(line)
 						hasher, err = nthash.NewHasher(&linebytes, uint(k))
-						checkError(errors.Wrap(err, line))
+						if err != nil {
+							checkError(errors.Wrap(err, line))
+						}
 						// for hash = range hasher.Hash(canonical) {
 						// 	break
 						// }
@@ -271,8 +327,11 @@ func init() {
 	dumpCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	dumpCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
 	dumpCmd.Flags().BoolP("canonical", "K", false, "save the canonical k-mers")
-	dumpCmd.Flags().BoolP("canonical-only", "k", false, "only save the canonical k-mers. This flag overides -K/--canonical")
+	dumpCmd.Flags().BoolP("canonical-only", "O", false, "only save the canonical k-mers. This flag overides -K/--canonical")
 	dumpCmd.Flags().BoolP("sorted", "s", false, "input k-mers are sorted")
 	dumpCmd.Flags().Uint32P("taxid", "t", 0, "global taxid")
 	dumpCmd.Flags().BoolP("hash", "H", false, `save hash of k-mer, automatically on for k>32. This flag overides global flag -c/--compact`)
+
+	dumpCmd.Flags().BoolP("hashed", "", false, `giving hash values of k-mers, This flag overides global flag -c/--compact`)
+	dumpCmd.Flags().IntP("kmer-len", "k", 0, "k-mer length")
 }

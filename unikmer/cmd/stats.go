@@ -41,9 +41,10 @@ import (
 )
 
 var statCmd = &cobra.Command{
-	Use:   "stats",
-	Short: "Statistics of binary files",
-	Long: `Statistics of binary files
+	Use:     "info",
+	Aliases: []string{"stats"},
+	Short:   "Information of binary files",
+	Long: `Information of binary files
 
 Tips:
   1. For lots of small files (especially on SDD), use big value of '-j' to
@@ -112,6 +113,7 @@ Tips:
 						"gzipped",
 						"version",
 						"number",
+						"desciption",
 					}...)
 			}
 			outfh.WriteString(strings.Join(colnames, "\t") + "\n")
@@ -166,7 +168,7 @@ Tips:
 							))
 						} else {
 							outfh.WriteString(fmt.Sprintf(
-								"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\n",
+								"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\t%s\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.canonical),
@@ -180,6 +182,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.gzipped),
 								info.version,
 								info.number,
+								info.description,
 							))
 						}
 						outfh.Flush()
@@ -212,7 +215,7 @@ Tips:
 									))
 								} else {
 									outfh.WriteString(fmt.Sprintf(
-										"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\n",
+										"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\t%s\n",
 										info.file,
 										info.k,
 										boolStr(sTrue, sFalse, info.canonical),
@@ -226,6 +229,7 @@ Tips:
 										boolStr(sTrue, sFalse, info.gzipped),
 										info.version,
 										info.number,
+										info.description,
 									))
 								}
 								outfh.Flush()
@@ -275,7 +279,7 @@ Tips:
 							))
 						} else {
 							outfh.WriteString(fmt.Sprintf(
-								"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\n",
+								"%s\t%v\t%v\t%v\t%s\t%v\t%s\t%v\t%v\t%v\t%s\t%d\t%s\n",
 								info.file,
 								info.k,
 								boolStr(sTrue, sFalse, info.canonical),
@@ -289,6 +293,7 @@ Tips:
 								boolStr(sTrue, sFalse, info.gzipped),
 								info.version,
 								info.number,
+								info.description,
 							))
 						}
 						outfh.Flush()
@@ -409,6 +414,7 @@ Tips:
 					includeTaxid: reader.IsIncludeTaxid(),
 					globalTaxid:  globalTaxid,
 					number:       n,
+					description:  string(reader.Description),
 					scaled:       reader.IsScaled(),
 					scale:        reader.GetScale(),
 					version:      fmt.Sprintf("v%d.%d", reader.MainVersion, reader.MinorVersion),
@@ -452,6 +458,7 @@ Tips:
 				{Header: "gzipped", AlignRight: true},
 				{Header: "version", AlignRight: true},
 				{Header: "number", AlignRight: true},
+				{Header: "description", AlignRight: false},
 			}...)
 		}
 		tbl, err := prettytable.NewTable(columns...)
@@ -493,6 +500,7 @@ Tips:
 					boolStr(sTrue, sFalse, info.gzipped),
 					info.version,
 					humanize.Comma(info.number),
+					info.description,
 				)
 			}
 		}
@@ -511,6 +519,7 @@ type statInfo struct {
 	includeTaxid bool
 	globalTaxid  string
 	number       int64
+	description  string
 
 	scaled  bool
 	scale   uint32
