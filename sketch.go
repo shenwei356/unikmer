@@ -55,20 +55,25 @@ type Sketch struct {
 	idx int // current location, 0-based
 	end int
 
-	i, mI int
-	v, mV uint64
+	i, mI     int
+	v, mV     uint64
+	preMinIdx int
 
 	buf     []IdxValue
 	i2v     IdxValue
 	flag    bool
 	t, b, e int
 
+	// ------ just for syncmer -------
+	bsyncmerIdx       int
+	lateOutputThisOne bool
+	preMinIdxs        []int
+
 	// ------ just for minimizer -----
 	skip      bool
 	minimizer bool
 	w         int
 	l         int // k+w-1
-	preMI     uint64
 }
 
 // NewMinimizerSketch returns a SyncmerSketch Iterator.
@@ -121,6 +126,8 @@ func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf [
 	}
 
 	sketch.buf = buf
+	sketch.preMinIdxs = make([]int, 0, 8)
+	sketch.preMinIdx = -1
 
 	return sketch, nil
 }
@@ -154,7 +161,8 @@ func (s *Sketch) ResetMinimizer(S *seq.Seq) error {
 	s.buf = s.buf[:0]
 	s.idx = 0
 	s.i = 0
-	s.preMI = 0
+	s.preMinIdxs = make([]int, 0, 8)
+	s.preMinIdx = -1
 	return nil
 }
 
@@ -195,6 +203,7 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 	sketch.end = len(seq2) - 2*k + s + 1 // len(sequence) - L (2*k - s - 1)
 	sketch.r = 2*k - s - 1 - s           // L-s
 	sketch.kMs = k - s                   // k-s
+	sketch.w = k - s
 
 	var err error
 	sketch.hasher, err = nthash.NewHasher(&seq2, uint(k))
@@ -203,6 +212,8 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 	}
 
 	sketch.buf = make([]IdxValue, 0, sketch.r+1)
+	sketch.preMinIdxs = make([]int, 0, 8)
+	sketch.preMinIdx = -1
 
 	return sketch, nil
 }
@@ -233,6 +244,8 @@ func (s *Sketch) ResetSyncmer(S *seq.Seq) error {
 	s.buf = s.buf[:0]
 	s.idx = 0
 	s.i = 0
+	s.preMinIdxs = make([]int, 0, 8)
+	s.preMinIdx = -1
 	return nil
 }
 
@@ -306,13 +319,13 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 			}
 
 			s.i2v = s.buf[0]
-			if s.i2v.Val == s.preMI { // deduplicate
+			if s.i2v.Idx == s.preMinIdx { // deduplicate
 				s.idx++
 				continue
 			}
 
 			s.mI, s.mV = s.i2v.Idx, s.i2v.Val
-			s.preMI = s.mV
+			s.preMinIdx = s.mI
 
 			s.idx++
 			return s.i2v.Val, true
@@ -342,9 +355,19 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			return code, false
 		}
 
+		// fmt.Printf("\nidx: %d, %s, %d\n", s.idx, s.S[s.idx:s.idx+s.s], code)
+		// fmt.Printf("idx: %d, pres: %v, pre: %d\n", s.idx, s.preMinIdxs, s.preMinIdx)
+
 		if s.skip {
 			s.idx++
 			return code, true
+		}
+
+		if len(s.preMinIdxs) > 0 && s.idx == s.preMinIdxs[0] {
+			// we will output this one in this round
+			s.lateOutputThisOne = true
+		} else {
+			s.lateOutputThisOne = false
 		}
 
 		// find min s-mer
@@ -404,19 +427,76 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 				copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
 				s.buf[s.i] = IdxValue{s.idx + s.r, s.v}
 			}
-
 		}
 
 		s.i2v = s.buf[0]
 		s.mI, s.mV = s.i2v.Idx, s.i2v.Val
 
-		// check if this k-mer is bounded syncmer
-		if s.mI == s.idx || s.mI == s.idx+s.kMs { // beginning || end
+		// fmt.Printf("  smer: %d: %d\n", s.mI, s.mV)
+
+		// find the location of bounded syncmer
+		if s.mI-s.idx < s.w { // syncmer at the beginning of kmer
+			s.bsyncmerIdx = s.mI
+			// fmt.Printf("  bIdx: start: %d\n", s.bsyncmerIdx)
+		} else { // at the end
+			s.bsyncmerIdx = s.mI - s.kMs
+			// fmt.Printf("  bIdx:   end: %d\n", s.bsyncmerIdx)
+		}
+
+		// ----------------------------------
+
+		// duplicated
+		if len(s.preMinIdxs) > 0 && s.bsyncmerIdx == s.preMinIdxs[0] {
+			// fmt.Printf("  duplicated:  %d\n", s.bsyncmerIdx)
+			if s.lateOutputThisOne {
+				// remove the first element
+				copy(s.preMinIdxs[0:len(s.preMinIdxs)-1], s.preMinIdxs[1:])
+				s.preMinIdxs = s.preMinIdxs[0 : len(s.preMinIdxs)-1]
+
+				s.idx++
+				s.preMinIdx = s.bsyncmerIdx
+				return code, true
+			}
+
 			s.idx++
+			// s.preMinIdx = s.bsyncmerIdx
+			continue
+		}
+
+		if s.lateOutputThisOne {
+			// remove the first element
+			copy(s.preMinIdxs[0:len(s.preMinIdxs)-1], s.preMinIdxs[1:])
+			s.preMinIdxs = s.preMinIdxs[0 : len(s.preMinIdxs)-1]
+
+			if s.preMinIdx != s.bsyncmerIdx {
+				s.preMinIdxs = append(s.preMinIdxs, s.bsyncmerIdx)
+			}
+			// fmt.Printf("    late2: %d\n", s.preMinIdxs[0])
+
+			s.idx++
+			s.preMinIdx = s.bsyncmerIdx
 			return code, true
 		}
 
+		// is it current kmer?
+		if s.bsyncmerIdx == s.idx {
+			// fmt.Printf("  current: %d\n", s.bsyncmerIdx)
+			if len(s.preMinIdxs) > 0 {
+				// remove the first element
+				copy(s.preMinIdxs[0:len(s.preMinIdxs)-1], s.preMinIdxs[1:])
+				s.preMinIdxs = s.preMinIdxs[0 : len(s.preMinIdxs)-1]
+			}
+			s.idx++
+			s.preMinIdx = s.bsyncmerIdx
+			return code, true
+		}
+
+		if s.preMinIdx != s.bsyncmerIdx {
+			s.preMinIdxs = append(s.preMinIdxs, s.bsyncmerIdx)
+		}
+		// fmt.Printf("  return it later: %d\n", s.bsyncmerIdx)
 		s.idx++
+		s.preMinIdx = s.bsyncmerIdx
 	}
 }
 

@@ -54,28 +54,29 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
     goarch: amd64
     pkg: github.com/shenwei356/unikmer
     
-    BenchmarkHashIterator/1.00_KB-16                  116676             10837 ns/op             240 B/op          3 allocs/op
-    BenchmarkHashIterator/1.00_MB-16                     100          13843650 ns/op             240 B/op          3 allocs/op
-    BenchmarkHashIterator/10.00_MB-16                     12          92711966 ns/op             240 B/op          3 allocs/op
-    BenchmarkKmerIterator/1.00_KB-16                   76557             15794 ns/op             160 B/op          1 allocs/op
-    BenchmarkKmerIterator/1.00_MB-16                      75          16050744 ns/op             160 B/op          1 allocs/op
-    BenchmarkKmerIterator/10.00_MB-16                      7         155706231 ns/op             160 B/op          1 allocs/op
-    BenchmarkMinimizerIterator/1.00_KB-16               9988            101337 ns/op           16720 B/op          5 allocs/op
-    BenchmarkMinimizerIterator/1.00_MB-16                 15          71735538 ns/op           16720 B/op          5 allocs/op
-    BenchmarkMinimizerIterator/10.00_MB-16                 2         689242954 ns/op           16720 B/op          5 allocs/op
-    BenchmarkSyncmerIterator/1.00_KB-16                 9571            122908 ns/op           16720 B/op          5 allocs/op
-    BenchmarkSyncmerIterator/1.00_MB-16                   12          99519135 ns/op           16720 B/op          5 allocs/op
-    BenchmarkSyncmerIterator/10.00_MB-16                   1        1013288700 ns/op           16720 B/op          5 allocs/op
+    BenchmarkHashIterator/1.00_KB-16                  119086             10742 ns/op             240 B/op          3 allocs/op
+    BenchmarkHashIterator/1.00_MB-16                     100          15445721 ns/op             240 B/op          3 allocs/op
+    BenchmarkHashIterator/10.00_MB-16                     12          96406642 ns/op             240 B/op          3 allocs/op
+    BenchmarkKmerIterator/1.00_KB-16                   63274             16147 ns/op             160 B/op          1 allocs/op
+    BenchmarkKmerIterator/1.00_MB-16                      72          15900259 ns/op             160 B/op          1 allocs/op
+    BenchmarkKmerIterator/10.00_MB-16                      7         156678361 ns/op             160 B/op          1 allocs/op
+    BenchmarkMinimizerIterator/1.00_KB-16              18913             61486 ns/op             704 B/op          6 allocs/op
+    BenchmarkMinimizerIterator/1.00_MB-16                 15          74450076 ns/op             704 B/op          6 allocs/op
+    BenchmarkMinimizerIterator/10.00_MB-16                 2         691659232 ns/op             704 B/op          6 allocs/op
+    BenchmarkSyncmerIterator/1.00_KB-16                11665             99230 ns/op            1424 B/op          7 allocs/op
+    BenchmarkSyncmerIterator/1.00_MB-16                   10         106936906 ns/op            1424 B/op          7 allocs/op
+    BenchmarkSyncmerIterator/10.00_MB-16                   1        1068303198 ns/op            1424 B/op          7 allocs/op
+    
+    BenchmarkEncodeK32-16                           57135505                20.6 ns/op             0 B/op          0 allocs/op
+    BenchmarkEncodeFromFormerKmerK32-16             127428948               9.27 ns/op             0 B/op          0 allocs/op
+    BenchmarkMustEncodeFromFormerKmerK32-16         587067903               1.96 ns/op             0 B/op          0 allocs/op
+    BenchmarkDecodeK32-16                           17817360                75.7 ns/op            32 B/op          1 allocs/op
+    BenchmarkMustDecodeK32-16                       13047626                97.2 ns/op            32 B/op          1 allocs/op
+    BenchmarkRevK32-16                              49967415                24.1 ns/op             0 B/op          0 allocs/op
+    BenchmarkCompK32-16                             1000000000             0.844 ns/op             0 B/op          0 allocs/op
+    BenchmarkRevCompK32-16                          60992528                19.5 ns/op             0 B/op          0 allocs/op
+    BenchmarkCannonalK32-16                         52550144                22.6 ns/op             0 B/op          0 allocs/op
 
-    BenchmarkEncodeK32-16                           58827567                20.0 ns/op             0 B/op          0 allocs/op
-    BenchmarkEncodeFromFormerKmerK32-16             128119014               9.03 ns/op             0 B/op          0 allocs/op
-    BenchmarkMustEncodeFromFormerKmerK32-16         590404424               1.71 ns/op             0 B/op          0 allocs/op
-    BenchmarkDecodeK32-16                           17622177                74.1 ns/op            32 B/op          1 allocs/op
-    BenchmarkMustDecodeK32-16                       16684528                76.3 ns/op            32 B/op          1 allocs/op
-    BenchmarkRevK32-16                              59706452                18.3 ns/op             0 B/op          0 allocs/op
-    BenchmarkCompK32-16                             1000000000             0.270 ns/op             0 B/op          0 allocs/op
-    BenchmarkRevCompK32-16                          61192731                19.0 ns/op             0 B/op          0 allocs/op
-    BenchmarkCannonalK32-16                         51596818                22.5 ns/op             0 B/op          0 allocs/op
 
 ## The toolkit
 

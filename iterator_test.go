@@ -29,7 +29,7 @@ import (
 )
 
 func TestSyncmer(t *testing.T) {
-	_s := "GGCAAGTTCGTCA"
+	_s := "GGCAAGTTCGTCATCGATC"
 	// _s := "GGCAAGTTC"
 	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
 	if err != nil {
@@ -42,13 +42,13 @@ func TestSyncmer(t *testing.T) {
 	if err != nil {
 		t.Errorf("fail to create syncmer sketch")
 	}
-
 	var code uint64
 	var ok bool
 	var idx int
 	codes := make([]uint64, 0, 1024)
 	for {
 		code, ok = sketch.NextSyncmer()
+		// fmt.Println(sketch.Index(), code, ok)
 		if !ok {
 			break
 		}
@@ -61,7 +61,7 @@ func TestSyncmer(t *testing.T) {
 		codes = append(codes, code)
 		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
-	if len(codes) == 2 &&
+	if len(codes) == 5 &&
 		codes[0] == 7385093395039290540 &&
 		codes[1] == 1099502864234245338 {
 	} else {
