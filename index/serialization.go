@@ -29,7 +29,7 @@ import (
 )
 
 // Version is the version of index format
-const Version uint8 = 1
+const Version uint8 = 2
 
 // Magic number of index file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'i', 'd', 'x'}
@@ -52,6 +52,9 @@ var ErrVersionMismatch = errors.New("unikmer/index: version mismatch")
 // ErrNameAndSizeMismatch means size of names and sizes are not equal.
 var ErrNameAndSizeMismatch = errors.New("unikmer/index: size of names and sizes unequal")
 
+// ErrNameAndIndexMismatch means size of names and sizes are not equal.
+var ErrNameAndIndexMismatch = errors.New("unikmer/index: size of names and indices unequal")
+
 var be = binary.BigEndian
 
 // Header contains metadata
@@ -62,6 +65,7 @@ type Header struct {
 	NumHashes uint8 // uint8
 	NumSigs   uint64
 	Names     []string
+	Indices   []uint32
 	Sizes     []uint64
 
 	NumRowBytes int // length of bytes for storing one row of signiture for n names
@@ -163,6 +167,14 @@ func (reader *Reader) readHeader() (err error) {
 	names = names[0 : len(names)-1]
 	reader.Names = names
 
+	// Indices
+	indicesData := make([]uint32, len(names))
+	err = binary.Read(r, be, &indicesData)
+	if err != nil {
+		return err
+	}
+	reader.Indices = indicesData
+
 	// Sizes
 	sizesData := make([]uint64, len(names))
 	err = binary.Read(r, be, &sizesData)
@@ -203,10 +215,14 @@ type Writer struct {
 }
 
 // NewWriter creates a Writer.
-func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint64, names []string, sizes []uint64) (*Writer, error) {
+func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint64, names []string, indices []uint32, sizes []uint64) (*Writer, error) {
 	if len(names) != len(sizes) {
 		return nil, ErrNameAndSizeMismatch
 	}
+	if len(names) != len(indices) {
+		return nil, ErrNameAndIndexMismatch
+	}
+
 	writer := &Writer{
 		Header: Header{
 			Version:   Version,
@@ -215,6 +231,7 @@ func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint
 			NumHashes: numHashes,
 			NumSigs:   numSigs,
 			Names:     names,
+			Indices:   indices,
 			Sizes:     sizes,
 		},
 		w: w,
@@ -270,6 +287,12 @@ func (writer *Writer) WriteHeader() (err error) {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Indices
+	err = binary.Write(w, be, writer.Indices)
+	if err != nil {
+		return err
 	}
 
 	// Sizes

@@ -43,9 +43,10 @@ func TestIndexReadAndWrite(t *testing.T) {
 	numHashes := uint8(1)
 	numSigs := uint64(2)
 	names := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i"}
+	indices := []uint32{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	sizes := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	data := [][]byte{[]byte("aa"), []byte("bb")}
-	err := write(file, k, canonical, numHashes, numSigs, names, sizes, data)
+	err := write(file, k, canonical, numHashes, numSigs, names, indices, sizes, data)
 	if err != nil {
 		t.Errorf("write error %s", err)
 	}
@@ -76,6 +77,14 @@ func TestIndexReadAndWrite(t *testing.T) {
 			t.Errorf("unmatch name")
 		}
 	}
+	if len(reader.Indices) != len(indices) {
+		t.Errorf("unmatch indices length")
+	}
+	for i, n := range indices {
+		if reader.Indices[i] != n {
+			t.Errorf("unmatch index")
+		}
+	}
 	if len(reader.Sizes) != len(sizes) {
 		t.Errorf("unmatch sizes length")
 	}
@@ -95,7 +104,7 @@ func TestIndexReadAndWrite(t *testing.T) {
 
 }
 
-func write(file string, k int, canonical bool, numHashes uint8, numSigs uint64, names []string, sizes []uint64, datas [][]byte) error {
+func write(file string, k int, canonical bool, numHashes uint8, numSigs uint64, names []string, indices []uint32, sizes []uint64, datas [][]byte) error {
 	w, err := os.Create(file)
 	if err != nil {
 		return err
@@ -105,7 +114,7 @@ func write(file string, k int, canonical bool, numHashes uint8, numSigs uint64, 
 	outfh := bufio.NewWriter(w)
 	defer outfh.Flush()
 
-	writer, err := NewWriter(outfh, k, canonical, numHashes, numSigs, names, sizes)
+	writer, err := NewWriter(outfh, k, canonical, numHashes, numSigs, names, indices, sizes)
 	if err != nil {
 		return err
 	}
