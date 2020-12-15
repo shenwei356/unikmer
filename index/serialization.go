@@ -69,6 +69,8 @@ type Header struct {
 	Sizes     []uint64
 
 	NumRowBytes int // length of bytes for storing one row of signiture for n names
+
+	_numSigs int
 }
 
 func (h Header) String() string {
@@ -188,17 +190,17 @@ func (reader *Reader) readHeader() (err error) {
 
 // Read reads one code.
 func (reader *Reader) Read() ([]byte, error) {
-	data := make([]byte, reader.NumRowBytes)
+	data := make([]byte, reader.NumSigs)
 	nReaded, err := io.ReadFull(reader.r, data)
 	if err != nil {
 		if err == io.EOF {
-			if reader.count != reader.NumSigs {
+			if reader.count != uint64(reader.NumRowBytes) {
 				return nil, ErrTruncateIndexFile
 			}
 		}
 		return nil, err
 	}
-	if nReaded < reader.NumRowBytes {
+	if nReaded < reader._numSigs {
 		return nil, ErrTruncateIndexFile
 	}
 	reader.count++
@@ -233,6 +235,8 @@ func NewWriter(w io.Writer, k int, canonical bool, numHashes uint8, numSigs uint
 			Names:     names,
 			Indices:   indices,
 			Sizes:     sizes,
+
+			_numSigs: int(numSigs),
 		},
 		w: w,
 	}
@@ -307,7 +311,7 @@ func (writer *Writer) WriteHeader() (err error) {
 
 // Write writes some thing
 func (writer *Writer) Write(data []byte) (err error) {
-	if len(data) != writer.NumRowBytes {
+	if len(data) != writer._numSigs {
 		return ErrWrongWriteDataSize
 	}
 
@@ -354,7 +358,7 @@ func (writer *Writer) Flush() (err error) {
 	if !writer.wroteHeader {
 		writer.WriteHeader()
 	}
-	if writer.count != writer.NumSigs {
+	if writer.count != uint64(writer.NumRowBytes) {
 		return ErrUnfishedWrite
 	}
 	return nil
