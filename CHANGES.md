@@ -1,7 +1,9 @@
 # Changelog
 
 - v0.15.0
-  - Separating k-mers (sketches) indexing and searching from `unikmer`, including `unikmer db info/index/search`.
+  - `unikmer`:
+    - binary file minor change: increase description maximal length from 128 B to 1KB.
+    - separating k-mers (sketches) indexing and searching from `unikmer`, including `unikmer db info/index/search`.
   - `unikmer count`: fix syncmer.
   - `unikmer dump`: new flag `--hashed`.
   - rename `unikmer stats` to `unikmer info`, and add new column `description`.

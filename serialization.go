@@ -31,7 +31,7 @@ import (
 const MainVersion uint8 = 4
 
 // MinorVersion is the minor version number.
-const MinorVersion uint8 = 1
+const MinorVersion uint8 = 2
 
 // Magic number of binary file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
@@ -65,7 +65,7 @@ var ErrVersionMismatch = errors.New("unikmer: version mismatch")
 
 var be = binary.BigEndian
 
-var descMaxLen = 128
+var descMaxLen = 1024
 var conservedDataLen = 20
 
 // Header contains metadata
