@@ -28,9 +28,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
-	"github.com/shenwei356/nthash"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
+	"github.com/will-rowe/nthash"
 )
 
 var dumpCmd = &cobra.Command{
