@@ -28,10 +28,10 @@ import (
 )
 
 // MainVersion is the main version number.
-const MainVersion uint8 = 4
+const MainVersion uint8 = 5
 
 // MinorVersion is the minor version number.
-const MinorVersion uint8 = 2
+const MinorVersion uint8 = 0
 
 // Magic number of binary file.
 var Magic = [8]byte{'.', 'u', 'n', 'i', 'k', 'm', 'e', 'r'}
@@ -66,7 +66,7 @@ var ErrVersionMismatch = errors.New("unikmer: version mismatch")
 var be = binary.BigEndian
 
 var descMaxLen = 1024
-var conservedDataLen = 20
+var conservedDataLen = 64
 
 // Header contains metadata
 type Header struct {
@@ -207,16 +207,17 @@ func (reader *Reader) GetMaxHash() uint64 {
 }
 
 func (reader *Reader) readHeader() (err error) {
-	// check Magic number
-	var m [8]byte
+	buf := make([]byte, 56)
 	r := reader.r
-	err = binary.Read(r, be, &m)
+
+	// check Magic number
+	_, err = io.ReadFull(r, buf[:8])
 	if err != nil {
 		return err
 	}
 	same := true
 	for i := 0; i < 8; i++ {
-		if Magic[i] != m[i] {
+		if Magic[i] != buf[i] {
 			same = false
 			break
 		}
@@ -226,29 +227,25 @@ func (reader *Reader) readHeader() (err error) {
 	}
 
 	// read metadata
-	var meta [4]uint8
-	err = binary.Read(r, be, &meta)
+	_, err = io.ReadFull(r, buf[:4])
 	if err != nil {
 		return err
 	}
 	// check compatibility？
-	if (meta[0] == 0 && meta[1] == 0) ||
-		MainVersion != meta[0] {
-		if MainVersion == 4 && meta[0] == 3 {
-		} else {
-			return ErrVersionMismatch
-		}
-
+	if (buf[0] == 0 && buf[1] == 0) ||
+		MainVersion != buf[0] {
+		return ErrVersionMismatch
 	}
-	reader.MainVersion = meta[0]
-	reader.MinorVersion = meta[1]
+	reader.MainVersion = buf[0]
+	reader.MinorVersion = buf[1]
 
-	reader.K = int(meta[2])
+	reader.K = int(buf[2])
 
-	err = binary.Read(r, be, &reader.Flag)
+	_, err = io.ReadFull(r, buf[:4])
 	if err != nil {
 		return err
 	}
+	reader.Flag = be.Uint32(buf[:4])
 
 	reader.buf = make([]byte, 8)
 
@@ -266,56 +263,58 @@ func (reader *Reader) readHeader() (err error) {
 	}
 
 	// number
-	err = binary.Read(r, be, &reader.Number)
+	_, err = io.ReadFull(r, buf[:8])
 	if err != nil {
 		return err
 	}
+	reader.Number = int64(be.Uint64(buf[:8]))
 
 	// taxid
-	err = binary.Read(r, be, &reader.globalTaxid)
+	_, err = io.ReadFull(r, buf[:4])
 	if err != nil {
 		return err
 	}
+	reader.globalTaxid = be.Uint32(buf[:4])
 
 	// taxid byte length
-	var taxidByteLen uint8
-	err = binary.Read(r, be, &taxidByteLen)
+	_, err = io.ReadFull(r, buf[:1])
 	if err != nil {
 		return err
 	}
-	reader.taxidByteLen = int(taxidByteLen)
+	buf[1] = 0
+	reader.taxidByteLen = int(be.Uint16(buf[:2]))
 
 	// length of description
-	var lenDesc uint8
-	err = binary.Read(r, be, &lenDesc)
+	var lenDesc uint16
+	_, err = io.ReadFull(r, buf[:2])
 	if err != nil {
 		return err
 	}
-	desc := make([]byte, descMaxLen)
-	err = binary.Read(r, be, &desc)
+	lenDesc = be.Uint16(buf[:2])
+
+	desc := make([]byte, lenDesc)
+	_, err = io.ReadFull(r, desc)
 	if err != nil {
 		return err
 	}
-	reader.Description = desc[0:int(lenDesc)]
+	reader.Description = desc
 
 	// scale
-	var scale uint32
-	err = binary.Read(r, be, &scale)
+	_, err = io.ReadFull(r, buf[:4])
 	if err != nil {
 		return err
 	}
-	reader.Scale = scale
+	reader.Scale = be.Uint32(buf[:4])
 
 	// max hash
-	var maxHash uint64
-	err = binary.Read(r, be, &maxHash)
+	_, err = io.ReadFull(r, buf[:8])
 	if err != nil {
 		return err
 	}
-	reader.MaxHash = maxHash
+	reader.MaxHash = be.Uint64(buf[:8])
 
 	reserved := make([]byte, conservedDataLen)
-	err = binary.Read(r, be, &reserved)
+	_, err = io.ReadFull(r, reserved)
 	if err != nil {
 		return err
 	}
@@ -594,20 +593,16 @@ func (writer *Writer) WriteHeader() (err error) {
 		return err
 	}
 
-	// description length (1 byte) and data (128 bytes)
+	// description length (2 byte)s and data (128 bytes)
 	lenDesc := len(writer.Description)
 	if lenDesc > descMaxLen {
 		return ErrDescTooLong
 	}
-	err = binary.Write(w, be, uint8(lenDesc))
+	err = binary.Write(w, be, uint16(lenDesc))
 	if err != nil {
 		return err
 	}
-	s := make([]byte, descMaxLen)
-	if lenDesc > 0 {
-		copy(s[0:lenDesc], writer.Description)
-	}
-	err = binary.Write(w, be, s)
+	err = binary.Write(w, be, writer.Description)
 	if err != nil {
 		return err
 	}
