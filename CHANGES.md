@@ -1,5 +1,9 @@
 # Changelog
 
+- v0.16.0
+  - `unikmer`:
+    - binary file format change: fix reading long description, and bump version to `5.0`.
+    - better binary file parsing performance.
 - v0.15.0
   - `unikmer`:
     - binary file minor change: increase description maximal length from 128 B to 1KB.
