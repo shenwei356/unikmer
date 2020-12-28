@@ -1,5 +1,8 @@
 # Changelog
 
+- v0.16.1
+  - change Header.Number from `int64` to `uint64`
+  - `unikmer info`: fix recounting problem for unsorted kmers but with Number.
 - v0.16.0
   - `unikmer`:
     - binary file format change: fix reading long description, and bump version to `5.0`.
