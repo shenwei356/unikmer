@@ -243,7 +243,7 @@ Tips:
 			} else {
 				n = len(m)
 			}
-			writer.Number = int64(n)
+			writer.Number = uint64(n)
 		}
 
 		if !sortKmers {

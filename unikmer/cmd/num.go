@@ -93,7 +93,7 @@ Attention:
 				checkError(errors.Wrap(err, file))
 
 				if reader.Number < 0 && force {
-					var n int64
+					var n uint64
 					for {
 						_, _, err = reader.ReadCodeWithTaxid()
 						if err != nil {

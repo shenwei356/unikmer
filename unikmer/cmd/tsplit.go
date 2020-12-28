@@ -263,7 +263,7 @@ Tips:
 				_writer, err := unikmer.NewWriter(_outfh, k, mode)
 				checkError(errors.Wrap(err, _outFile))
 
-				_writer.Number = int64(len(*codes))
+				_writer.Number = uint64(len(*codes))
 				_writer.SetMaxTaxid(maxTaxid) // follow reader
 				_writer.SetGlobalTaxid(taxid)
 

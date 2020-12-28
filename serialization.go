@@ -74,7 +74,7 @@ type Header struct {
 	MinorVersion uint8
 	K            int
 	Flag         uint32
-	Number       int64  // -1 for unknown
+	Number       uint64 // Number of Kmers, may not be accurate
 	globalTaxid  uint32 // universal taxid, 0 for no record
 	maxTaxid     uint32
 	Description  []byte // let's limit it to 128 Bytes
@@ -267,7 +267,7 @@ func (reader *Reader) readHeader() (err error) {
 	if err != nil {
 		return err
 	}
-	reader.Number = int64(be.Uint64(buf[:8]))
+	reader.Number = be.Uint64(buf[:8])
 
 	// taxid
 	_, err = io.ReadFull(r, buf[:4])
@@ -516,7 +516,7 @@ func NewWriter(w io.Writer, k int, flag uint32) (*Writer, error) {
 	}
 
 	writer := &Writer{
-		Header: Header{MainVersion: MainVersion, MinorVersion: MinorVersion, K: k, Flag: flag, Number: -1},
+		Header: Header{MainVersion: MainVersion, MinorVersion: MinorVersion, K: k, Flag: flag, Number: 0},
 		w:      w,
 	}
 

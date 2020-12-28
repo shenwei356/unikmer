@@ -13,6 +13,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
+	github.com/pkg/profile v1.5.0
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/shenwei356/bio v0.0.0-20201213090627-18e3e643a476
 	github.com/shenwei356/bpool v0.0.0-20160710042833-f9e0ee4d0403 // indirect

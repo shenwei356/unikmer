@@ -205,7 +205,7 @@ K-mer sketchs:
 
 		var writer *unikmer.Writer
 		var mode uint32
-		var n int64
+		var n uint64
 
 		var m map[uint64]struct{}
 		var taxondb *unikmer.Taxonomy
@@ -452,12 +452,12 @@ K-mer sketchs:
 				}
 			}
 		} else if parseTaxid {
-			n = int64(len(mt))
+			n = uint64(len(mt))
 		} else {
-			n = int64(len(m))
+			n = uint64(len(m))
 		}
 
-		writer.Number = int64(n)
+		writer.Number = uint64(n)
 
 		if !sortKmers {
 			if parseTaxid {

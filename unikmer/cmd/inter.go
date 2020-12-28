@@ -336,7 +336,7 @@ Tips:
 		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 
-		writer.Number = int64(len(mc))
+		writer.Number = uint64(len(mc))
 
 		if hasTaxid || hasMixTaxid {
 			for _, ct := range mc {

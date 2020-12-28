@@ -725,7 +725,7 @@ Tips:
 								}
 							}
 						} else {
-							_writer.Number = int64(len(_codesTaxids))
+							_writer.Number = uint64(len(_codesTaxids))
 							for _, codeT := range _codesTaxids {
 								_writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 							}
@@ -758,7 +758,7 @@ Tips:
 								}
 							}
 						} else {
-							_writer.Number = int64(len(_codes))
+							_writer.Number = uint64(len(_codes))
 							for _, code := range _codes {
 								_writer.WriteCode(code)
 							}
@@ -832,7 +832,7 @@ Tips:
 						}
 					}
 				} else {
-					writer.Number = int64(len(codesTaxids))
+					writer.Number = uint64(len(codesTaxids))
 					for _, codeT := range codesTaxids {
 						writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 					}
@@ -865,7 +865,7 @@ Tips:
 						}
 					}
 				} else {
-					writer.Number = int64(len(codes))
+					writer.Number = uint64(len(codes))
 					for _, code := range codes {
 						writer.WriteCode(code)
 					}

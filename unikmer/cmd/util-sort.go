@@ -146,7 +146,7 @@ func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, taxondb *unikmer.Taxonomy, k i
 			count = 0
 		}
 	} else {
-		writer.Number = int64(len(mt))
+		writer.Number = uint64(len(mt))
 		for _, codeT := range mt {
 			writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 			n++

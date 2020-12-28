@@ -568,7 +568,7 @@ Tips:
 		writer.SetMaxTaxid(opt.MaxTaxid)
 
 		if sortKmers {
-			writer.Number = int64(len(m0))
+			writer.Number = uint64(len(m0))
 		}
 
 		if len(m0) == 0 {

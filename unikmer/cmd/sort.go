@@ -530,7 +530,7 @@ Tips:
 					count = 0
 				}
 			} else {
-				writer.Number = int64(len(mt))
+				writer.Number = uint64(len(mt))
 				for _, codeT := range mt {
 					writer.WriteCodeWithTaxid(codeT.Code, codeT.Taxid)
 				}
@@ -563,7 +563,7 @@ Tips:
 					}
 				}
 			} else {
-				writer.Number = int64(len(m))
+				writer.Number = uint64(len(m))
 				for _, code := range m {
 					writer.WriteCode(code)
 				}

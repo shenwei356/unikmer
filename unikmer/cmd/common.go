@@ -335,7 +335,7 @@ Tips:
 			}
 		}
 
-		writer.Number = int64(len(codes))
+		writer.Number = uint64(len(codes))
 
 		if opt.Verbose && len(codes) == 0 {
 			log.Infof("no shared k-mers found")

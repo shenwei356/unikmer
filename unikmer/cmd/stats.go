@@ -343,7 +343,7 @@ Tips:
 				var r *os.File
 				var reader *unikmer.Reader
 				var gzipped bool
-				var n int64
+				var n uint64
 				var globalTaxid string
 
 				infh, r, gzipped, err = inStream(file)
@@ -379,7 +379,7 @@ Tips:
 
 				n = 0
 				if all {
-					if reader.IsSorted() && reader.Number >= 0 {
+					if reader.Number > 0 {
 						n = reader.Number
 					} else {
 						for {
@@ -499,7 +499,7 @@ Tips:
 					boolStr(sTrue, sFalse, info.compact),
 					boolStr(sTrue, sFalse, info.gzipped),
 					info.version,
-					humanize.Comma(info.number),
+					humanize.Comma(int64(info.number)),
 					info.description,
 				)
 			}
@@ -518,7 +518,7 @@ type statInfo struct {
 	sorted       bool
 	includeTaxid bool
 	globalTaxid  string
-	number       int64
+	number       uint64
 	description  string
 
 	scaled  bool
