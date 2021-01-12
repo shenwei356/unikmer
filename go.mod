@@ -13,7 +13,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/pkg/profile v1.5.0
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/shenwei356/bio v0.0.0-20201213090627-18e3e643a476
 	github.com/shenwei356/bpool v0.0.0-20160710042833-f9e0ee4d0403 // indirect
@@ -25,5 +24,5 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/tatsushid/go-prettytable v0.0.0-20141013043238-ed2d14c29939
 	github.com/twotwotwo/sorts v0.0.0-20160814051341-bf5c1f2b8553
-	github.com/will-rowe/nthash v0.2.1-0.20200824081153-a4add2cfa148
+	github.com/will-rowe/nthash v0.3.0
 )
