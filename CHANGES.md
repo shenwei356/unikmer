@@ -1,5 +1,8 @@
 # Changelog
 
+- v0.17.0
+  - syncmer value changed with different hash method.
+  - `unikmer count`: syncmer value changed.
 - v0.16.1
   - change Header.Number from `int64` to `uint64`
   - `unikmer info`: fix recounting problem for unsorted kmers but with Number.

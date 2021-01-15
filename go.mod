@@ -3,7 +3,7 @@ module github.com/shenwei356/unikmer
 go 1.16
 
 require (
-	github.com/cespare/xxhash/v2 v2.1.1
+	github.com/cespare/xxhash v1.1.0
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/sortutil v0.0.0-20181122101858-f5f958428db8 // indirect
 	github.com/dustin/go-humanize v1.0.0
@@ -25,4 +25,5 @@ require (
 	github.com/tatsushid/go-prettytable v0.0.0-20141013043238-ed2d14c29939
 	github.com/twotwotwo/sorts v0.0.0-20160814051341-bf5c1f2b8553
 	github.com/will-rowe/nthash v0.3.0
+	github.com/zeebo/wyhash v0.0.1
 )

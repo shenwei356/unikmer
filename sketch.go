@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"sort"
 
-	xxhash "github.com/cespare/xxhash/v2"
 	"github.com/shenwei356/bio/seq"
 	"github.com/will-rowe/nthash"
+	// hasher "github.com/zeebo/wyhash"
 )
 
 // ErrInvalidS means s >= k.
@@ -65,6 +65,7 @@ type Sketch struct {
 	t, b, e int
 
 	// ------ just for syncmer -------
+	hasherS           *nthash.NTHi
 	bsyncmerIdx       int
 	lateOutputThisOne bool
 	preMinIdxs        []int
@@ -166,6 +167,9 @@ func (s *Sketch) ResetMinimizer(S *seq.Seq) error {
 	return nil
 }
 
+// SyncmerSeed is the seed for hashing syncmer
+// var SyncmerSeed uint64 = 1
+
 // NewSyncmerSketch returns a SyncmerSketch Iterator.
 // 1<=s<=k.
 func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) {
@@ -211,6 +215,11 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 		return nil, err
 	}
 
+	sketch.hasherS, err = nthash.NewHasher(&seq2, uint(s))
+	if err != nil {
+		return nil, err
+	}
+
 	sketch.buf = make([]IdxValue, 0, sketch.r+1)
 	sketch.preMinIdxs = make([]int, 0, 8)
 	sketch.preMinIdx = -1
@@ -237,6 +246,11 @@ func (s *Sketch) ResetSyncmer(S *seq.Seq) error {
 
 	var err error
 	s.hasher, err = nthash.NewHasher(&seq2, uint(s.k))
+	if err != nil {
+		return err
+	}
+
+	s.hasherS, err = nthash.NewHasher(&seq2, uint(s.s))
 	if err != nil {
 		return err
 	}
@@ -373,7 +387,12 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 		// find min s-mer
 		if s.idx == 0 {
 			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
-				s.v = xxhash.Sum64(s.S[s.i : s.i+s.s])
+				// fmt.Printf("s: %d\n", s.i)
+				// s.v = hasher.Hash(s.S[s.i:s.i+s.s], SyncmerSeed)
+				s.v, ok = s.hasherS.Next(true)
+				if !ok {
+					return code, false
+				}
 				s.buf = append(s.buf, IdxValue{Idx: s.i, Val: s.v})
 			}
 			sort.Sort(idxValues(s.buf))
@@ -391,7 +410,12 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 			}
 
 			// add new s-mer
-			s.v = xxhash.Sum64(s.S[s.idx+s.r : s.idx+s.r+s.s])
+			// fmt.Printf("s: %d\n", s.idx+s.r)
+			// s.v = hasher.Hash(s.S[s.idx+s.r:s.idx+s.r+s.s], SyncmerSeed)
+			s.v, ok = s.hasherS.Next(true)
+			if !ok {
+				return code, false
+			}
 			s.flag = false
 			// using binary search, faster han linear search
 			s.b, s.e = 0, s.r-1
