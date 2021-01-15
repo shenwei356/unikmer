@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/cespare/xxhash"
+	xxhash "github.com/cespare/xxhash/v2"
 	"github.com/shenwei356/bio/seq"
 	"github.com/will-rowe/nthash"
 )
