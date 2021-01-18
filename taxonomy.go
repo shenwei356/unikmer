@@ -21,13 +21,14 @@
 package unikmer
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/shenwei356/breader"
+	"github.com/shenwei356/xopen"
 )
 
 // Taxonomy holds relationship of taxon in a taxonomy.
@@ -35,9 +36,9 @@ type Taxonomy struct {
 	file     string
 	rootNode uint32
 
-	Nodes      map[uint32]uint32 // parent -> child
+	Nodes      map[uint32]uint32 // child -> parent
 	DelNodes   map[uint32]struct{}
-	MergeNodes map[uint32]uint32
+	MergeNodes map[uint32]uint32 // from -> to
 
 	taxid2rankid map[uint32]uint8 // taxid -> rank id
 	ranks        []string         // rank id -> rank
@@ -75,63 +76,62 @@ func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, err
 	if childColumn < 1 || parentColumn < 1 {
 		return nil, ErrIllegalColumnIndex
 	}
-	minColumns := minInt(childColumn, parentColumn)
 
-	// taxon represents a taxonomic node
-	type taxon struct {
-		Taxid  uint32
-		Parent uint32
-	}
+	maxColumns := maxInt(childColumn, parentColumn)
 
-	childColumn--
-	parentColumn--
-	parseFunc := func(line string) (interface{}, bool, error) {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			return nil, false, nil
-		}
-		items := strings.Split(line, "\t")
-		if len(items) < minColumns {
-			return nil, false, nil
-		}
-		child, e := strconv.Atoi(items[childColumn])
-		if e != nil {
-			return nil, false, e
-		}
-		parent, e := strconv.Atoi(items[parentColumn])
-		if e != nil {
-			return nil, false, e
-		}
-		return taxon{Taxid: uint32(child), Parent: uint32(parent)}, true, nil
-	}
-
-	reader, err := breader.NewBufferedReader(file, 8, 100, parseFunc)
+	fh, err := xopen.Ropen(file)
 	if err != nil {
 		return nil, fmt.Errorf("unikmer: %s", err)
 	}
+	defer func() {
+		fh.Close()
+	}()
 
 	nodes := make(map[uint32]uint32, 1024)
-	var root uint32
 
-	var tax taxon
-	var data interface{}
+	n := maxColumns + 1
+
+	childColumn--
+	parentColumn--
+
+	items := make([]string, n)
+	scanner := bufio.NewScanner(fh)
+	var _child, _parent int
+	var child, parent uint32
 	var maxTaxid uint32
-	for chunk := range reader.Ch {
-		if chunk.Err != nil {
-			return nil, fmt.Errorf("unikmer: %s", chunk.Err)
+	var root uint32
+	for scanner.Scan() {
+		stringSplitN(scanner.Text(), "\t", n, &items)
+		if len(items) < n {
+			continue
 		}
-		for _, data = range chunk.Data {
-			tax = data.(taxon)
 
-			nodes[tax.Taxid] = tax.Parent
-
-			if tax.Taxid == tax.Parent {
-				root = tax.Taxid
-			}
-			if tax.Taxid > maxTaxid {
-				maxTaxid = tax.Taxid
-			}
+		_child, err = strconv.Atoi(items[childColumn])
+		if err != nil {
+			continue
 		}
+
+		_parent, err = strconv.Atoi(items[parentColumn])
+		if err != nil {
+			continue
+		}
+
+		child, parent = uint32(_child), uint32(_parent)
+
+		// ----------------------------------
+
+		nodes[child] = parent
+
+		if child == parent {
+			root = child
+		}
+		if child > maxTaxid {
+			maxTaxid = child
+		}
+
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("unikmer: %s", err)
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid}, nil
@@ -148,85 +148,83 @@ func NewTaxonomyWithRank(file string, childColumn int, parentColumn int, rankCol
 	if childColumn < 1 || parentColumn < 1 || rankColumn < 1 {
 		return nil, ErrIllegalColumnIndex
 	}
-	minColumns := minInt(childColumn, parentColumn, rankColumn)
 
-	// taxon represents a taxonomic node
-	type taxon struct {
-		Taxid  uint32
-		Parent uint32
-		Rank   string
+	maxColumns := maxInt(childColumn, parentColumn, rankColumn)
+
+	taxid2rankid := make(map[uint32]uint8, 1024)
+	ranks := make([]string, 0, 128)
+	rank2rankid := make(map[string]int, 128)
+	ranksMap := make(map[string]interface{}, 128)
+
+	fh, err := xopen.Ropen(file)
+	if err != nil {
+		return nil, fmt.Errorf("unikmer: %s", err)
 	}
+	defer func() {
+		fh.Close()
+	}()
+
+	nodes := make(map[uint32]uint32, 1024)
+
+	n := maxColumns + 1
 
 	childColumn--
 	parentColumn--
 	rankColumn--
-	parseFunc := func(line string) (interface{}, bool, error) {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			return nil, false, nil
-		}
-		items := strings.Split(line, "\t")
-		if len(items) < minColumns {
-			return nil, false, nil
-		}
-		child, e := strconv.Atoi(items[childColumn])
-		if e != nil {
-			return nil, false, e
-		}
-		parent, e := strconv.Atoi(items[parentColumn])
-		if e != nil {
-			return nil, false, e
-		}
-		return taxon{Taxid: uint32(child), Parent: uint32(parent), Rank: items[rankColumn]}, true, nil
-	}
 
-	reader, err := breader.NewBufferedReader(file, 8, 100, parseFunc)
-	if err != nil {
-		return nil, fmt.Errorf("unikmer: %s", err)
-	}
-
-	nodes := make(map[uint32]uint32, 1024)
-	var root uint32
-
-	var tax taxon
-	var data interface{}
+	items := make([]string, n)
+	scanner := bufio.NewScanner(fh)
+	var _child, _parent int
+	var child, parent uint32
 	var maxTaxid uint32
-
-	taxid2rankid := make(map[uint32]uint8, 1024)
-	ranks := make([]string, 0, 100)
-	rank2rankid := make(map[string]int, 100)
-	ranksMap := make(map[string]interface{}, 100)
-
+	var rank string
 	var ok bool
 	var rankid int
-	for chunk := range reader.Ch {
-		if chunk.Err != nil {
-			return nil, fmt.Errorf("unikmer: %s", chunk.Err)
+	var root uint32
+	for scanner.Scan() {
+		stringSplitN(scanner.Text(), "\t", n, &items)
+		if len(items) < n {
+			continue
 		}
-		for _, data = range chunk.Data {
-			tax = data.(taxon)
 
-			nodes[tax.Taxid] = tax.Parent
-
-			if tax.Taxid == tax.Parent {
-				root = tax.Taxid
-			}
-			if tax.Taxid > maxTaxid {
-				maxTaxid = tax.Taxid
-			}
-
-			if rankid, ok = rank2rankid[tax.Rank]; ok {
-				taxid2rankid[tax.Taxid] = uint8(rankid)
-			} else {
-				ranks = append(ranks, tax.Rank)
-				if len(ranks) > 255 {
-					return nil, ErrTooManyRanks
-				}
-				rank2rankid[tax.Rank] = len(ranks) - 1
-				taxid2rankid[tax.Taxid] = uint8(len(ranks) - 1)
-				ranksMap[tax.Rank] = struct{}{}
-			}
+		_child, err = strconv.Atoi(items[childColumn])
+		if err != nil {
+			continue
 		}
+
+		_parent, err = strconv.Atoi(items[parentColumn])
+		if err != nil {
+			continue
+		}
+
+		child, parent, rank = uint32(_child), uint32(_parent), items[rankColumn]
+
+		// ----------------------------------
+
+		nodes[child] = parent
+
+		if child == parent {
+			root = child
+		}
+		if child > maxTaxid {
+			maxTaxid = child
+		}
+
+		if rankid, ok = rank2rankid[rank]; ok {
+			taxid2rankid[child] = uint8(rankid)
+		} else {
+			ranks = append(ranks, rank)
+			if len(ranks) > 255 {
+				return nil, ErrTooManyRanks
+			}
+			rank2rankid[rank] = len(ranks) - 1
+			taxid2rankid[child] = uint8(len(ranks) - 1)
+			ranksMap[rank] = struct{}{}
+		}
+
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("unikmer: %s", err)
 	}
 
 	return &Taxonomy{file: file, Nodes: nodes, rootNode: root, maxTaxid: maxTaxid,
@@ -255,47 +253,46 @@ func (t *Taxonomy) LoadMergedNodes(file string, oldColumn int, newColumn int) er
 		return ErrIllegalColumnIndex
 	}
 
-	minColumns := oldColumn
-	if newColumn > minColumns {
-		minColumns = newColumn
-	}
+	maxColumns := maxInt(oldColumn, newColumn)
 
-	oldColumn--
-	newColumn--
-	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.Split(strings.TrimSpace(line), "\t")
-		if len(items) < minColumns {
-			return nil, false, nil
-		}
-		old, e := strconv.Atoi(items[oldColumn])
-		if e != nil {
-			return nil, false, e
-		}
-		new, e := strconv.Atoi(items[newColumn])
-		if e != nil {
-			return nil, false, e
-		}
-		return [2]uint32{uint32(old), uint32(new)}, true, nil
-	}
-
-	m := make(map[uint32]uint32, 1024)
-	reader, err := breader.NewBufferedReader(file, 3, 50, parseFunc)
+	fh, err := xopen.Ropen(file)
 	if err != nil {
 		return fmt.Errorf("unikmer: %s", err)
 	}
+	defer func() {
+		fh.Close()
+	}()
 
-	var p [2]uint32
-	var data interface{}
-	for chunk := range reader.Ch {
-		if chunk.Err != nil {
-			return fmt.Errorf("unikmer: %s", chunk.Err)
+	m := make(map[uint32]uint32, 1024)
+
+	n := maxColumns + 1
+
+	oldColumn--
+	newColumn--
+
+	items := make([]string, n)
+	scanner := bufio.NewScanner(fh)
+	var from, to int
+	for scanner.Scan() {
+		stringSplitN(scanner.Text(), "\t", n, &items)
+		if len(items) < n {
+			continue
+		}
+		from, err = strconv.Atoi(items[oldColumn])
+		if err != nil {
+			continue
+		}
+		to, err = strconv.Atoi(items[newColumn])
+		if err != nil {
+			continue
 		}
 
-		for _, data = range chunk.Data {
-			p = data.([2]uint32)
-			m[p[0]] = p[1]
-		}
+		m[uint32(from)] = uint32(to)
 	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("unikmer: %s", err)
+	}
+
 	t.MergeNodes = m
 	t.hasMergeNodes = true
 	return nil
@@ -312,36 +309,37 @@ func (t *Taxonomy) LoadDeletedNodes(file string, column int) error {
 		return ErrIllegalColumnIndex
 	}
 
-	parseFunc := func(line string) (interface{}, bool, error) {
-		items := strings.Split(strings.TrimSpace(line), "\t")
-		if len(items) < column {
-			return nil, false, nil
-		}
-		id, e := strconv.Atoi(items[column-1])
-		if e != nil {
-			return nil, false, e
-		}
-		return uint32(id), true, nil
-	}
-
-	m := make(map[uint32]struct{}, 1024)
-	reader, err := breader.NewBufferedReader(file, 3, 50, parseFunc)
+	fh, err := xopen.Ropen(file)
 	if err != nil {
 		return fmt.Errorf("unikmer: %s", err)
 	}
+	defer func() {
+		fh.Close()
+	}()
 
-	var taxid uint32
-	var data interface{}
-	for chunk := range reader.Ch {
-		if chunk.Err != nil {
-			return fmt.Errorf("unikmer: %s", chunk.Err)
+	m := make(map[uint32]struct{}, 1024)
+
+	n := column + 1
+	column--
+	items := make([]string, n)
+	scanner := bufio.NewScanner(fh)
+	var id int
+	for scanner.Scan() {
+		stringSplitN(scanner.Text(), "\t", n, &items)
+		if len(items) < n {
+			continue
+		}
+		id, err = strconv.Atoi(items[column])
+		if err != nil {
+			continue
 		}
 
-		for _, data = range chunk.Data {
-			taxid = data.(uint32)
-			m[taxid] = struct{}{}
-		}
+		m[uint32(id)] = struct{}{}
 	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("unikmer: %s", err)
+	}
+
 	t.DelNodes = m
 	t.hasDelNodes = true
 	return nil
@@ -489,4 +487,36 @@ func minInt(a int, vals ...int) int {
 		}
 	}
 	return min
+}
+
+func maxInt(a int, vals ...int) int {
+	min := a
+	for _, v := range vals {
+		if v > min {
+			min = v
+		}
+	}
+	return min
+}
+
+func stringSplitN(s string, sep string, n int, a *[]string) {
+	if a == nil {
+		tmp := make([]string, n)
+		a = &tmp
+	}
+
+	n--
+	i := 0
+	for i < n {
+		m := strings.Index(s, sep)
+		if m < 0 {
+			break
+		}
+		(*a)[i] = s[:m]
+		s = s[m+len(sep):]
+		i++
+	}
+	(*a)[i] = s
+
+	(*a) = (*a)[:i+1]
 }
