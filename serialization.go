@@ -277,11 +277,11 @@ func (reader *Reader) readHeader() (err error) {
 	reader.globalTaxid = be.Uint32(buf[:4])
 
 	// taxid byte length
-	_, err = io.ReadFull(r, buf[:1])
+	_, err = io.ReadFull(r, buf[1:2])
 	if err != nil {
 		return err
 	}
-	buf[1] = 0
+	buf[0] = 0
 	reader.taxidByteLen = int(be.Uint16(buf[:2]))
 
 	// length of description
