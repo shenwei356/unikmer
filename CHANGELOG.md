@@ -1,5 +1,7 @@
 # Changelog
 
+- v0.17.1
+  - `unikmer rfilter:` change handling of black list.
 - v0.17.0
   - syncmer value changed with different hash method.
   - `unikmer count`: syncmer value changed.
