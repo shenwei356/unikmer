@@ -381,7 +381,6 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		}
 	}
 
-	lineA := make([]uint32, 0, 16)
 	mA := make(map[uint32]struct{}, 16)
 
 	var child, parent, newTaxid uint32
@@ -411,7 +410,6 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 			}
 		}
 		if parent == child { // root
-			lineA = append(lineA, parent)
 			mA[parent] = struct{}{}
 			break
 		}
@@ -421,7 +419,6 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 			}
 			return b
 		}
-		lineA = append(lineA, parent)
 		mA[parent] = struct{}{}
 
 		child = parent
