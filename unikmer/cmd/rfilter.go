@@ -50,8 +50,11 @@ Attentions:
   2. A list of pre-ordered ranks is in ~/.taxonkit/ranks.txt, you can use
      your list by -r/--rank-file, the format specification is below.
   3. All ranks in taxonomy database should be defined in rank file.
-  4. TaxIDs with no rank can be optionally discarded by -N/--discard-noranks.
-  5. Futher ranks can be removed with black list via -B/--black-list.
+  4. Ranks can be removed with black list via -B/--black-list.
+  5. TaxIDs with no rank can be optionally discarded by -N/--discard-noranks.
+  6. But when filtering with -L/--lower-than, you can use
+    -n/--save-predictable-norank to save some special ranks without order,
+    where rank of the closest higher node is still lower than rank cutoff.
 
 Rank file:
   1. Blank lines or lines starting with "#" are ignored.
@@ -86,6 +89,8 @@ Rank file:
 		rankFile := getFlagString(cmd, "rank-file")
 
 		discardNoRank := getFlagBool(cmd, "discard-noranks")
+		saveNorank := getFlagBool(cmd, "save-predictable-norank")
+
 		blackListRanks := getFlagStringSlice(cmd, "black-list")
 
 		rootTaxid := getFlagUint32(cmd, "root-taxid")
@@ -93,13 +98,25 @@ Rank file:
 
 		higher := strings.ToLower(getFlagString(cmd, "higher-than"))
 		lower := strings.ToLower(getFlagString(cmd, "lower-than"))
-		equal := strings.ToLower(getFlagString(cmd, "equal-to"))
+		equalsS := getFlagStringSlice(cmd, "equal-to")
+		equals := make([]string, 0, len(equalsS))
+		for _, val := range equalsS {
+			equals = append(equals, strings.ToLower(val))
+		}
 
 		listOrder := getFlagBool(cmd, "list-order")
 		listRanks := getFlagBool(cmd, "list-ranks")
 
 		if higher != "" && lower != "" {
 			checkError(fmt.Errorf("-H/--higher-than and -L/--lower-than can't be simultaneous given"))
+		}
+
+		if saveNorank {
+			discardNoRank = true
+
+			if lower == "" {
+				checkError(fmt.Errorf("flag -n/--save-predictable-norank only works along with -L/--lower-than"))
+			}
 		}
 
 		rankOrder, noRanks, err := readRankOrder(opt, rankFile)
@@ -193,7 +210,7 @@ Rank file:
 			}
 		}
 
-		filter, err := newRankFilter(taxondb.Ranks, rankOrder, noRanks, lower, higher, equal, blackListRanks, discardNoRank)
+		filter, err := newRankFilter(taxondb, rankOrder, noRanks, lower, higher, equals, blackListRanks, discardNoRank, saveNorank)
 		checkError(err)
 
 		if !isStdout(outFile) {
@@ -269,12 +286,7 @@ Rank file:
 						continue
 					}
 
-					rank = taxondb.Rank(taxid)
-					if rank == "" {
-						continue
-					}
-
-					pass, err = filter.isPassed(rank)
+					pass, err = filter.isPassed(taxid)
 					if err != nil {
 						checkError(errors.Wrapf(err, "file: %s, rank: %s", file, rank))
 					}
@@ -312,24 +324,27 @@ func init() {
 	rfilterCmd.Flags().BoolP("list-order", "", false, "list defined ranks in order")
 	rfilterCmd.Flags().BoolP("list-ranks", "", false, "list ordered ranks in taxonomy database")
 
-	filterCmd.Flags().BoolP("discard-noranks", "N", false, `discard ranks without order, type "taxonkit filter --help" for details`)
-	filterCmd.Flags().StringSliceP("black-list", "B", []string{}, `black list of ranks to discard, e.g., '"no rank", "clade"'`)
+	rfilterCmd.Flags().BoolP("discard-noranks", "N", false, `discard ranks without order, type "unikmer filter --help" for details`)
+	rfilterCmd.Flags().BoolP("save-predictable-norank", "n", false, `do not discard some special ranks without order when using -L, where rank of the closest higher node is still lower than rank cutoff`)
+	rfilterCmd.Flags().StringSliceP("black-list", "B", []string{}, `black list of ranks to discard, e.g., '"no rank", "clade"'`)
 
 	rfilterCmd.Flags().BoolP("discard-root", "R", false, `discard root taxid, defined by --root-taxid`)
 	rfilterCmd.Flags().Uint32P("root-taxid", "", 1, `root taxid`)
 
 	rfilterCmd.Flags().StringP("lower-than", "L", "", "output ranks lower than a rank, exclusive with --higher-than")
 	rfilterCmd.Flags().StringP("higher-than", "H", "", "output ranks higher than a rank, exclusive with --lower-than")
-	rfilterCmd.Flags().StringP("equal-to", "E", "", "output ranks equal to a rank")
+	rfilterCmd.Flags().StringSliceP("equal-to", "E", []string{}, `output taxIDs with rank equal to some ranks, multiple values can be separated with comma "," (e.g., -E "genus,species"), or give multiple times (e.g., -E genus -E species)`)
 }
 
 type rankFilter struct {
+	taxondb *unikmer.Taxonomy
+
 	dbRanks   map[string]interface{}
 	rankOrder map[string]int
 
 	lower  string
 	higher string
-	equal  string
+	equals []string
 
 	oLower  int
 	oHigher int
@@ -341,14 +356,16 @@ type rankFilter struct {
 
 	noRanks    map[string]interface{}
 	blackLists map[string]interface{}
+	oEquals    map[int]interface{}
 
-	discardNorank bool
+	discardNorank   bool
+	saveKnownNoRank bool
 
-	cache map[string]bool
+	cache map[uint32]bool
 }
 
-func newRankFilter(dbRanks map[string]interface{}, rankOrder map[string]int, noRanks map[string]interface{},
-	lower, higher, equal string, blackList []string, discardNorank bool) (*rankFilter, error) {
+func newRankFilter(taxondb *unikmer.Taxonomy, rankOrder map[string]int, noRanks map[string]interface{},
+	lower string, higher string, equals []string, blackList []string, discardNorank bool, saveKnownNoRank bool) (*rankFilter, error) {
 
 	if lower != "" && higher != "" {
 		return nil, fmt.Errorf("higher and lower can't be simultaneous given")
@@ -358,16 +375,19 @@ func newRankFilter(dbRanks map[string]interface{}, rankOrder map[string]int, noR
 	for _, r := range blackList {
 		blackListMap[r] = struct{}{}
 	}
+	dbRanks := taxondb.Ranks
 	f := &rankFilter{
-		dbRanks:       dbRanks,
-		rankOrder:     rankOrder,
-		lower:         lower,
-		higher:        higher,
-		equal:         equal,
-		noRanks:       noRanks,
-		blackLists:    blackListMap,
-		discardNorank: discardNorank,
-		cache:         make(map[string]bool, 1024),
+		taxondb:         taxondb,
+		dbRanks:         dbRanks,
+		rankOrder:       rankOrder,
+		lower:           lower,
+		higher:          higher,
+		equals:          equals,
+		noRanks:         noRanks,
+		blackLists:      blackListMap,
+		discardNorank:   discardNorank,
+		saveKnownNoRank: saveKnownNoRank,
+		cache:           make(map[uint32]bool, 1024),
 	}
 	var err error
 	if lower != "" {
@@ -384,10 +404,15 @@ func newRankFilter(dbRanks map[string]interface{}, rankOrder map[string]int, noR
 		}
 		f.limitHigher = true
 	}
-	if equal != "" {
-		f.oEqual, err = getRankOrder(dbRanks, rankOrder, equal)
-		if err != nil {
-			return nil, err
+	if len(equals) > 0 {
+		f.oEquals = make(map[int]interface{}, len(equals))
+		var oe int
+		for _, equal := range equals {
+			oe, err = getRankOrder(dbRanks, rankOrder, equal)
+			if err != nil {
+				return nil, err
+			}
+			f.oEquals[oe] = struct{}{}
 		}
 		f.limitEqual = true
 	}
@@ -406,26 +431,61 @@ func getRankOrder(dbRanks map[string]interface{}, rankOrder map[string]int, rank
 	return rankOrder[rank], nil
 }
 
-func (f *rankFilter) isPassed(rank string) (bool, error) {
-	rank = strings.ToLower(rank)
-
-	if v, ok := f.cache[rank]; ok {
-		return v, nil
-	}
-
-	if f.discardNorank {
-		if _, ok := f.noRanks[rank]; ok {
-			f.cache[rank] = false
-			return false, nil
-		}
-	}
-
-	if _, ok := f.blackLists[rank]; ok {
-		f.cache[rank] = false
+func (f *rankFilter) isPassed(taxid uint32) (bool, error) {
+	rank := f.taxondb.Rank(taxid)
+	if rank == "" {
 		return false, nil
 	}
 
+	rank = strings.ToLower(rank)
+
+	if v, ok := f.cache[taxid]; ok {
+		return v, nil
+	}
+
+	if _, ok := f.blackLists[rank]; ok {
+		f.cache[taxid] = false
+		return false, nil
+	}
+
+	var isNoRank bool
+	_, ok := f.noRanks[rank]
+	if ok {
+		if f.discardNorank {
+			isNoRank = true
+			if !f.saveKnownNoRank {
+				f.cache[taxid] = false
+				return false, nil
+			}
+		}
+	}
+
 	var pass bool
+
+	if isNoRank && f.limitLower && f.saveKnownNoRank {
+		nodes := f.taxondb.Nodes
+		var _rank string
+		var _ok bool
+		var _order int
+
+		parent := nodes[taxid]
+		for {
+			if parent == 1 {
+				f.cache[taxid] = false
+				return false, nil
+			}
+
+			_rank = f.taxondb.Rank(parent)
+			_order, _ok = f.rankOrder[_rank]
+			if _ok {
+				pass = _order <= f.oLower
+
+				f.cache[taxid] = pass
+				return pass, nil
+			}
+			parent = nodes[parent]
+		}
+	}
 
 	order, _ := f.rankOrder[rank]
 	// order, ok := f.rankOrder[rank]
@@ -434,8 +494,8 @@ func (f *rankFilter) isPassed(rank string) (bool, error) {
 	// }
 
 	if f.limitEqual {
-		if f.oEqual == order {
-			pass = true
+		if _, pass = f.oEquals[order]; pass {
+			// pass = true
 		} else if f.limitLower {
 			pass = order < f.oLower
 		} else if f.limitHigher {
@@ -451,7 +511,7 @@ func (f *rankFilter) isPassed(rank string) (bool, error) {
 		pass = true // no any filter
 	}
 
-	f.cache[rank] = pass
+	f.cache[taxid] = pass
 	return pass, nil
 }
 
