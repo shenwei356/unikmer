@@ -1,10 +1,12 @@
 # Changelog
 
+- v0.17.3
+
 - v0.17.2
   - `unikmer`: slightly speedup for computing LCA.
   - `unikmer rfilter:` 
     - flag `-E/--equal-to` supports multiple values.
-    - new flag `-n/--save-predictable-norank`: do not discard some special ranks without order when using -L, where rank of the closest higher node is still lower than rank cutoff.   
+    - new flag `-n/--save-predictable-norank`: do not discard some special ranks without order when using -L, where rank of the closest higher node is still lower than rank cutoff.
 - v0.17.1
   - `unikmer rfilter:` change handling of black list.
 - v0.17.0
