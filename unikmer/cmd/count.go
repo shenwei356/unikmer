@@ -70,7 +70,7 @@ K-mer sketchs:
 		}
 
 		scale := getFlagPositiveInt(cmd, "scale")
-		if scale > 1<<32-1 {
+		if scale > 1<<31-1 {
 			checkError(fmt.Errorf("value of flag --scale is too big"))
 		}
 		scaled := scale > 1
@@ -81,7 +81,7 @@ K-mer sketchs:
 		maxHash := uint64(float64(^uint64(0)) / float64(scale))
 
 		minimizerW := getFlagNonNegativeInt(cmd, "minimizer-w")
-		if minimizerW > 1<<32-1 {
+		if minimizerW > 1<<31-1 {
 			checkError(fmt.Errorf("value of flag --minimizer-w is too big"))
 		}
 		minimizer := minimizerW > 0
@@ -97,7 +97,7 @@ K-mer sketchs:
 		}
 
 		syncmerS := getFlagNonNegativeInt(cmd, "syncmer-s")
-		if syncmerS > 1<<32-1 {
+		if syncmerS > 1<<31-1 {
 			checkError(fmt.Errorf("value of flag --syncmer-s is too big"))
 		}
 		syncmer := syncmerS > 0

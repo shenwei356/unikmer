@@ -91,7 +91,7 @@ func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf [
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
-	if w < 1 || w > (1<<32)-1 {
+	if w < 1 || w > (1<<31)-1 {
 		return nil, ErrInvalidW
 	}
 	if len(S.Seq) < k+w-1 {

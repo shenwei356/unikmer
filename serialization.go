@@ -89,7 +89,7 @@ const (
 	UnikCanonical
 	// UnikSorted means k-mers are sorted
 	UnikSorted // when sorted, the serialization structure is very different
-	// UnikIncludeTaxID means a k-mer are followed it's LCA taxid
+	// UnikIncludeTaxID means a k-mer is followed its LCA taxid
 	UnikIncludeTaxID
 
 	// UnikHashed means ntHash value are saved as code.
