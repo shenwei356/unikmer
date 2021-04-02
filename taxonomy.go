@@ -39,6 +39,7 @@ type Taxonomy struct {
 	Nodes      map[uint32]uint32 // child -> parent
 	DelNodes   map[uint32]struct{}
 	MergeNodes map[uint32]uint32 // from -> to
+	Names      map[uint32]string
 
 	taxid2rankid map[uint32]uint8 // taxid -> rank id
 	ranks        []string         // rank id -> rank
@@ -47,6 +48,7 @@ type Taxonomy struct {
 	hasRanks      bool
 	hasDelNodes   bool
 	hasMergeNodes bool
+	hasNames      bool
 
 	cacheLCA bool
 	// lcaCache map[uint64]uint32 // cache of lca
@@ -60,7 +62,10 @@ type Taxonomy struct {
 var ErrIllegalColumnIndex = errors.New("unikmer: illegal column index, positive integer needed")
 
 // ErrRankNotLoaded means you should reate load Taxonomy with NewTaxonomyWithRank before calling some methods.
-var ErrRankNotLoaded = errors.New("unikmer: ranks not loaded, please call: NewTaxonomyWithRank")
+var ErrRankNotLoaded = errors.New("unikmer: taxonomic ranks not loaded, please call: NewTaxonomyWithRank")
+
+// ErrNamesNotLoaded means you should call LoadNames before using taxonomy names.
+var ErrNamesNotLoaded = errors.New("unikmer: taxonomy names not loaded, please call: LoadNames")
 
 // ErrTooManyRanks means number of ranks exceed limit of 255
 var ErrTooManyRanks = errors.New("unikmer: number of ranks exceed limit of 255")
@@ -240,6 +245,66 @@ func (t *Taxonomy) Rank(taxid uint32) string {
 		return t.ranks[int(i)]
 	}
 	return "" // taxid not found int db
+}
+
+// LoadNamesFromNCBI loads names from NCBI names.dmp
+func (t *Taxonomy) LoadNamesFromNCBI(file string) error {
+	return t.LoadNames(file, 1, 3, 7, "scientific name")
+}
+
+// LoadNames loads names.
+func (t *Taxonomy) LoadNames(file string, taxidColumn int, nameColumn int, typeColumn int, _type string) error {
+	if taxidColumn < 1 || nameColumn < 1 || typeColumn < 1 {
+		return ErrIllegalColumnIndex
+	}
+
+	maxColumns := maxInt(nameColumn, nameColumn, typeColumn)
+
+	fh, err := xopen.Ropen(file)
+	if err != nil {
+		return fmt.Errorf("unikmer: %s", err)
+	}
+	defer func() {
+		fh.Close()
+	}()
+
+	m := make(map[uint32]string, 1024)
+
+	n := maxColumns + 1
+
+	taxidColumn--
+	nameColumn--
+	typeColumn--
+
+	filterByType := _type != ""
+
+	items := make([]string, n)
+	scanner := bufio.NewScanner(fh)
+	var taxid uint64
+	for scanner.Scan() {
+		stringSplitN(scanner.Text(), "\t", n, &items)
+		if len(items) < n {
+			continue
+		}
+
+		if filterByType && items[typeColumn] != _type {
+			continue
+		}
+
+		taxid, err = strconv.ParseUint(items[taxidColumn], 10, 32)
+		if err != nil {
+			continue
+		}
+
+		m[uint32(taxid)] = items[nameColumn]
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("unikmer: %s", err)
+	}
+
+	t.Names = m
+	t.hasNames = true
+	return nil
 }
 
 // LoadMergedNodesFromNCBI loads merged nodes from  NCBI merged.dmp.
@@ -467,6 +532,61 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 		child = parent
 	}
 	return t.rootNode
+}
+
+func (t *Taxonomy) LineageNames(taxid uint32) []string {
+	taxids := t.LineageTaxIds(taxid)
+	if taxids == nil {
+		return nil
+	}
+
+	if !t.hasNames {
+		panic(ErrNamesNotLoaded)
+	}
+
+	names := make([]string, len(taxids))
+	for i, tax := range taxids {
+		names[i] = t.Names[tax]
+	}
+	return names
+}
+
+func (t *Taxonomy) LineageTaxIds(taxid uint32) []uint32 {
+	var child, parent, newtaxid uint32
+	var ok bool
+
+	child = taxid
+	list := make([]uint32, 0, 16)
+	for {
+		parent, ok = t.Nodes[child]
+		if !ok { // taxid not found
+			// check if it was deleted
+			if _, ok = t.DelNodes[child]; ok {
+				return nil
+			}
+			// check if it was merged
+			if newtaxid, ok = t.MergeNodes[child]; ok {
+				child = newtaxid
+				parent = t.Nodes[child]
+			} else { // not found
+				return nil
+			}
+		}
+
+		list = append(list, child)
+
+		if parent == 1 {
+			break
+		}
+		child = parent
+	}
+
+	// reversing
+	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
+		list[i], list[j] = list[j], list[i]
+	}
+
+	return list
 }
 
 func pack2uint32(a uint32, b uint32) uint64 {
