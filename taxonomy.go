@@ -51,8 +51,6 @@ type Taxonomy struct {
 	hasNames      bool
 
 	cacheLCA bool
-	// lcaCache map[uint64]uint32 // cache of lca
-	// mux      sync.Mutex
 	lcaCache sync.Map
 
 	maxTaxid uint32
@@ -70,13 +68,13 @@ var ErrNamesNotLoaded = errors.New("unikmer: taxonomy names not loaded, please c
 // ErrTooManyRanks means number of ranks exceed limit of 255
 var ErrTooManyRanks = errors.New("unikmer: number of ranks exceed limit of 255")
 
-// NewTaxonomyFromNCBI parses Taxonomy from nodes.dmp
+// NewTaxonomyFromNCBI parses nodes relationship from nodes.dmp
 // from ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz .
 func NewTaxonomyFromNCBI(file string) (*Taxonomy, error) {
 	return NewTaxonomy(file, 1, 3)
 }
 
-// NewTaxonomy loads nodes from nodes.dmp file.
+// NewTaxonomy only loads nodes from nodes.dmp file.
 func NewTaxonomy(file string, childColumn int, parentColumn int) (*Taxonomy, error) {
 	if childColumn < 1 || parentColumn < 1 {
 		return nil, ErrIllegalColumnIndex
@@ -247,7 +245,7 @@ func (t *Taxonomy) Rank(taxid uint32) string {
 	return "" // taxid not found int db
 }
 
-// LoadNamesFromNCBI loads names from NCBI names.dmp
+// LoadNamesFromNCBI loads scientific names from NCBI names.dmp
 func (t *Taxonomy) LoadNamesFromNCBI(file string) error {
 	return t.LoadNames(file, 1, 3, 7, "scientific name")
 }
@@ -418,9 +416,6 @@ func (t *Taxonomy) MaxTaxid() uint32 {
 // CacheLCA tells to cache every LCA query result
 func (t *Taxonomy) CacheLCA() {
 	t.cacheLCA = true
-	// if t.lcaCache == nil {
-	// 	t.lcaCache = make(map[uint64]uint32, 1024)
-	// }
 }
 
 // LCA returns the Lowest Common Ancestor of two nodes, 0 for unknown taxid.
@@ -534,6 +529,7 @@ func (t *Taxonomy) LCA(a uint32, b uint32) uint32 {
 	return t.rootNode
 }
 
+// LineageNames returns nodes' names of the the complete lineage.
 func (t *Taxonomy) LineageNames(taxid uint32) []string {
 	taxids := t.LineageTaxIds(taxid)
 	if taxids == nil {
@@ -551,6 +547,7 @@ func (t *Taxonomy) LineageNames(taxid uint32) []string {
 	return names
 }
 
+// LineageNames returns nodes' taxid of the the complete lineage.
 func (t *Taxonomy) LineageTaxIds(taxid uint32) []uint32 {
 	var child, parent, newtaxid uint32
 	var ok bool
