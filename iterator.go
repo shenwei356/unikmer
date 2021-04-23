@@ -124,7 +124,8 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	}
 
 	iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
-	iter.end = iter.length - k
+	iter.length = len(s2.Seq)
+	iter.end = iter.length - k + 1
 	iter.kUint = uint(k)
 	iter.kP1 = k - 1
 	iter.kP1Uint = uint(k - 1)

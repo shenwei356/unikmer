@@ -64,11 +64,12 @@ func TestMinimizer(t *testing.T) {
 		// fmt.Printf("minizimer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
 
-	if len(codes) == 4 &&
-		codes[0] == 2645801399420473919 &&
-		codes[1] == 1099502864234245338 &&
-		codes[2] == 6763474888237448943 &&
-		codes[3] == 2737971715116251183 {
+	if len(codes) == 5 &&
+		codes[0] == 973456138564179607 &&
+		codes[1] == 2645801399420473919 &&
+		codes[2] == 1099502864234245338 &&
+		codes[3] == 6763474888237448943 &&
+		codes[4] == 2737971715116251183 {
 	} else {
 		t.Errorf("minizimer error")
 	}
@@ -115,7 +116,7 @@ func TestSyncmer(t *testing.T) {
 	// }
 }
 
-func BenchmarkMinimizerIterator(b *testing.B) {
+func BenchmarkMinimizerSketch(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
 		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
@@ -148,9 +149,9 @@ func BenchmarkMinimizerIterator(b *testing.B) {
 	}
 }
 
-// go test -v -test.bench=BenchmarkSyncmerIterator -cpuprofile profile.out -test.run=damnit
+// go test -v -test.bench=BenchmarkSyncmerSketch -cpuprofile profile.out -test.run=damnit
 // go tool pprof -http=:8080 profile.out
-func BenchmarkSyncmerIterator(b *testing.B) {
+func BenchmarkSyncmerSketch(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
 		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
@@ -179,6 +180,39 @@ func BenchmarkSyncmerIterator(b *testing.B) {
 
 			}
 			// fmt.Printf("syncmer for %s DNA, c=%.6f\n", bytesize.ByteSize(size).String(), float64(size)/float64(n))
+		})
+	}
+}
+
+func BenchmarkProteinMinimizerSketch(b *testing.B) {
+	for i := range benchSeqs {
+		size := len(benchSeqs[i].Seq)
+		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
+			var code uint64
+			var ok bool
+			// var n int
+
+			for j := 0; j < b.N; j++ {
+				iter, err := NewProteinMinimizerSketch(benchSeqs[i], 10, 1, 1, 5)
+				if err != nil {
+					b.Errorf("fail to create minizimer sketch. seq length: %d", size)
+				}
+
+				// n = 0
+				for {
+					code, ok = iter.Next()
+					if !ok {
+						break
+					}
+
+					// fmt.Printf("minizimer: %d-%d\n", iter.Index(), code)
+
+					_code = code
+					// n++
+				}
+
+			}
+			// fmt.Printf("minizimer for %s Protein, c=%.6f\n", bytesize.ByteSize(size).String(), float64(size)/float64(n))
 		})
 	}
 }

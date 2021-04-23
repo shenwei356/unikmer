@@ -21,63 +21,38 @@
 package unikmer
 
 import (
+	"testing"
+
 	"github.com/shenwei356/bio/seq"
-	"github.com/zeebo/wyhash"
 )
 
-// ProteinIterator is a iterator for protein sequence.
-type ProteinIterator struct {
-	s0 *seq.Seq // only used for KmerProteinIterator
-	s  *seq.Seq // amino acid
-
-	k        int
-	finished bool
-	end      int
-	idx      int
-}
-
-// NewProteinIterator returns an ProteinIterator.
-func NewProteinIterator(s *seq.Seq, k int, codonTable int, frame int) (*ProteinIterator, error) {
-	if k < 1 {
-		return nil, ErrInvalidK
+func TestProteinMinimizer(t *testing.T) {
+	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
+	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
+	if err != nil {
+		t.Errorf("fail to create sequence: %s", _s)
 	}
-	if len(s.Seq) < k*3 {
-		return nil, ErrShortSeq
+	k := 10
+	w := 3
+
+	sketch, err := NewProteinMinimizerSketch(sequence, k, 1, 1, w)
+	if err != nil {
+		t.Errorf("fail to create minizimer sketch")
 	}
 
-	iter := &ProteinIterator{s0: s, k: k}
-
-	var err error
-	if s.Alphabet != seq.Protein {
-		iter.s, err = s.Translate(codonTable, frame, false, false, true, false)
-		if err != nil {
-			return nil, err
+	var code uint64
+	var ok bool
+	// var idx int
+	codes := make([]uint64, 0, 1024)
+	for {
+		code, ok = sketch.Next()
+		if !ok {
+			break
 		}
-	} else {
-		iter.s = s
+
+		// idx = sketch.Index()
+		// fmt.Printf("aa: %d-%s, %d\n", idx, sketch.s.Seq[idx:idx+k], code)
+
+		codes = append(codes, code)
 	}
-	iter.end = len(iter.s.Seq) - k
-
-	return iter, nil
-}
-
-// Next return's a hash
-func (iter *ProteinIterator) Next() (code uint64, ok bool) {
-	if iter.finished {
-		return 0, false
-	}
-
-	if iter.idx > iter.end {
-		iter.finished = true
-		return 0, false
-	}
-
-	code = wyhash.Hash(iter.s.Seq[iter.idx:iter.idx+iter.k], 1)
-	iter.idx++
-	return code, true
-}
-
-// Index returns current 0-baesd index.
-func (iter *ProteinIterator) Index() int {
-	return iter.idx - 1
 }

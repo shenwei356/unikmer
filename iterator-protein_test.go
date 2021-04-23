@@ -26,7 +26,7 @@ import (
 	"github.com/shenwei356/bio/seq"
 )
 
-func TestAAIterator(t *testing.T) {
+func TestProteinIterator(t *testing.T) {
 	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
 	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
 	if err != nil {
@@ -53,6 +53,10 @@ func TestAAIterator(t *testing.T) {
 		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
 
 		codes = append(codes, code)
+	}
+
+	if len(codes) != len(_s)/3-k+1 {
+		t.Errorf("k-mer hashes number error")
 	}
 
 }

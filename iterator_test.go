@@ -47,18 +47,21 @@ func TestKmerIterator(t *testing.T) {
 	codes := make([]uint64, 0, 1024)
 	for {
 		code, ok, err = iter.Next()
+		if err != nil {
+			t.Error(err)
+		}
 		if !ok {
 			break
 		}
 
 		// idx = iter.Index()
-		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
+		// fmt.Printf("kmer: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
 
 		codes = append(codes, code)
 	}
 
 	if len(codes) != len(_s)-k+1 {
-		t.Errorf("kmer number error")
+		t.Errorf("k-mers number error")
 	}
 }
 
@@ -86,13 +89,13 @@ func TestHashIterator(t *testing.T) {
 		}
 
 		// idx = iter.Index()
-		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
+		// fmt.Printf("kmer: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
 
 		codes = append(codes, code)
 	}
 
 	if len(codes) != len(_s)-k+1 {
-		t.Errorf("kmer hash number error")
+		t.Errorf("k-mer hashes number error")
 	}
 }
 
@@ -121,6 +124,36 @@ func init() {
 	// fmt.Printf("%d DNA sequences generated\n", len(sizes))
 }
 
+func BenchmarkKmerIterator(b *testing.B) {
+	for i := range benchSeqs {
+		size := len(benchSeqs[i].Seq)
+		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
+			var code uint64
+			var ok bool
+
+			for j := 0; j < b.N; j++ {
+				iter, err := NewKmerIterator(benchSeqs[i], 31, true, false)
+				if err != nil {
+					b.Errorf("fail to create hash iterator. seq length: %d", size)
+				}
+				for {
+					code, ok, err = iter.NextKmer()
+					if err != nil {
+						b.Errorf("fail to get kmer code: %d-%s", iter.Index(),
+							benchSeqs[i].Seq[iter.Index():iter.Index()+31])
+					}
+
+					if !ok {
+						break
+					}
+
+					_code = code
+				}
+			}
+		})
+	}
+}
+
 func BenchmarkHashIterator(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
@@ -147,7 +180,7 @@ func BenchmarkHashIterator(b *testing.B) {
 	}
 }
 
-func BenchmarkKmerIterator(b *testing.B) {
+func BenchmarkProteinIterator(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
 		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
@@ -155,17 +188,13 @@ func BenchmarkKmerIterator(b *testing.B) {
 			var ok bool
 
 			for j := 0; j < b.N; j++ {
-				iter, err := NewKmerIterator(benchSeqs[i], 31, true, false)
+				iter, err := NewProteinIterator(benchSeqs[i], 10, 1, 1)
 				if err != nil {
 					b.Errorf("fail to create hash iterator. seq length: %d", size)
 				}
-				for {
-					code, ok, err = iter.NextKmer()
-					if err != nil {
-						b.Errorf("fail to get kmer code: %d-%s", iter.Index(),
-							benchSeqs[i].Seq[iter.Index():iter.Index()+31])
-					}
 
+				for {
+					code, ok = iter.Next()
 					if !ok {
 						break
 					}

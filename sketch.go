@@ -74,7 +74,6 @@ type Sketch struct {
 	skip      bool
 	minimizer bool
 	w         int
-	l         int // k+w-1
 }
 
 // NewMinimizerSketch returns a SyncmerSketch Iterator.
@@ -104,7 +103,7 @@ func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf [
 		return nil, ErrBufNotEmpty
 	}
 
-	sketch := &Sketch{S: S.Seq, w: w, k: k, l: k + w - 1, circular: circular}
+	sketch := &Sketch{S: S.Seq, w: w, k: k, circular: circular}
 	sketch.minimizer = true
 	sketch.skip = w == 1
 
@@ -162,7 +161,6 @@ func (s *Sketch) ResetMinimizer(S *seq.Seq) error {
 	s.buf = s.buf[:0]
 	s.idx = 0
 	s.i = 0
-	s.preMinIdxs = make([]int, 0, 8)
 	s.preMinIdx = -1
 	return nil
 }
@@ -295,8 +293,13 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
 			sort.Sort(idxValues(s.buf)) // sort
 
+			s.i2v = s.buf[0]
+
+			s.mI, s.mV = s.i2v.Idx, s.i2v.Val
+			s.preMinIdx = s.mI
+
 			s.idx++
-			continue
+			return s.i2v.Val, true
 		}
 
 		// find min k-mer
