@@ -281,78 +281,85 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 			s.idx++
 			return code, true
 		}
+
+		// in window
+		if s.idx < s.r {
+			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
+
+			s.idx++
+			continue
+		}
+
+		// end of w
+		if s.idx == s.r {
+			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
+			sort.Sort(idxValues(s.buf)) // sort
+
+			s.idx++
+			continue
+		}
+
 		// find min k-mer
-		if s.idx > s.r {
-			// remove k-mer not in this window.
-			// have to check position/index one by one
-			for s.i, s.i2v = range s.buf {
-				if s.i2v.Idx == s.idx-s.w {
-					if s.i < s.r {
-						copy(s.buf[s.i:s.r], s.buf[s.i+1:])
-					} // happen to be at the end
-					s.buf = s.buf[:s.r]
+		// remove k-mer not in this window.
+		// have to check position/index one by one
+		for s.i, s.i2v = range s.buf {
+			if s.i2v.Idx == s.idx-s.w {
+				if s.i < s.r {
+					copy(s.buf[s.i:s.r], s.buf[s.i+1:])
+				} // happen to be at the end
+				s.buf = s.buf[:s.r]
+				break
+			}
+		}
+
+		// add new k-mer
+		s.flag = false
+		// using binary search, faster han linear search
+		s.b, s.e = 0, s.r-1
+		for {
+			s.t = s.b + (s.e-s.b)/2
+			if code < s.buf[s.t].Val {
+				s.e = s.t - 1 // end search here
+				if s.e <= s.b {
+					s.flag = true
+					s.i = s.b
+					break
+				}
+			} else {
+				s.b = s.t + 1 // start here
+				if s.b >= s.r {
+					s.flag = false
+					break
+				}
+				if s.b >= s.e {
+					s.flag = true
+					s.i = s.e // right here
 					break
 				}
 			}
-
-			// add new k-mer
-			s.flag = false
-			// using binary search, faster han linear search
-			s.b, s.e = 0, s.r-1
-			for {
-				s.t = s.b + (s.e-s.b)/2
-				if code < s.buf[s.t].Val {
-					s.e = s.t - 1 // end search here
-					if s.e <= s.b {
-						s.flag = true
-						s.i = s.b
-						break
-					}
-				} else {
-					s.b = s.t + 1 // start here
-					if s.b >= s.r {
-						s.flag = false
-						break
-					}
-					if s.b >= s.e {
-						s.flag = true
-						s.i = s.e // right here
-						break
-					}
-				}
+		}
+		if !s.flag { // it's the biggest one, append to the end
+			s.buf = append(s.buf, IdxValue{s.idx, code})
+		} else {
+			if code >= s.buf[s.i].Val { // have to check again
+				s.i++
 			}
-			if !s.flag { // it's the biggest one, append to the end
-				s.buf = append(s.buf, IdxValue{s.idx, code})
-			} else {
-				if code >= s.buf[s.i].Val { // have to check again
-					s.i++
-				}
-				s.buf = append(s.buf, blankI2V)     // append one element
-				copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
-				s.buf[s.i] = IdxValue{s.idx, code}
-			}
+			s.buf = append(s.buf, blankI2V)     // append one element
+			copy(s.buf[s.i+1:], s.buf[s.i:s.r]) // move right
+			s.buf[s.i] = IdxValue{s.idx, code}
+		}
 
-			s.i2v = s.buf[0]
-			if s.i2v.Idx == s.preMinIdx { // deduplicate
-				s.idx++
-				continue
-			}
-
-			s.mI, s.mV = s.i2v.Idx, s.i2v.Val
-			s.preMinIdx = s.mI
-
+		s.i2v = s.buf[0]
+		if s.i2v.Idx == s.preMinIdx { // deduplicate
 			s.idx++
-			return s.i2v.Val, true
+			continue
 		}
 
-		if s.idx == s.r { // position w
-			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
-			sort.Sort(idxValues(s.buf)) // sort
-		} else { // front of w
-			s.buf = append(s.buf, IdxValue{Idx: s.idx, Val: code})
-		}
+		s.mI, s.mV = s.i2v.Idx, s.i2v.Val
+		s.preMinIdx = s.mI
 
 		s.idx++
+		return s.i2v.Val, true
 	}
 }
 

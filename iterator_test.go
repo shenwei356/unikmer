@@ -21,6 +21,7 @@
 package unikmer
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -100,7 +101,7 @@ func TestMinimizer(t *testing.T) {
 		_syncmer = code
 
 		codes = append(codes, code)
-		// fmt.Printf("minizimer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
+		fmt.Printf("minizimer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
 
 	if len(codes) == 4 &&
@@ -109,7 +110,7 @@ func TestMinimizer(t *testing.T) {
 		codes[2] == 6763474888237448943 &&
 		codes[3] == 2737971715116251183 {
 	} else {
-		t.Errorf("syncmer error")
+		t.Errorf("minizimer error")
 	}
 }
 
