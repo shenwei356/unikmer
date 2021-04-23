@@ -21,158 +21,164 @@
 package unikmer
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/util/bytesize"
 )
 
-func TestKmerIterator(t *testing.T) {
-	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
+var _syncmer uint64
+var _syncmerIdx int
+
+func TestMinimizer(t *testing.T) {
+	_s := "GGCAAGTTCGTCA"
+	// _s := "GGCAAGTTC"
 	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
 	if err != nil {
 		t.Errorf("fail to create sequence: %s", _s)
 	}
-	k := 10
+	k := 5
+	w := 3
 
-	iter, err := NewKmerIterator(sequence, k, true, false)
+	sketch, err := NewMinimizerSketch(sequence, k, w, false)
 	if err != nil {
-		t.Errorf("fail to create aa iter rator")
+		t.Errorf("fail to create minizimer sketch")
 	}
 
 	var code uint64
 	var ok bool
-	// var idx int
+	var idx int
 	codes := make([]uint64, 0, 1024)
 	for {
-		code, ok, err = iter.Next()
+		code, ok = sketch.NextMinimizer()
 		if !ok {
 			break
 		}
 
-		// idx = iter.Index()
-		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
+		idx = sketch.Index()
+
+		_syncmerIdx = idx
+		_syncmer = code
 
 		codes = append(codes, code)
+		// fmt.Printf("minizimer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
 
-	if len(codes) != len(_s)-k+1 {
-		t.Errorf("kmer number error")
+	if len(codes) == 4 &&
+		codes[0] == 2645801399420473919 &&
+		codes[1] == 1099502864234245338 &&
+		codes[2] == 6763474888237448943 &&
+		codes[3] == 2737971715116251183 {
+	} else {
+		t.Errorf("minizimer error")
 	}
 }
 
-func TestHashIterator(t *testing.T) {
-	_s := "AAGTTTGAATCATTCAACTATCTAGTTTTCAGAGAACAATGTTCTCTAAAGAATAGAAAAGAGTCATTGTGCGGTGATGATGGCGGGAAGGATCCACCTG"
+func TestSyncmer(t *testing.T) {
+	_s := "GGCAAGTTCGTCATCGATC"
+	// _s := "GGCAAGTTC"
 	sequence, err := seq.NewSeq(seq.DNA, []byte(_s))
 	if err != nil {
 		t.Errorf("fail to create sequence: %s", _s)
 	}
-	k := 10
+	k := 5
+	s := 2
 
-	iter, err := NewHashIterator(sequence, k, true, false)
+	sketch, err := NewSyncmerSketch(sequence, k, s, false)
 	if err != nil {
-		t.Errorf("fail to create aa iter rator")
+		t.Errorf("fail to create syncmer sketch")
 	}
-
 	var code uint64
 	var ok bool
-	// var idx int
+	var idx int
 	codes := make([]uint64, 0, 1024)
 	for {
-		code, ok, err = iter.Next()
+		code, ok = sketch.NextSyncmer()
+		// fmt.Println(sketch.Index(), code, ok)
 		if !ok {
 			break
 		}
 
-		// idx = iter.Index()
-		// fmt.Printf("aa: %d-%s, %d\n", idx, iter.s.Seq[idx:idx+k], code)
+		idx = sketch.Index()
+
+		_syncmerIdx = idx
+		_syncmer = code
 
 		codes = append(codes, code)
+		// fmt.Printf("syncmer: %d-%s, %d\n", idx, _s[idx:idx+k], code)
 	}
-
-	if len(codes) != len(_s)-k+1 {
-		t.Errorf("kmer hash number error")
-	}
+	// if len(codes) == 5 &&
+	// 	codes[0] == 7385093395039290540 &&
+	// 	codes[1] == 1099502864234245338 {
+	// } else {
+	// 	t.Errorf("syncmer error")
+	// }
 }
 
-var benchSeqs []*seq.Seq
-var _code uint64
-
-func init() {
-	rand.Seed(11)
-
-	sizes := []int{1 << 10} //, 1 << 20, 10 << 20}
-	benchSeqs = make([]*seq.Seq, len(sizes))
-	var err error
-	for i, size := range sizes {
-		sequence := make([]byte, size)
-
-		// fmt.Printf("generating pseudo DNA with lenght of %s ...\n", bytesize.ByteSize(size))
-		for j := 0; j < size; j++ {
-			sequence[j] = bit2base[rand.Intn(4)]
-		}
-		benchSeqs[i], err = seq.NewSeq(seq.DNA, sequence)
-		if err != nil {
-			panic("should not happen")
-		}
-		// fmt.Println(benchSeqs[i])
-	}
-	// fmt.Printf("%d DNA sequences generated\n", len(sizes))
-}
-
-func BenchmarkHashIterator(b *testing.B) {
+func BenchmarkMinimizerIterator(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
 		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
 			var code uint64
 			var ok bool
+			// var n int
 
 			for j := 0; j < b.N; j++ {
-				iter, err := NewHashIterator(benchSeqs[i], 31, true, false)
+				iter, err := NewMinimizerSketch(benchSeqs[i], 31, 15, false)
 				if err != nil {
-					b.Errorf("fail to create hash iterator. seq length: %d", size)
+					b.Errorf("fail to create minizimer sketch. seq length: %d", size)
 				}
 
+				// n = 0
 				for {
-					code, ok = iter.NextHash()
+					code, ok = iter.NextMinimizer()
 					if !ok {
 						break
 					}
 
+					// fmt.Printf("minizimer: %d-%d\n", iter.Index(), code)
+
 					_code = code
+					// n++
 				}
+
 			}
+			// fmt.Printf("minizimer for %s DNA, c=%.6f\n", bytesize.ByteSize(size).String(), float64(size)/float64(n))
 		})
 	}
 }
 
-func BenchmarkKmerIterator(b *testing.B) {
+// go test -v -test.bench=BenchmarkSyncmerIterator -cpuprofile profile.out -test.run=damnit
+// go tool pprof -http=:8080 profile.out
+func BenchmarkSyncmerIterator(b *testing.B) {
 	for i := range benchSeqs {
 		size := len(benchSeqs[i].Seq)
 		b.Run(bytesize.ByteSize(size).String(), func(b *testing.B) {
 			var code uint64
 			var ok bool
+			// var n int
 
 			for j := 0; j < b.N; j++ {
-				iter, err := NewKmerIterator(benchSeqs[i], 31, true, false)
+				iter, err := NewSyncmerSketch(benchSeqs[i], 31, 16, false)
 				if err != nil {
-					b.Errorf("fail to create hash iterator. seq length: %d", size)
+					b.Errorf("fail to create syncmer sketch. seq length: %d", size)
 				}
-				for {
-					code, ok, err = iter.NextKmer()
-					if err != nil {
-						b.Errorf("fail to get kmer code: %d-%s", iter.Index(),
-							benchSeqs[i].Seq[iter.Index():iter.Index()+31])
-					}
 
+				// n = 0
+				for {
+					code, ok = iter.NextSyncmer()
 					if !ok {
 						break
 					}
 
+					// fmt.Printf("syncmer: %d-%d\n", iter.Index(), code)
+
 					_code = code
+					// n++
 				}
+
 			}
+			// fmt.Printf("syncmer for %s DNA, c=%.6f\n", bytesize.ByteSize(size).String(), float64(size)/float64(n))
 		})
 	}
 }

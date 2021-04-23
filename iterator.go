@@ -124,8 +124,7 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 	}
 
 	iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
-	iter.length = len(s2.Seq)
-	iter.end = iter.length - k - 1
+	iter.end = iter.length - k
 	iter.kUint = uint(k)
 	iter.kP1 = k - 1
 	iter.kP1Uint = uint(k - 1)
@@ -153,15 +152,7 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 	}
 
 	iter.e = iter.idx + iter.k
-
-	if iter.e > iter.length {
-		if iter.canonical || iter.revcomStrand { //  end of sequence
-			iter.finished = true
-			return 0, false, nil
-		}
-	} else {
-		iter.kmer = iter.s.Seq[iter.idx:iter.e]
-	}
+	iter.kmer = iter.s.Seq[iter.idx:iter.e]
 
 	if !iter.first {
 		iter.codeBase = base2bit[iter.kmer[iter.kP1]]

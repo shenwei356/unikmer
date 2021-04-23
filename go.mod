@@ -20,4 +20,5 @@ require (
 	github.com/tatsushid/go-prettytable v0.0.0-20141013043238-ed2d14c29939
 	github.com/twotwotwo/sorts v0.0.0-20160814051341-bf5c1f2b8553
 	github.com/will-rowe/nthash v0.3.0
+	github.com/zeebo/wyhash v0.0.1
 )
