@@ -55,10 +55,6 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
         | csvtk cut -Ht -f 1,3-5 \
         | csvtk add-header -t -n test,time,memory,allocs \
         | csvtk pretty -t -r
-    goos: linux
-    goarch: amd64
-    pkg: github.com/shenwei356/unikmer
-    cpu: AMD Ryzen 7 2700X Eight-Core Processor  
     
                                           test           time      memory        allocs
     ------------------------------------------   ------------   ---------   -----------

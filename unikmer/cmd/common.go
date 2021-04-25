@@ -234,7 +234,7 @@ Tips:
 						}
 					} else {
 						for {
-							code, taxid, err = reader.ReadCodeWithTaxid()
+							code, _, err = reader.ReadCodeWithTaxid()
 							if err != nil {
 								if err == io.EOF {
 									break
@@ -271,7 +271,7 @@ Tips:
 				}
 
 				for {
-					code, taxid, err = reader.ReadCodeWithTaxid()
+					code, _, err = reader.ReadCodeWithTaxid()
 					if err != nil {
 						if err == io.EOF {
 							break

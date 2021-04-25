@@ -165,9 +165,6 @@ func (s *Sketch) ResetMinimizer(S *seq.Seq) error {
 	return nil
 }
 
-// SyncmerSeed is the seed for hashing syncmer
-// var SyncmerSeed uint64 = 1
-
 // NewSyncmerSketch returns a SyncmerSketch Iterator.
 // 1<=s<=k.
 func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) {
@@ -190,7 +187,6 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 	}
 
 	sketch := &Sketch{S: S.Seq, s: s, k: k, circular: circular}
-	// sketch.maxUint64 = ^uint64(0)
 	sketch.skip = s == k
 
 	var seq2 []byte
@@ -398,7 +394,6 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 		if s.idx == 0 {
 			for s.i = s.idx; s.i <= s.idx+s.r; s.i++ {
 				// fmt.Printf("s: %d\n", s.i)
-				// s.v = hasher.Hash(s.S[s.i:s.i+s.s], SyncmerSeed)
 				s.v, ok = s.hasherS.Next(true)
 				if !ok {
 					return code, false
@@ -421,7 +416,6 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 
 			// add new s-mer
 			// fmt.Printf("s: %d\n", s.idx+s.r)
-			// s.v = hasher.Hash(s.S[s.idx+s.r:s.idx+s.r+s.s], SyncmerSeed)
 			s.v, ok = s.hasherS.Next(true)
 			if !ok {
 				return code, false

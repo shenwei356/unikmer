@@ -36,7 +36,7 @@ type ProteinIterator struct {
 	idx      int
 }
 
-// NewProteinIterator returns an ProteinIterator.
+// NewProteinIterator returns an iterator for hash of amino acids
 func NewProteinIterator(s *seq.Seq, k int, codonTable int, frame int) (*ProteinIterator, error) {
 	if k < 1 {
 		return nil, ErrInvalidK

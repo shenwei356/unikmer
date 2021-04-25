@@ -45,7 +45,7 @@ K-mer:
   1. K-mer code (k<=32):
   2. Hased k-mer (ntHash):
 
-K-mer sketchs:
+K-mer sketches:
   1. Scaled MinHash
   2. Minimizer
   3. Syncmer

@@ -84,6 +84,9 @@ func TestHashIterator(t *testing.T) {
 	codes := make([]uint64, 0, 1024)
 	for {
 		code, ok, err = iter.Next()
+		if err != nil {
+			t.Error(err)
+		}
 		if !ok {
 			break
 		}
@@ -111,7 +114,7 @@ func init() {
 	for i, size := range sizes {
 		sequence := make([]byte, size)
 
-		// fmt.Printf("generating pseudo DNA with lenght of %s ...\n", bytesize.ByteSize(size))
+		// fmt.Printf("generating pseudo DNA with length of %s ...\n", bytesize.ByteSize(size))
 		for j := 0; j < size; j++ {
 			sequence[j] = bit2base[rand.Intn(4)]
 		}

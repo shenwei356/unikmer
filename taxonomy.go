@@ -547,7 +547,7 @@ func (t *Taxonomy) LineageNames(taxid uint32) []string {
 	return names
 }
 
-// LineageNames returns nodes' taxid of the the complete lineage.
+// LineageTaxIds returns nodes' taxid of the the complete lineage.
 func (t *Taxonomy) LineageTaxIds(taxid uint32) []uint32 {
 	var child, parent, newtaxid uint32
 	var ok bool
