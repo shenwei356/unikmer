@@ -1,7 +1,11 @@
 # Changelog
 
+- v0.18.0
+  - package: add iterator and sketch for protein sequences.
+- v0.17.4
+  - package: add few taxonomy related methods.
 - v0.17.3
-
+  - `unikmer`: fix buiding for 386. #21
 - v0.17.2
   - `unikmer`: slightly speedup for computing LCA.
   - `unikmer rfilter:` 
