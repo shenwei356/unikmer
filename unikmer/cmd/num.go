@@ -26,7 +26,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -46,8 +45,6 @@ Attention:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
-
 		var err error
 
 		if opt.Verbose {

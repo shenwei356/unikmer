@@ -26,7 +26,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"sync"
 
@@ -59,8 +58,6 @@ Tips:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
-		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 

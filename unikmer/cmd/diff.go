@@ -25,13 +25,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/twotwotwo/sorts"
 	"github.com/twotwotwo/sorts/sortutil"
 )
 
@@ -80,9 +78,6 @@ Tips:
 		compareTaxid := getFlagBool(cmd, "compare-taxid")
 
 		threads := opt.NumCPUs
-
-		runtime.GOMAXPROCS(threads)
-		sorts.MaxProcs = opt.NumCPUs
 
 		mc := make([]unikmer.CodeTaxid, 0, mapInitSize)
 

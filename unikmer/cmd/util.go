@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -79,6 +80,7 @@ func getOptions(cmd *cobra.Command) *Options {
 		checkError(fmt.Errorf("are your seriously? %d threads? It will exhaust your RAM", threads))
 	}
 
+	runtime.GOMAXPROCS(threads)
 	sorts.MaxProcs = threads
 
 	return &Options{

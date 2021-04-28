@@ -26,7 +26,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,7 +35,6 @@ import (
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 	prettytable "github.com/tatsushid/go-prettytable"
-	"github.com/twotwotwo/sorts"
 	"github.com/twotwotwo/sorts/sortutil"
 )
 
@@ -53,8 +51,6 @@ Tips:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
-		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 

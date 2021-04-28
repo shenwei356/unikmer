@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"runtime"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -32,7 +31,6 @@ import (
 	"github.com/shenwei356/bio/seqio/fastx"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/twotwotwo/sorts"
 	"github.com/twotwotwo/sorts/sortutil"
 )
 
@@ -53,8 +51,6 @@ K-mer sketches:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
-		sorts.MaxProcs = opt.NumCPUs
 		seq.ValidateSeq = false
 
 		var err error

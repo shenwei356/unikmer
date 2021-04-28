@@ -57,8 +57,6 @@ Tips:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
-		sorts.MaxProcs = opt.NumCPUs
 
 		outDir := getFlagString(cmd, "out-dir")
 		force := getFlagBool(cmd, "force")

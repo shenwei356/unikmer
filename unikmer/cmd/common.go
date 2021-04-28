@@ -25,12 +25,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
-	"github.com/twotwotwo/sorts"
 	"github.com/twotwotwo/sorts/sortutil"
 )
 
@@ -57,8 +55,6 @@ Tips:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
-		sorts.MaxProcs = opt.NumCPUs
 
 		var err error
 

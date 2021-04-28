@@ -22,7 +22,6 @@ package cmd
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -40,7 +39,6 @@ var encodeCmd = &cobra.Command{
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
 
 		var err error
 

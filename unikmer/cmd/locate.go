@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -51,7 +50,6 @@ Attention:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
 		seq.ValidateSeq = false
 
 		var err error

@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unikmer"
@@ -44,7 +43,6 @@ Attentions:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		opt := getOptions(cmd)
-		runtime.GOMAXPROCS(opt.NumCPUs)
 
 		var err error
 
