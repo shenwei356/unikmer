@@ -2,12 +2,12 @@
 
 `unikmer` is a golang package and a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
 including set operation k-mers (sketch) optional with
-TaxIDs but without count information.
+TaxIds but without count information.
 
 K-mers are either encoded (k<=32) or hashed (arbitrary k) into `uint64`,
 and serialized in binary file with extension `.unik`.
 
-TaxIDs can be assigned when counting k-mers from genome sequences,
+TaxIds can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
 including computing union, intersecton, set difference, unique and
 repeated k-mers.
@@ -38,7 +38,7 @@ repeated k-mers.
 [![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
 
 The unikmer package provides basic manipulations of K-mers (sketch)
-optional with TaxIDs but without frequency information,
+optional with TaxIds but without frequency information,
 and also provides serialization methods.
 
 ### Installation
@@ -121,7 +121,7 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
 
         sort            Sort k-mers in binary files to reduce file size
         split           Split k-mers into sorted chunk files
-        tsplit          Split k-mers according to taxid
+        tsplit          Split k-mers according to TaxId
         merge           Merge k-mers from sorted chunk files
 
         sample          Sample k-mers from binary files
@@ -145,11 +145,11 @@ K-mers (represented in `uint64` in RAM ) are serialized in 8-Byte
 (or less Bytes for shorter k-mers in compact format,
 or much less Bytes for sorted k-mers) arrays and
 optionally compressed in gzip format with extension of `.unik`.
-TaxIDs are optionally stored next to k-mers with 4 or less bytes.
+TaxIds are optionally stored next to k-mers with 4 or less bytes.
 
 #### Compression rate comparison
 
-No TaxIDs stored in this test.
+No TaxIds stored in this test.
 
 ![cr.jpg](testdata/cr.jpg)
 
@@ -194,14 +194,14 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     peak rss: 337.55 MB
     
     
-    # counting and assigning global taxids
+    # counting and assigning global TaxIds
     $ unikmer count -k 23 -K -c -s Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted   -t 585057
     $ unikmer count -k 23 -K -c -s Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted -t 511145
     $ unikmer count -k 23 -K -c -s A.muciniphila-ATCC_BAA-835.fasta.gz -o A.muciniphila-ATCC_BAA-835.fasta.gz.sorted -t 349741
      
 
     # view
-    $ unikmer view Ecoli-MG1655.fasta.gz.k23.sorted.unik --show-taxid | head -n 3
+    $ unikmer view Ecoli-MG1655.fasta.gz.k23.sorted.unik --show-TaxId | head -n 3
     AAAAAAAAACCATCCAAATCTGG 511145
     AAAAAAAAACCGCTAGTATATTC 511145
     AAAAAAAAACCTGAAAAAAACGG 511145
@@ -209,7 +209,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     
     # stats
     $ unikmer stats *.unik -a -j 10
-    file                                              k  gzipped  compact  canonical  sorted  include-taxid  global-taxid     number
+    file                                              k  gzipped  compact  canonical  sorted  include-TaxId  global-TaxId     number
     A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓        ✕        ✓          ✓       ✕              349741        2,630,905
     Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓        ✕        ✓          ✓       ✕              585057        4,902,266
     Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓        ✓        ✓          ✕       ✕                            4,902,266
@@ -274,7 +274,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     $ unikmer stats *.unik -a -j 10
-    file                                              k  gzipped  compact  canonical  sorted  include-taxid  global-taxid     number
+    file                                              k  gzipped  compact  canonical  sorted  include-TaxId  global-TaxId     number
     A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓        ✕        ✓          ✓       ✕              349741        2,630,905
     concat.k23.unik                                  23  ✓        ✓        ✓          ✕       ✓                            9,448,898
     diff.k23.unik                                    23  ✓        ✕        ✓          ✓       ✓                            2,326,096

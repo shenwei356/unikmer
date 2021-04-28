@@ -37,13 +37,13 @@ var RootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
 
 unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
-including set operation on k-mers optional with TaxIDs but without count
+including set operation on k-mers optional with TaxIds but without count
 information.
 
 K-mers are either encoded (k<=32) or hashed (arbitrary k) into 'uint64',
 and serialized in binary file with extension '.unik'.
 
-TaxIDs can be assigned when counting k-mers from genome sequences,
+TaxIds can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
 including computing union, intersection, set difference, unique and
 repeated k-mers.
@@ -57,7 +57,7 @@ Source code: https://github.com/shenwei356/unikmer
 
 Dataset (optional):
 
-  Manipulating k-mers with TaxIDs needs taxonomy file from e.g., 
+  Manipulating k-mers with TaxIds needs taxonomy file from e.g., 
   NCBI Taxonomy database, please extract "nodes.dmp", "names.dmp",
   "delnodes.dmp" and "merged.dmp" from link below into ~/.unikmer/ ,
   ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz , 
@@ -67,8 +67,8 @@ Dataset (optional):
   For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump 
   for taxonomy conversion.
 
-  Note that TaxIDs are represented using uint32 and stored in 4 or
-  less bytes, all TaxIDs should be in range of [1, %d]
+  Note that TaxIds are represented using uint32 and stored in 4 or
+  less bytes, all TaxIds should be in range of [1, %d]
 
 `, VERSION, maxUint32),
 }
@@ -101,7 +101,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("compact", "c", false, "write compact binary file with little loss of speed")
 	RootCmd.PersistentFlags().StringP("infile-list", "i", "", "file of input files list (one file per line), if given, they are appended to files from cli arguments")
 
-	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller taxids, we can use less space to store taxids. default value is 1<<32-1, that's enough for NCBI Taxonomy taxids")
+	RootCmd.PersistentFlags().Uint32P("max-taxid", "", 1<<32-1, "for smaller TaxIds, we can use less space to store TaxIds. default value is 1<<32-1, that's enough for NCBI Taxonomy TaxIds")
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
 	RootCmd.PersistentFlags().StringP("data-dir", "", defaultDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
 
