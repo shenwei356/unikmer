@@ -65,8 +65,8 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
                      BenchmarkMustDecodeK32-16    72.23 ns/op     32 B/op   1 allocs/op
                             BenchmarkRevK32-16    21.82 ns/op      0 B/op   0 allocs/op
                            BenchmarkCompK32-16   0.8296 ns/op      0 B/op   0 allocs/op
-                        BenchmarkRevCompK32-16    17.60 ns/op      0 B/op   0 allocs/op
-                       BenchmarkCannonalK32-16    17.13 ns/op      0 B/op   0 allocs/op
+                        BenchmarkRevCompK32-16    4.791 ns/op      0 B/op   0 allocs/op
+                       BenchmarkCannonalK32-16    5.287 ns/op      0 B/op   0 allocs/op
     
               BenchmarkKmerIterator/1.00_KB-16    15562 ns/op    160 B/op   1 allocs/op
               BenchmarkHashIterator/1.00_KB-16    10263 ns/op    232 B/op   3 allocs/op
