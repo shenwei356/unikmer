@@ -214,20 +214,38 @@ func Reverse(code uint64, k int) (c uint64) {
 	if k <= 0 || k > 32 {
 		panic(ErrKOverflow)
 	}
-	for i := 0; i < k; i++ {
-		c = (c << 2) | (code & 3)
-		code >>= 2
-	}
-	return
+	// for i := 0; i < k; i++ {
+	// 	c = (c << 2) | (code & 3)
+	// 	code >>= 2
+	// }
+	// return
+
+	// https: //www.biostars.org/p/113640, with a little modification
+	c = code
+	c = ((c >> 2 & 0x3333333333333333) | (c&0x3333333333333333)<<2)
+	c = ((c >> 4 & 0x0F0F0F0F0F0F0F0F) | (c&0x0F0F0F0F0F0F0F0F)<<4)
+	c = ((c >> 8 & 0x00FF00FF00FF00FF) | (c&0x00FF00FF00FF00FF)<<8)
+	c = ((c >> 16 & 0x0000FFFF0000FFFF) | (c&0x0000FFFF0000FFFF)<<16)
+	c = ((c >> 32 & 0x00000000FFFFFFFF) | (c&0x00000000FFFFFFFF)<<32)
+	return (c >> (2 * (32 - k)))
 }
 
 // MustReverse is similar to Reverse, but does not check k.
 func MustReverse(code uint64, k int) (c uint64) {
-	for i := 0; i < k; i++ {
-		c = (c << 2) | (code & 3)
-		code >>= 2
-	}
-	return
+	// for i := 0; i < k; i++ {
+	// 	c = (c << 2) | (code & 3)
+	// 	code >>= 2
+	// }
+	// return
+
+	// https: //www.biostars.org/p/113640, with a little modification
+	c = code
+	c = ((c >> 2 & 0x3333333333333333) | (c&0x3333333333333333)<<2)
+	c = ((c >> 4 & 0x0F0F0F0F0F0F0F0F) | (c&0x0F0F0F0F0F0F0F0F)<<4)
+	c = ((c >> 8 & 0x00FF00FF00FF00FF) | (c&0x00FF00FF00FF00FF)<<8)
+	c = ((c >> 16 & 0x0000FFFF0000FFFF) | (c&0x0000FFFF0000FFFF)<<16)
+	c = ((c >> 32 & 0x00000000FFFFFFFF) | (c&0x00000000FFFFFFFF)<<32)
+	return (c >> (2 * (32 - k)))
 }
 
 // Complement returns code of complement sequence.
@@ -289,11 +307,21 @@ func Canonical(code uint64, k int) uint64 {
 	}
 
 	var rc uint64
-	c := code
-	for i := 0; i < k; i++ {
-		rc = (rc << 2) | (c&3 ^ 3)
-		c >>= 2
-	}
+	// c := code
+	// for i := 0; i < k; i++ {
+	// 	rc = (rc << 2) | (c&3 ^ 3)
+	// 	c >>= 2
+	// }
+
+	// https://www.biostars.org/p/113640/#9474334
+	c := ^code
+	c = ((c >> 2 & 0x3333333333333333) | (c&0x3333333333333333)<<2)
+	c = ((c >> 4 & 0x0F0F0F0F0F0F0F0F) | (c&0x0F0F0F0F0F0F0F0F)<<4)
+	c = ((c >> 8 & 0x00FF00FF00FF00FF) | (c&0x00FF00FF00FF00FF)<<8)
+	c = ((c >> 16 & 0x0000FFFF0000FFFF) | (c&0x0000FFFF0000FFFF)<<16)
+	c = ((c >> 32 & 0x00000000FFFFFFFF) | (c&0x00000000FFFFFFFF)<<32)
+	rc = (c >> (2 * (32 - k)))
+
 	if rc < code {
 		return rc
 	}

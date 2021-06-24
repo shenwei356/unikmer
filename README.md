@@ -58,23 +58,23 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
     
                                           test           time      memory        allocs
     ------------------------------------------   ------------   ---------   -----------
-                         BenchmarkEncodeK32-16    20.86 ns/op      0 B/op   0 allocs/op
-           BenchmarkEncodeFromFormerKmerK32-16    9.232 ns/op      0 B/op   0 allocs/op
-       BenchmarkMustEncodeFromFormerKmerK32-16    2.045 ns/op      0 B/op   0 allocs/op
-                         BenchmarkDecodeK32-16    79.30 ns/op     32 B/op   1 allocs/op
-                     BenchmarkMustDecodeK32-16    72.23 ns/op     32 B/op   1 allocs/op
-                            BenchmarkRevK32-16    21.82 ns/op      0 B/op   0 allocs/op
-                           BenchmarkCompK32-16   0.8296 ns/op      0 B/op   0 allocs/op
-                        BenchmarkRevCompK32-16    4.791 ns/op      0 B/op   0 allocs/op
-                       BenchmarkCannonalK32-16    5.287 ns/op      0 B/op   0 allocs/op
-    
-              BenchmarkKmerIterator/1.00_KB-16    15562 ns/op    160 B/op   1 allocs/op
-              BenchmarkHashIterator/1.00_KB-16    10263 ns/op    232 B/op   3 allocs/op
-           BenchmarkProteinIterator/1.00_KB-16    17396 ns/op    480 B/op   3 allocs/op
-    
-           BenchmarkMinimizerSketch/1.00_KB-16    67238 ns/op    688 B/op   6 allocs/op
-             BenchmarkSyncmerSketch/1.00_KB-16   108619 ns/op   1456 B/op   8 allocs/op
-    BenchmarkProteinMinimizerSketch/1.00_KB-16    29166 ns/op    728 B/op   5 allocs/op
+                         BenchmarkEncodeK32-16    18.66 ns/op      0 B/op   0 allocs/op
+           BenchmarkEncodeFromFormerKmerK32-16    8.030 ns/op      0 B/op   0 allocs/op
+       BenchmarkMustEncodeFromFormerKmerK32-16    1.702 ns/op      0 B/op   0 allocs/op
+                         BenchmarkDecodeK32-16    78.95 ns/op     32 B/op   1 allocs/op
+                     BenchmarkMustDecodeK32-16    76.86 ns/op     32 B/op   1 allocs/op
+                            BenchmarkRevK32-16    3.639 ns/op      0 B/op   0 allocs/op
+                           BenchmarkCompK32-16   0.7971 ns/op      0 B/op   0 allocs/op
+                        BenchmarkRevCompK32-16    3.831 ns/op      0 B/op   0 allocs/op
+                       BenchmarkCannonalK32-16    4.210 ns/op      0 B/op   0 allocs/op
+
+              BenchmarkKmerIterator/1.00_KB-16    12625 ns/op    160 B/op   1 allocs/op
+              BenchmarkHashIterator/1.00_KB-16     8118 ns/op    232 B/op   3 allocs/op
+           BenchmarkProteinIterator/1.00_KB-16    14324 ns/op    480 B/op   3 allocs/op
+
+           BenchmarkMinimizerSketch/1.00_KB-16    62497 ns/op    688 B/op   6 allocs/op
+             BenchmarkSyncmerSketch/1.00_KB-16    99390 ns/op   1456 B/op   8 allocs/op
+    BenchmarkProteinMinimizerSketch/1.00_KB-16    24888 ns/op    728 B/op   5 allocs/op
 
 ## The toolkit
 
