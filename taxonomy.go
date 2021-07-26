@@ -68,6 +68,9 @@ var ErrNamesNotLoaded = errors.New("unikmer: taxonomy names not loaded, please c
 // ErrTooManyRanks means number of ranks exceed limit of 255
 var ErrTooManyRanks = errors.New("unikmer: number of ranks exceed limit of 255")
 
+// ErrUnkownRank indicate an unknown rank
+var ErrUnkownRank = errors.New("unikmer: unknown rank")
+
 // NewTaxonomyFromNCBI parses nodes relationship from nodes.dmp
 // from ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz .
 func NewTaxonomyFromNCBI(file string) (*Taxonomy, error) {
@@ -243,6 +246,59 @@ func (t *Taxonomy) Rank(taxid uint32) string {
 		return t.ranks[int(i)]
 	}
 	return "" // taxid not found int db
+}
+
+// AtOrBelowRank returns whether a taxid is at or below one rank.
+func (t *Taxonomy) AtOrBelowRank(taxid uint32, rank string) bool {
+	if !t.hasRanks {
+		panic(ErrRankNotLoaded)
+	}
+	var ok bool
+	var i uint8
+
+	rank = strings.ToLower(rank)
+	if _, ok = t.Ranks[rank]; !ok {
+		return false
+	}
+
+	if i, ok = t.taxid2rankid[taxid]; ok {
+		if rank == t.ranks[int(i)] {
+			return true
+		}
+	}
+
+	// continue searching towards to root node
+	var child, parent, newtaxid uint32
+
+	child = taxid
+	for {
+		parent, ok = t.Nodes[child]
+		if !ok { // taxid not found
+			// check if it was deleted
+			if _, ok = t.DelNodes[child]; ok {
+				return false
+			}
+			// check if it was merged
+			if newtaxid, ok = t.MergeNodes[child]; ok {
+				child = newtaxid
+				parent = t.Nodes[child]
+			} else { // not found
+				return false
+			}
+		}
+
+		if parent == 1 {
+			break
+		}
+
+		if rank == t.ranks[t.taxid2rankid[parent]] {
+			return true
+		}
+
+		child = parent
+	}
+
+	return false
 }
 
 // LoadNamesFromNCBI loads scientific names from NCBI names.dmp
