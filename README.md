@@ -183,57 +183,78 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     # counting (only keep the canonical k-mers and compact output)
     # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23 --canonical --compact
     $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23 --canonical --compact
-    elapsed time: 1.088s
-    peak rss: 210.93 MB
-    
+    elapsed time: 0.897s
+    peak rss: 192.41 MB
+
 
     # counting (only keep the canonical k-mers and sort k-mers)
-    # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted --canonical --compact --sort
-    $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted --canonical --compact --sort
-    elapsed time: 2.063s
-    peak rss: 337.55 MB
+    # memusg -t unikmer count -k 23 Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted --canonical --sort
+    $ memusg -t unikmer count -k 23 Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted --canonical --sort
+    elapsed time: 1.136s
+    peak rss: 227.28 MB
     
     
     # counting and assigning global TaxIds
-    $ unikmer count -k 23 -K -c -s Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted   -t 585057
-    $ unikmer count -k 23 -K -c -s Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted -t 511145
-    $ unikmer count -k 23 -K -c -s A.muciniphila-ATCC_BAA-835.fasta.gz -o A.muciniphila-ATCC_BAA-835.fasta.gz.sorted -t 349741
-     
+    $ unikmer count -k 23 -K -s Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta.gz.k23.sorted   -t 585057
+    $ unikmer count -k 23 -K -s Ecoli-MG1655.fasta.gz -o Ecoli-MG1655.fasta.gz.k23.sorted -t 511145
+    $ unikmer count -k 23 -K -s A.muciniphila-ATCC_BAA-835.fasta.gz -o A.muciniphila-ATCC_BAA-835.fasta.gz.sorted -t 349741
+    
+    # counting minimizer and ouputting in linear order
+    $ unikmer count -k 23 -W 5 -H -K -l A.muciniphila-ATCC_BAA-835.fasta.gz -o A.muciniphila-ATCC_BAA-835.fasta.gz.m
 
     # view
-    $ unikmer view Ecoli-MG1655.fasta.gz.k23.sorted.unik --show-TaxId | head -n 3
+    $ unikmer view Ecoli-MG1655.fasta.gz.k23.sorted.unik --show-taxid | head -n 3
     AAAAAAAAACCATCCAAATCTGG 511145
     AAAAAAAAACCGCTAGTATATTC 511145
     AAAAAAAAACCTGAAAAAAACGG 511145
-
+    
+    # view (hashed k-mers needs original FASTA/Q file)
+    $ unikmer view --show-code --genome A.muciniphila-ATCC_BAA-835.fasta.gz A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik | head -n 3
+    CATCCGCCATCTTTGGGGTGTCG 1210726578792
+    AGCGCAAAATCCCCAAACATGTA 2286899379883
+    AACTGATTTTTGATGATGACTCC 3542156397282
+    
+    # find the positions of k-mers
+    $ seqkit locate -M A.muciniphila-ATCC_BAA-835.fasta.gz \
+        -f <(unikmer view -a -g A.muciniphila-ATCC_BAA-835.fasta.gz A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik | seqkit head -n 5 ) \
+        | csvtk sort -t -k start:n | head -n 6 | csvtk pretty -t
+    seqID         patternName           pattern                   strand   start   end
+    -----------   -------------------   -----------------------   ------   -----   ---
+    NC_010655.1   2090893901864583115   ATCTTATAAAATAACCACATAAC   +        3       25
+    NC_010655.1   696051979077366638    TTATAAAATAACCACATAACTTA   +        6       28
+    NC_010655.1   390297872016815006    TATAAAATAACCACATAACTTAA   +        7       29
+    NC_010655.1   2582400417208090837   AAAATAACCACATAACTTAAAAA   +        10      32
+    NC_010655.1   3048591415312050785   TAACCACATAACTTAAAAAGAAT   +        14      36
     
     # stats
     $ unikmer stats *.unik -a -j 10
-    file                                              k  gzipped  compact  canonical  sorted  include-TaxId  global-TaxId     number
-    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓        ✕        ✓          ✓       ✕              349741        2,630,905
-    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓        ✕        ✓          ✓       ✕              585057        4,902,266
-    Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓        ✓        ✓          ✕       ✕                            4,902,266
-    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23  ✓        ✕        ✓          ✓       ✕              511145        4,546,632
-    Ecoli-MG1655.fasta.gz.k23.unik                   23  ✓        ✓        ✓          ✕       ✕                            4,546,632
-    
+    file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
+    A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23          ✓       ✓       ✕              ✕                     ✕        ✕        ✓     v5.0    860,900  
+    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23          ✓       ✕       ✕              ✕        349741       ✓        ✕        ✓     v5.0  2,630,905  
+    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23          ✓       ✕       ✕              ✕        585057       ✓        ✕        ✓     v5.0  4,902,266  
+    Ecoli-IAI39.fasta.gz.k23.unik                    23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,902,266  
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23          ✓       ✕       ✕              ✕        511145       ✓        ✕        ✓     v5.0  4,546,632  
+    Ecoli-MG1655.fasta.gz.k23.unik                   23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,546,632 
+
     
     # concat
     $ memusg -t unikmer concat *.k23.sorted.unik -o concat.k23 -c
-    elapsed time: 1.205s
-    peak rss: 60.07 MB
+    elapsed time: 1.020s
+    peak rss: 25.86 MB
+
 
     
     # union
-    $ memusg -t unikmer union *.k23.sorted.unik -o union.k23 -c -s
-    elapsed time: 5.449s
-    peak rss: 709.93 MB
+    $ memusg -t unikmer union *.k23.sorted.unik -o union.k23 -s
+    elapsed time: 3.991s
+    peak rss: 590.92 MB
     
     
     # or sorting with limited memory.
     # note that taxonomy database need some memory.
     $ memusg -t unikmer sort *.k23.sorted.unik -o union2.k23 -u -m 1M
-    elapsed time: 4.474s
-    peak rss: 333.82 MB
+    elapsed time: 3.538s
+    peak rss: 324.2 MB
     
     $ unikmer view -t union.k23.unik | md5sum 
     4c038832209278840d4d75944b29219c  -
@@ -243,20 +264,20 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     
     # duplicated k-mers
     $ memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d -m 1M
-    elapsed time: 4.374s
-    peak rss: 306.06 MB
+    elapsed time: 1.143s
+    peak rss: 240.18 MB
 
     
     # intersection
-    $ memusg -t unikmer inter *.k23.sorted.unik -o inter.k23 -c -s
-    elapsed time: 2.506s
-    peak rss: 194.94 MB
+    $ memusg -t unikmer inter *.k23.sorted.unik -o inter.k23
+    elapsed time: 1.481s
+    peak rss: 399.94 MB
     
 
     # difference
-    $ memusg -t unikmer diff -j 10 *.k23.sorted.unik -o diff.k23 -c -s
-    elapsed time: 2.179s
-    peak rss: 177.79 MB
+    $ memusg -t unikmer diff -j 10 *.k23.sorted.unik -o diff.k23 -s
+    elapsed time: 0.793s
+    peak rss: 338.06 MB
 
 
     $ ls -lh *.unik
@@ -274,18 +295,19 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     $ unikmer stats *.unik -a -j 10
-    file                                              k  gzipped  compact  canonical  sorted  include-TaxId  global-TaxId     number
-    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓        ✕        ✓          ✓       ✕              349741        2,630,905
-    concat.k23.unik                                  23  ✓        ✓        ✓          ✕       ✓                            9,448,898
-    diff.k23.unik                                    23  ✓        ✕        ✓          ✓       ✓                            2,326,096
-    dup.k23.unik                                     23  ✓        ✕        ✓          ✓       ✓                            2,576,169
-    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓        ✕        ✓          ✓       ✕              585057        4,902,266
-    Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓        ✓        ✓          ✕       ✕                            4,902,266
-    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23  ✓        ✕        ✓          ✓       ✕              511145        4,546,632
-    Ecoli-MG1655.fasta.gz.k23.unik                   23  ✓        ✓        ✓          ✕       ✕                            4,546,632
-    inter.k23.unik                                   23  ✓        ✕        ✓          ✓       ✓                            2,576,170
-    union2.k23.unik                                  23  ✓        ✕        ✓          ✓       ✓                            6,872,728
-    union.k23.unik                                   23  ✓        ✕        ✓          ✓       ✓                            6,872,728
+    file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
+    A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23          ✓       ✓       ✕              ✕                     ✕        ✕        ✓     v5.0    860,900  
+    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23          ✓       ✕       ✕              ✕        349741       ✓        ✕        ✓     v5.0  2,630,905  
+    concat.k23.unik                                  23          ✓       ✕       ✕              ✓                     ✕        ✓        ✓     v5.0         -1  
+    diff.k23.unik                                    23          ✓       ✕       ✕              ✓                     ✕        ✕        ✓     v5.0  2,326,096  
+    dup.k23.unik                                     23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0          0  
+    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23          ✓       ✕       ✕              ✕        585057       ✓        ✕        ✓     v5.0  4,902,266  
+    Ecoli-IAI39.fasta.gz.k23.unik                    23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,902,266  
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23          ✓       ✕       ✕              ✕        511145       ✓        ✕        ✓     v5.0  4,546,632  
+    Ecoli-MG1655.fasta.gz.k23.unik                   23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,546,632  
+    inter.k23.unik                                   23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  2,576,170  
+    union2.k23.unik                                  23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  6,872,728  
+    union.k23.unik                                   23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  6,872,728
 
 
     # -----------------------------------------------------------------------------------------

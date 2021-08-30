@@ -64,7 +64,7 @@ Attentions:
 		sortedKmers := getFlagBool(cmd, "sorted")
 		globalTaxid := getFlagUint32(cmd, "taxid")
 		hasGlobalTaxid := globalTaxid > 0
-		number := getFlagUint64(cmd, "number")
+		number := uint64(getFlagInt64(cmd, "number"))
 
 		if hasGlobalTaxid && opt.Verbose {
 			log.Warningf("discarding all taxids and assigning new global taxid: %d", globalTaxid)

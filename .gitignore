@@ -14,11 +14,10 @@
 *.directory
 unikmer/unikmer*
 unikmer/binaries*
-unikmer/*.unik
 doc/site/*
 
 *ssshtest
-testdata/*.unik
+*.unik
 t_*
 *.nextflow.log*
 *.brename_detail.txt
