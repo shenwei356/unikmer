@@ -1,5 +1,7 @@
 # Changelog
 
+- v0.18.8
+  - `unikmer info`: fix typoes.
 - v0.18.7
   - `unikmer`: better counting speed by upstream optimization of FASTA/Q parsing.
   - `unikmer concat`: fix parsing flag `-n`.

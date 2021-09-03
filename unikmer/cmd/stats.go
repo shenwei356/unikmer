@@ -109,7 +109,7 @@ Tips:
 						"gzipped",
 						"version",
 						"number",
-						"desciption",
+						"description",
 					}...)
 			}
 			outfh.WriteString(strings.Join(colnames, "\t") + "\n")
