@@ -1,4 +1,4 @@
-// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2021 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ package unikmer
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/will-rowe/nthash"
@@ -76,17 +77,13 @@ type Sketch struct {
 	w         int
 }
 
+var poolSketch = &sync.Pool{New: func() interface{} {
+	return &Sketch{}
+}}
+
 // NewMinimizerSketch returns a SyncmerSketch Iterator.
 // It returns the minHashes in all windows of w (w>=1) bp.
 func NewMinimizerSketch(S *seq.Seq, k int, w int, circular bool) (*Sketch, error) {
-	return NewMinimizerSketchWithBuffer(S, k, w, circular, make([]IdxValue, 0, w))
-}
-
-// NewMinimizerSketchWithBuffer returns a SyncmerSketch Iterator.
-// It returns the minHashes in all windows of w (w>=1) bp.
-// Giving a buffer can reduce GC load when compute sketches for large number of sequence,
-// where you can recycle the buffer.
-func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf []IdxValue) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
@@ -96,15 +93,14 @@ func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf [
 	if len(S.Seq) < k+w-1 {
 		return nil, ErrShortSeq
 	}
-	if buf == nil {
-		return nil, ErrBufNil
-	}
-	if len(buf) != 0 {
-		return nil, ErrBufNotEmpty
-	}
 
-	sketch := &Sketch{S: S.Seq, w: w, k: k, circular: circular}
+	// sketch := &Sketch{S: S.Seq, w: w, k: k, circular: circular}
+	sketch := poolSketch.Get().(*Sketch)
+
 	sketch.minimizer = true
+	sketch.k = k
+	sketch.w = w
+	sketch.circular = circular
 	sketch.skip = w == 1
 
 	var seq2 []byte
@@ -116,6 +112,8 @@ func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf [
 	} else {
 		seq2 = S.Seq
 	}
+
+	sketch.idx = 0
 	sketch.end = len(seq2) - 1
 	sketch.r = w - 1 // L-k
 
@@ -125,57 +123,24 @@ func NewMinimizerSketchWithBuffer(S *seq.Seq, k int, w int, circular bool, buf [
 		return nil, err
 	}
 
-	sketch.buf = buf
-	sketch.preMinIdxs = make([]int, 0, 8)
+	if sketch.buf == nil {
+		sketch.buf = make([]IdxValue, 0, w)
+	} else {
+		sketch.buf = sketch.buf[:0]
+	}
+	if sketch.preMinIdxs == nil {
+		sketch.preMinIdxs = make([]int, 0, 8)
+	} else {
+		sketch.preMinIdxs = sketch.preMinIdxs[:0]
+	}
 	sketch.preMinIdx = -1
 
 	return sketch, nil
 }
 
-// ResetMinimizer resets the sketch with new sequence.
-func (s *Sketch) ResetMinimizer(S *seq.Seq) error {
-	if len(S.Seq) < s.k+s.w-1 {
-		return ErrShortSeq
-	}
-
-	s.S = S.Seq
-
-	var seq2 []byte
-	if s.circular {
-		seq2 = make([]byte, len(S.Seq), len(S.Seq)+s.k-1)
-		copy(seq2, S.Seq) // do not edit original sequence
-		seq2 = append(seq2, S.Seq[0:s.k-1]...)
-		s.S = seq2
-	} else {
-		seq2 = S.Seq
-	}
-	s.end = len(seq2) - 1
-	s.r = s.w - 1 // L-k
-
-	var err error
-	s.hasher, err = nthash.NewHasher(&seq2, uint(s.k))
-	if err != nil {
-		return err
-	}
-
-	s.buf = s.buf[:0]
-	s.idx = 0
-	s.i = 0
-	s.preMinIdx = -1
-	return nil
-}
-
 // NewSyncmerSketch returns a SyncmerSketch Iterator.
 // 1<=s<=k.
 func NewSyncmerSketch(S *seq.Seq, k int, s int, circular bool) (*Sketch, error) {
-	return NewSyncmerSketchWithBuffer(S, k, s, circular, make([]IdxValue, 0, (k-s)<<1))
-}
-
-// NewSyncmerSketchWithBuffer returns a SyncmerSketch Iterator.
-// Giving a buffer can reduce GC load when compute sketches for large number of sequence,
-// where you can recycle the buffer.
-// 1<=s<=k.
-func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []IdxValue) (*Sketch, error) {
 	if k < 1 {
 		return nil, ErrInvalidK
 	}
@@ -186,7 +151,13 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 		return nil, ErrShortSeq
 	}
 
-	sketch := &Sketch{S: S.Seq, s: s, k: k, circular: circular}
+	// sketch := &Sketch{S: S.Seq, s: s, k: k, circular: circular}
+	sketch := poolSketch.Get().(*Sketch)
+
+	sketch.minimizer = false
+	sketch.k = k
+	sketch.s = s
+	sketch.circular = circular
 	sketch.skip = s == k
 
 	var seq2 []byte
@@ -198,6 +169,8 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 	} else {
 		seq2 = S.Seq
 	}
+
+	sketch.idx = 0
 	sketch.end = len(seq2) - 2*k + s + 1 // len(sequence) - L (2*k - s - 1)
 	sketch.r = 2*k - s - 1 - s           // L-s
 	sketch.kMs = k - s                   // k-s
@@ -214,47 +187,19 @@ func NewSyncmerSketchWithBuffer(S *seq.Seq, k int, s int, circular bool, buf []I
 		return nil, err
 	}
 
-	sketch.buf = make([]IdxValue, 0, sketch.r+1)
-	sketch.preMinIdxs = make([]int, 0, 8)
+	if sketch.buf == nil {
+		sketch.buf = make([]IdxValue, 0, (k-s)<<1)
+	} else {
+		sketch.buf = sketch.buf[:0]
+	}
+	if sketch.preMinIdxs == nil {
+		sketch.preMinIdxs = make([]int, 0, 8)
+	} else {
+		sketch.preMinIdxs = sketch.preMinIdxs[:0]
+	}
 	sketch.preMinIdx = -1
 
 	return sketch, nil
-}
-
-// ResetSyncmer resets the sketch with new sequence.
-func (s *Sketch) ResetSyncmer(S *seq.Seq) error {
-	if len(S.Seq) < s.k*2-s.s-1 {
-		return ErrShortSeq
-	}
-
-	var seq2 []byte
-	if s.circular {
-		seq2 = make([]byte, len(S.Seq), len(S.Seq)+s.k-1)
-		copy(seq2, S.Seq) // do not edit original sequence
-		seq2 = append(seq2, S.Seq[0:s.k-1]...)
-		s.S = seq2
-	} else {
-		seq2 = S.Seq
-	}
-	s.end = len(seq2) - 2*s.k + s.s + 1 // len(sequence) - L (2*k - s - 1)
-
-	var err error
-	s.hasher, err = nthash.NewHasher(&seq2, uint(s.k))
-	if err != nil {
-		return err
-	}
-
-	s.hasherS, err = nthash.NewHasher(&seq2, uint(s.s))
-	if err != nil {
-		return err
-	}
-
-	s.buf = s.buf[:0]
-	s.idx = 0
-	s.i = 0
-	s.preMinIdxs = make([]int, 0, 8)
-	s.preMinIdx = -1
-	return nil
 }
 
 // NextMinimizer returns next minimizer.
@@ -267,6 +212,7 @@ func (s *Sketch) NextMinimizer() (code uint64, ok bool) {
 		// nthash of current k-mer
 		code, ok = s.hasher.Next(true)
 		if !ok {
+			poolSketch.Put(s)
 			return code, false
 		}
 
@@ -372,6 +318,7 @@ func (s *Sketch) NextSyncmer() (code uint64, ok bool) {
 		// nthash of current k-mer
 		code, ok = s.hasher.Next(true)
 		if !ok {
+			poolSketch.Put(s)
 			return code, false
 		}
 

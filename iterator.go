@@ -1,4 +1,4 @@
-// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2021 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ package unikmer
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
@@ -36,6 +37,10 @@ var ErrEmptySeq = fmt.Errorf("unikmer: empty sequence")
 
 // ErrShortSeq means the sequence is shorter than k
 var ErrShortSeq = fmt.Errorf("unikmer: sequence too short")
+
+var poolIterator = &sync.Pool{New: func() interface{} {
+	return &Iterator{}
+}}
 
 // Iterator is a kmer code (k<=32) or hash iterator.
 type Iterator struct {
@@ -76,7 +81,16 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 		return nil, ErrShortSeq
 	}
 
-	iter := &Iterator{s: s, k: k, canonical: canonical, circular: circular}
+	// iter := &Iterator{s: s, k: k, canonical: canonical, circular: circular}
+	iter := poolIterator.Get().(*Iterator)
+	iter.s = s
+	iter.k = k
+	iter.canonical = canonical
+	iter.circular = circular
+	iter.finished = false
+	iter.revcomStrand = false
+	iter.idx = 0
+
 	iter.hash = true
 	iter.kUint = uint(k)
 	iter.kP1 = k - 1
@@ -102,6 +116,9 @@ func NewHashIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 // NextHash returns next ntHash.
 func (iter *Iterator) NextHash() (code uint64, ok bool) {
 	code, ok = iter.hasher.Next(iter.canonical)
+	if !ok {
+		poolIterator.Put(iter)
+	}
 	iter.idx++
 	return code, ok
 }
@@ -123,7 +140,16 @@ func NewKmerIterator(s *seq.Seq, k int, canonical bool, circular bool) (*Iterato
 		s2 = s
 	}
 
-	iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
+	// iter := &Iterator{s: s2, k: k, canonical: canonical, circular: circular}
+	iter := poolIterator.Get().(*Iterator)
+	iter.s = s2
+	iter.k = k
+	iter.canonical = canonical
+	iter.circular = circular
+	iter.finished = false
+	iter.revcomStrand = false
+	iter.idx = 0
+
 	iter.length = len(s2.Seq)
 	iter.end = iter.length - k + 1
 	iter.kUint = uint(k)
@@ -144,6 +170,7 @@ func (iter *Iterator) NextKmer() (code uint64, ok bool, err error) {
 	if iter.idx == iter.end {
 		if iter.canonical || iter.revcomStrand {
 			iter.finished = true
+			poolIterator.Put(iter)
 			return 0, false, nil
 		}
 		iter.s.RevComInplace()

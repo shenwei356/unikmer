@@ -1,4 +1,4 @@
-// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2021 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ package unikmer
 
 import (
 	"sort"
+	"sync"
 
 	"github.com/shenwei356/bio/seq"
 	"github.com/zeebo/wyhash"
@@ -29,13 +30,11 @@ import (
 
 // ProteinMinimizerSketch is a protein k-mer minimizer iterator
 type ProteinMinimizerSketch struct {
-	s0 *seq.Seq // only used for KmerProteinMinimizerSketchator
-	s  *seq.Seq // amino acid
+	s *seq.Seq // amino acid
 
-	k        int
-	finished bool
-	end0     int
-	idx      int
+	k    int
+	end0 int
+	idx  int
 
 	// ----------------------
 
@@ -46,7 +45,7 @@ type ProteinMinimizerSketch struct {
 	r   int // L-s
 
 	i, mI     int
-	v, mV     uint64
+	mV        uint64
 	preMinIdx int
 
 	buf     []IdxValue
@@ -54,6 +53,10 @@ type ProteinMinimizerSketch struct {
 	flag    bool
 	t, b, e int
 }
+
+var poolProteinMinimizerSketch = &sync.Pool{New: func() interface{} {
+	return &ProteinMinimizerSketch{}
+}}
 
 // NewProteinMinimizerSketch returns a ProteinMinimizerSketch
 func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w int) (*ProteinMinimizerSketch, error) {
@@ -71,7 +74,10 @@ func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w i
 		return nil, ErrShortSeq
 	}
 
-	s := &ProteinMinimizerSketch{s0: S, k: k, w: w}
+	// s := &ProteinMinimizerSketch{s0: S, k: k, w: w}
+	s := poolProteinMinimizerSketch.Get().(*ProteinMinimizerSketch)
+	s.k = k
+	s.w = w
 
 	var err error
 	if S.Alphabet != seq.Protein {
@@ -83,6 +89,7 @@ func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w i
 		s.s = S
 	}
 
+	s.idx = 0
 	s.end0 = len(s.s.Seq) - k
 
 	s.skip = w == 1
@@ -98,11 +105,12 @@ func NewProteinMinimizerSketch(S *seq.Seq, k int, codonTable int, frame int, w i
 // Next returns next hash value
 func (s *ProteinMinimizerSketch) Next() (code uint64, ok bool) {
 	for {
-		if s.idx > s.end {
-			return 0, false
-		}
+		// if s.idx > s.end {
+		// 	return 0, false
+		// }
 
 		if s.idx > s.end0 {
+			poolProteinIterator.Put(s)
 			return 0, false
 		}
 

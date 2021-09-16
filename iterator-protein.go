@@ -1,4 +1,4 @@
-// Copyright © 2018-2020 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2018-2021 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,15 @@
 package unikmer
 
 import (
+	"sync"
+
 	"github.com/shenwei356/bio/seq"
 	"github.com/zeebo/wyhash"
 )
+
+var poolProteinIterator = &sync.Pool{New: func() interface{} {
+	return &ProteinIterator{}
+}}
 
 // ProteinIterator is a iterator for protein sequence.
 type ProteinIterator struct {
@@ -45,7 +51,12 @@ func NewProteinIterator(s *seq.Seq, k int, codonTable int, frame int) (*ProteinI
 		return nil, ErrShortSeq
 	}
 
-	iter := &ProteinIterator{s0: s, k: k}
+	// iter := &ProteinIterator{s0: s, k: k}
+	iter := poolProteinIterator.Get().(*ProteinIterator)
+	iter.s0 = s
+	iter.k = k
+	iter.finished = false
+	iter.idx = 0
 
 	var err error
 	if s.Alphabet != seq.Protein {
@@ -69,6 +80,7 @@ func (iter *ProteinIterator) Next() (code uint64, ok bool) {
 
 	if iter.idx > iter.end {
 		iter.finished = true
+		poolProteinIterator.Put(iter)
 		return 0, false
 	}
 
