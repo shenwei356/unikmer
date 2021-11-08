@@ -32,7 +32,8 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 	prettytable "github.com/tatsushid/go-prettytable"
 	"github.com/twotwotwo/sorts/sortutil"
@@ -337,7 +338,7 @@ Tips:
 
 				var infh *bufio.Reader
 				var r *os.File
-				var reader *unikmer.Reader
+				var reader *unik.Reader
 				var gzipped bool
 				var n uint64
 				var globalTaxid string
@@ -357,7 +358,7 @@ Tips:
 				}
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err = unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 				if err != nil {
 					select {

@@ -1,6 +1,6 @@
 # unikmer
 
-`unikmer` is a golang package and a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
+`unikmer` is a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
 including set operation k-mers (sketch) optional with
 TaxIds but without count information.
 
@@ -16,69 +16,17 @@ repeated k-mers.
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
 
-- [unikmer](#unikmer)
-  - [Table of Contents](#table-of-contents)
-  - [The package](#the-package)
-    - [Installation](#installation)
-    - [Benchmark](#benchmark)
-  - [The toolkit](#the-toolkit)
-    - [Installation](#installation-1)
-    - [Commands](#commands)
-    - [Binary file (.unik)](#binary-file-unik)
-      - [Compression rate comparison](#compression-rate-comparison)
-    - [Quick Start](#quick-start)
-  - [Contributing](#contributing)
-  - [License](#license)
+- [Installation](#installation-1)
+- [Commands](#commands)
+- [Binary file](#binary-file)
+- [Quick Start](#quick-start)
+- [Contributing](#contributing)
+- [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## The package
 
-[![GoDoc](https://godoc.org/github.com/shenwei356/unikmer?status.svg)](https://godoc.org/github.com/shenwei356/unikmer)
-[![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/unikmer)](https://goreportcard.com/report/github.com/shenwei356/unikmer)
-
-The unikmer package provides basic manipulations of K-mers (sketch)
-optional with TaxIds but without frequency information,
-and also provides serialization methods.
-
-### Installation
-
-    go get -u github.com/shenwei356/unikmer
-
-### Benchmark
-
-CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
-
-    $ go test . -bench=Bench* -benchmem \
-        | grep Bench \
-        | perl -pe 's/\s\s+/\t/g' \
-        | csvtk cut -Ht -f 1,3-5 \
-        | csvtk add-header -t -n test,time,memory,allocs \
-        | csvtk pretty -t -r
-    
-                                          test           time      memory        allocs
-    ------------------------------------------   ------------   ---------   -----------
-                         BenchmarkEncodeK32-16    18.66 ns/op      0 B/op   0 allocs/op
-           BenchmarkEncodeFromFormerKmerK32-16    8.030 ns/op      0 B/op   0 allocs/op
-       BenchmarkMustEncodeFromFormerKmerK32-16    1.702 ns/op      0 B/op   0 allocs/op
-                         BenchmarkDecodeK32-16    78.95 ns/op     32 B/op   1 allocs/op
-                     BenchmarkMustDecodeK32-16    76.86 ns/op     32 B/op   1 allocs/op
-                            BenchmarkRevK32-16    3.639 ns/op      0 B/op   0 allocs/op
-                           BenchmarkCompK32-16   0.7971 ns/op      0 B/op   0 allocs/op
-                        BenchmarkRevCompK32-16    3.831 ns/op      0 B/op   0 allocs/op
-                       BenchmarkCannonalK32-16    4.210 ns/op      0 B/op   0 allocs/op
-
-              BenchmarkKmerIterator/1.00_KB-16    12625 ns/op    160 B/op   1 allocs/op
-              BenchmarkHashIterator/1.00_KB-16     8118 ns/op    232 B/op   3 allocs/op
-           BenchmarkProteinIterator/1.00_KB-16    14324 ns/op    480 B/op   3 allocs/op
-
-           BenchmarkMinimizerSketch/1.00_KB-16    62497 ns/op    688 B/op   6 allocs/op
-             BenchmarkSyncmerSketch/1.00_KB-16    99390 ns/op   1456 B/op   8 allocs/op
-    BenchmarkProteinMinimizerSketch/1.00_KB-16    24888 ns/op    728 B/op   5 allocs/op
-
-## The toolkit
-
-### Installation
+## Installation
 
 1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases) (Latest version).
 
@@ -139,7 +87,9 @@ CPU: AMD Ryzen 7 2700X Eight-Core Processor, 3.7 GHz
         help            Help about any command
         version         Print version information and check for update
 
-### Binary file (.unik)
+## Binary file
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/uniq.svg)](https://pkg.go.dev/github.com/shenwei356/uniq)
 
 K-mers (represented in `uint64` in RAM ) are serialized in 8-Byte
 (or less Bytes for shorter k-mers in compact format,
@@ -147,7 +97,7 @@ or much less Bytes for sorted k-mers) arrays and
 optionally compressed in gzip format with extension of `.unik`.
 TaxIds are optionally stored next to k-mers with 4 or less bytes.
 
-#### Compression rate comparison
+### Compression ratio comparison
 
 No TaxIds stored in this test.
 
@@ -332,9 +282,10 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
         samtools flagstat {}.sorted.bam > {}.sorted.bam.flagstat; \
         /bin/rm {}.bam '  
 
-## Contributing
+## Support
 
-We welcome pull requests, bug fixes and issue reports.
+Please [open an issue](https://github.com/shenwei356/unikmer/issues) to report bugs,
+propose new functions or ask for help.
 
 ## License
 

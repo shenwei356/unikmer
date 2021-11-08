@@ -27,7 +27,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts/sortutil"
 )
@@ -101,7 +103,7 @@ Tips:
 			}
 		}
 
-		var taxondb *unikmer.Taxonomy
+		var taxondb *taxdump.Taxonomy
 
 		var mt map[uint64]uint32 // kmer -> taxid
 
@@ -109,7 +111,7 @@ Tips:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var k int = -1
 		var canonical bool
 		var hashed bool
@@ -157,7 +159,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
@@ -196,7 +198,7 @@ Tips:
 			}()
 		}
 
-		var reader *unikmer.Reader
+		var reader *unik.Reader
 		for i, file := range files {
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
@@ -211,7 +213,7 @@ Tips:
 				var taxid, lca uint32
 				var ok bool
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err = unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if firstFile {
@@ -308,18 +310,18 @@ Tips:
 		}()
 
 		var mode uint32
-		mode |= unikmer.UnikSorted
+		mode |= unik.UnikSorted
 		if canonical {
-			mode |= unikmer.UnikCanonical
+			mode |= unik.UnikCanonical
 		}
 		if hasTaxid || hasMixTaxid {
-			mode |= unikmer.UnikIncludeTaxID
+			mode |= unik.UnikIncludeTaxID
 		}
 		if hashed {
-			mode |= unikmer.UnikHashed
+			mode |= unik.UnikHashed
 		}
 
-		writer, err := unikmer.NewWriter(outfh, k, mode)
+		writer, err := unik.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 
@@ -337,7 +339,7 @@ Tips:
 			log.Infof("no shared k-mers found")
 		}
 
-		// sort.Sort(unikmer.CodeSlice(codes))
+		// sort.Sort(kmers.CodeSlice(codes))
 		sortutil.Uint64s(codes)
 
 		if hasTaxid || hasMixTaxid {

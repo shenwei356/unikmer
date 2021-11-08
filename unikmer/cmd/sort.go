@@ -30,7 +30,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts"
@@ -101,8 +103,8 @@ Tips:
 		checkFileSuffix(opt, extDataFile, files...)
 
 		var m []uint64
-		var taxondb *unikmer.Taxonomy
-		var mt []unikmer.CodeTaxid
+		var taxondb *taxdump.Taxonomy
+		var mt []CodeTaxid
 
 		outFile := outFile0
 		if !isStdout(outFile) {
@@ -134,11 +136,11 @@ Tips:
 			checkError(os.MkdirAll(tmpDir, 0777))
 		}
 
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var code uint64
 		var taxid uint32
 		var k int = -1
@@ -177,7 +179,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
@@ -191,7 +193,7 @@ Tips:
 						if opt.Verbose {
 							log.Infof("taxids found in file: %s", file)
 						}
-						mt = make([]unikmer.CodeTaxid, 0, listInitSize)
+						mt = make([]CodeTaxid, 0, listInitSize)
 						if unique || repeated {
 							taxondb = loadTaxonomy(opt, false)
 						}
@@ -200,15 +202,15 @@ Tips:
 					}
 
 					if canonical {
-						mode |= unikmer.UnikCanonical
+						mode |= unik.UnikCanonical
 					}
 					if hasTaxid {
-						mode |= unikmer.UnikIncludeTaxID
+						mode |= unik.UnikIncludeTaxID
 					}
 					if hashed {
-						mode |= unikmer.UnikHashed
+						mode |= unik.UnikHashed
 					}
-					mode |= unikmer.UnikSorted
+					mode |= unik.UnikSorted
 				} else {
 					checkCompatibility(reader0, reader, file)
 					if !opt.IgnoreTaxid && reader.HasTaxidInfo() != hasTaxid {
@@ -230,7 +232,7 @@ Tips:
 					}
 
 					if hasTaxid {
-						mt = append(mt, unikmer.CodeTaxid{Code: code, Taxid: taxid})
+						mt = append(mt, CodeTaxid{Code: code, Taxid: taxid})
 					} else {
 						m = append(m, code)
 					}
@@ -251,7 +253,7 @@ Tips:
 
 						wg.Add(1)
 						tokens <- 1
-						go func(m []uint64, mt []unikmer.CodeTaxid, iTmpFile int, outFile string) {
+						go func(m []uint64, mt []CodeTaxid, iTmpFile int, outFile string) {
 							defer func() {
 								wg.Done()
 								<-tokens
@@ -261,8 +263,8 @@ Tips:
 								if opt.Verbose {
 									log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(mt))
 								}
-								// sort.Sort(unikmer.CodeTaxidSlice(mt))
-								sorts.Quicksort(unikmer.CodeTaxidSlice(mt))
+								// sort.Sort(CodeTaxidSlice(mt))
+								sorts.Quicksort(CodeTaxidSlice(mt))
 							} else {
 								if opt.Verbose {
 									log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
@@ -287,7 +289,7 @@ Tips:
 						}(m, mt, iTmpFile, outFile1)
 
 						if hasTaxid {
-							mt = make([]unikmer.CodeTaxid, 0, listInitSize)
+							mt = make([]CodeTaxid, 0, listInitSize)
 						} else {
 							m = make([]uint64, 0, listInitSize)
 						}
@@ -314,7 +316,7 @@ Tips:
 
 				wg.Add(1)
 				tokens <- 1
-				go func(m []uint64, mt []unikmer.CodeTaxid, iTmpFile int, outFile string) {
+				go func(m []uint64, mt []CodeTaxid, iTmpFile int, outFile string) {
 					defer func() {
 						wg.Done()
 						<-tokens
@@ -324,8 +326,8 @@ Tips:
 						if opt.Verbose {
 							log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(mt))
 						}
-						// sort.Sort(unikmer.CodeTaxidSlice(mt))
-						sorts.Quicksort(unikmer.CodeTaxidSlice(mt))
+						// sort.Sort(CodeTaxidSlice(mt))
+						sorts.Quicksort(CodeTaxidSlice(mt))
 					} else {
 						if opt.Verbose {
 							log.Infof("[chunk %d] sorting %d k-mers", iTmpFile, len(m))
@@ -450,8 +452,8 @@ Tips:
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(mt))
 			}
-			// sort.Sort(unikmer.CodeTaxidSlice(mt))
-			sorts.Quicksort(unikmer.CodeTaxidSlice(mt))
+			// sort.Sort(CodeTaxidSlice(mt))
+			sorts.Quicksort(CodeTaxidSlice(mt))
 		} else {
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(m))
@@ -472,7 +474,7 @@ Tips:
 			}
 			w.Close()
 		}()
-		writer, err = unikmer.NewWriter(outfh, k, mode)
+		writer, err = unik.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 

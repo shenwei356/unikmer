@@ -29,9 +29,10 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
 	"github.com/shenwei356/util/pathutil"
 
-	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
 
@@ -137,13 +138,13 @@ Tips:
 		}
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var k int = -1
 		var canonical bool
 		var hashed bool
 		var hasTaxid bool
 		var mode uint32
-		var taxondb *unikmer.Taxonomy
+		var taxondb *taxdump.Taxonomy
 
 		_files := make([]string, 0, len(files))
 		for _, file := range files {
@@ -157,7 +158,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
@@ -172,15 +173,15 @@ Tips:
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
 					if canonical {
-						mode |= unikmer.UnikCanonical
+						mode |= unik.UnikCanonical
 					}
 					if hasTaxid {
-						mode |= unikmer.UnikIncludeTaxID
+						mode |= unik.UnikIncludeTaxID
 					}
 					if hashed {
-						mode |= unikmer.UnikHashed
+						mode |= unik.UnikHashed
 					}
-					mode |= unikmer.UnikSorted
+					mode |= unik.UnikSorted
 
 					if hasTaxid {
 						if opt.Verbose {

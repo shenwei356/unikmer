@@ -27,7 +27,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/kmers"
+
 	"github.com/spf13/cobra"
 )
 
@@ -95,14 +96,14 @@ var decodeCmd = &cobra.Command{
 						checkError(fmt.Errorf("encode kmer should be non-negative integer: %s", line))
 					}
 
-					if code < 0 {
-						checkError(fmt.Errorf("encode kmer should be non-negative integer: %d", code))
-					}
-					if code > unikmer.MaxCode[k] {
-						checkError(fmt.Errorf("encode integer overflows for k=%d (max: %d): %d", k, unikmer.MaxCode[k], code))
+					// if code < 0 {
+					// 	checkError(fmt.Errorf("encode kmer should be non-negative integer: %d", code))
+					// }
+					if code > kmers.MaxCode[k] {
+						checkError(fmt.Errorf("encode integer overflows for k=%d (max: %d): %d", k, kmers.MaxCode[k], code))
 					}
 
-					kmer = unikmer.Decode(code, k)
+					kmer = kmers.Decode(code, k)
 					if err != nil {
 						checkError(fmt.Errorf("fail to decode '%s': %s", line, err))
 					}

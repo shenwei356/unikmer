@@ -27,7 +27,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts/sortutil"
 )
@@ -70,7 +72,7 @@ Tips:
 		sortKmers := getFlagBool(cmd, "sort")
 
 		var m map[uint64]struct{}
-		var taxondb *unikmer.Taxonomy
+		var taxondb *taxdump.Taxonomy
 		var mt map[uint64]uint32
 
 		if !isStdout(outFile) {
@@ -86,7 +88,7 @@ Tips:
 			w.Close()
 		}()
 
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 
 		var infh *bufio.Reader
 		var r *os.File
@@ -108,7 +110,7 @@ Tips:
 			return
 		}
 
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var code uint64
 		var taxid uint32
 		var lca uint32
@@ -130,7 +132,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
@@ -152,20 +154,20 @@ Tips:
 					if !hasTaxid && !sortKmers {
 						var mode uint32
 						if sortKmers {
-							mode |= unikmer.UnikSorted
+							mode |= unik.UnikSorted
 						} else if opt.Compact && !hashed {
-							mode |= unikmer.UnikCompact
+							mode |= unik.UnikCompact
 						}
 						if canonical {
-							mode |= unikmer.UnikCanonical
+							mode |= unik.UnikCanonical
 						}
 						if hasTaxid {
-							mode |= unikmer.UnikIncludeTaxID
+							mode |= unik.UnikIncludeTaxID
 						}
 						if hashed {
-							mode |= unikmer.UnikHashed
+							mode |= unik.UnikHashed
 						}
-						writer, err = unikmer.NewWriter(outfh, k, mode)
+						writer, err = unik.NewWriter(outfh, k, mode)
 						checkError(errors.Wrap(err, outFile))
 						writer.SetMaxTaxid(opt.MaxTaxid)
 					}
@@ -217,20 +219,20 @@ Tips:
 		if sortKmers || hasTaxid {
 			var mode uint32
 			if sortKmers {
-				mode |= unikmer.UnikSorted
+				mode |= unik.UnikSorted
 			} else if opt.Compact && !hashed {
-				mode |= unikmer.UnikCompact
+				mode |= unik.UnikCompact
 			}
 			if canonical {
-				mode |= unikmer.UnikCanonical
+				mode |= unik.UnikCanonical
 			}
 			if hasTaxid {
-				mode |= unikmer.UnikIncludeTaxID
+				mode |= unik.UnikIncludeTaxID
 			}
 			if hashed {
-				mode |= unikmer.UnikHashed
+				mode |= unik.UnikHashed
 			}
-			writer, err = unikmer.NewWriter(outfh, k, mode)
+			writer, err = unik.NewWriter(outfh, k, mode)
 			checkError(err)
 			writer.SetMaxTaxid(opt.MaxTaxid)
 

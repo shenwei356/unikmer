@@ -27,7 +27,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/kmers"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 	"github.com/will-rowe/nthash"
 )
@@ -97,7 +99,7 @@ Attentions:
 			w.Close()
 		}()
 
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 
 		var m map[uint64]struct{}
 		if unique {
@@ -110,7 +112,7 @@ Attentions:
 		var data interface{}
 		var line string
 		var linebytes []byte
-		var kcode, kcodeC unikmer.KmerCode
+		var kcode, kcodeC kmers.KmerCode
 		var ok bool
 		var n int64
 
@@ -197,20 +199,20 @@ Attentions:
 					if writer == nil {
 						var mode uint32
 						if sortedKmers {
-							mode |= unikmer.UnikSorted
+							mode |= unik.UnikSorted
 						} else if opt.Compact && !hashed {
-							mode |= unikmer.UnikCompact
+							mode |= unik.UnikCompact
 						}
 						if canonical || canonicalOnly {
-							mode |= unikmer.UnikCanonical
+							mode |= unik.UnikCanonical
 						}
 						if includeTaxid {
-							mode |= unikmer.UnikIncludeTaxID
+							mode |= unik.UnikIncludeTaxID
 						}
 						if hashed || hashedAlready {
-							mode |= unikmer.UnikHashed
+							mode |= unik.UnikHashed
 						}
-						writer, err = unikmer.NewWriter(outfh, k, mode)
+						writer, err = unik.NewWriter(outfh, k, mode)
 						if err != nil {
 							checkError(errors.Wrap(err, outFile))
 						}
@@ -277,7 +279,7 @@ Attentions:
 						continue
 					}
 
-					kcode, err = unikmer.NewKmerCode([]byte(line))
+					kcode, err = kmers.NewKmerCode([]byte(line))
 					if err != nil {
 						checkError(fmt.Errorf("fail to encode '%s': %s", line, err))
 					}

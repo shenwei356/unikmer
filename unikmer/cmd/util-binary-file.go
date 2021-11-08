@@ -23,12 +23,12 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/unik/v5"
 )
 
 const extDataFile = ".unik"
 
-func checkCompatibility(reader0 *unikmer.Reader, reader *unikmer.Reader, file string) {
+func checkCompatibility(reader0 *unik.Reader, reader *unik.Reader, file string) {
 	if reader0.K != reader.K {
 		checkError(fmt.Errorf(`k-mer length not consistent (%d != %d), please check with "unikmer stats": %s`, reader0.K, reader.K, file))
 	}

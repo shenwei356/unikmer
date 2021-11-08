@@ -30,7 +30,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/sketches"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 )
 
@@ -89,7 +91,7 @@ Attention:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var nfiles = len(files)
 		for i, file := range files {
 			if isStdin(file) {
@@ -103,7 +105,7 @@ Attention:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
@@ -132,7 +134,7 @@ Attention:
 
 		var fastxReader *fastx.Reader
 		var record *fastx.Record
-		var iter *unikmer.Iterator
+		var iter *sketches.Iterator
 		var code uint64
 		var ok bool
 		var seqIdx int
@@ -155,12 +157,12 @@ Attention:
 				}
 				// using ntHash
 				if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, true, circular)
+					iter, err = sketches.NewHashIterator(record.Seq, k, true, circular)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, true, circular)
+					iter, err = sketches.NewKmerIterator(record.Seq, k, true, circular)
 				}
 				if err != nil {
-					if err == unikmer.ErrShortSeq {
+					if err == sketches.ErrShortSeq {
 						if opt.Verbose {
 							log.Infof("ignore short seq: %s", record.Name)
 						}
@@ -209,7 +211,7 @@ Attention:
 			w.Close()
 		}()
 
-		var reader *unikmer.Reader
+		var reader *unik.Reader
 		var locs [][2]int
 		var loc [2]int
 		var j int
@@ -226,7 +228,7 @@ Attention:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err = unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				for {

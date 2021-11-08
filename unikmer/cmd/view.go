@@ -28,7 +28,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/kmers"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +90,7 @@ Attentions:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var canonical bool
 		var hashed bool
 
@@ -112,7 +114,7 @@ Attentions:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
@@ -168,7 +170,7 @@ Attentions:
 					}
 
 					if !hashed {
-						kmer = unikmer.MustDecode(code, k)
+						kmer = kmers.MustDecode(code, k)
 					} else {
 						if providingGenomes {
 							if loc, ok = hash2loc[code]; ok {

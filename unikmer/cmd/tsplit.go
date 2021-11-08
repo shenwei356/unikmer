@@ -31,9 +31,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/shenwei356/unik/v5"
 	"github.com/shenwei356/util/pathutil"
 
-	"github.com/shenwei356/unikmer"
 	"github.com/spf13/cobra"
 )
 
@@ -113,7 +113,7 @@ Tips:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var codes *[]uint64
 		var code uint64
 		var taxid uint32
@@ -138,7 +138,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
@@ -151,12 +151,12 @@ Tips:
 						checkError(fmt.Errorf("input should be sorted: %s", file))
 					}
 					if canonical {
-						mode |= unikmer.UnikCanonical
+						mode |= unik.UnikCanonical
 					}
 					if hashed {
-						mode |= unikmer.UnikHashed
+						mode |= unik.UnikHashed
 					}
-					mode |= unikmer.UnikSorted
+					mode |= unik.UnikSorted
 					maxTaxid = maxUint32N(reader.GetTaxidBytesLength())
 				} else {
 					checkCompatibility(reader0, reader, file)
@@ -259,7 +259,7 @@ Tips:
 					_w.Close()
 				}()
 
-				_writer, err := unikmer.NewWriter(_outfh, k, mode)
+				_writer, err := unik.NewWriter(_outfh, k, mode)
 				checkError(errors.Wrap(err, _outFile))
 
 				_writer.Number = uint64(len(*codes))

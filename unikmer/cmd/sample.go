@@ -27,7 +27,8 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 )
 
@@ -80,11 +81,11 @@ Attentions:
 			w.Close()
 		}()
 
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var code uint64
 		var taxid uint32
 		var k int = -1
@@ -103,14 +104,14 @@ Attentions:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if k == -1 {
 					reader0 = reader
 					k = reader.K
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
-					writer, err = unikmer.NewWriter(outfh, k, reader.Flag)
+					writer, err = unik.NewWriter(outfh, k, reader.Flag)
 					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {

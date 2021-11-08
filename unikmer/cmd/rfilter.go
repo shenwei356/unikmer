@@ -30,7 +30,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
 	"github.com/shenwei356/util/pathutil"
 	"github.com/shenwei356/util/stringutil"
 	"github.com/spf13/cobra"
@@ -223,11 +225,11 @@ Rank file:
 			w.Close()
 		}()
 
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var code uint64
 		var taxid uint32
 		var k int = -1
@@ -247,7 +249,7 @@ Rank file:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
@@ -259,8 +261,8 @@ Rank file:
 					}
 
 					mode := reader.Flag
-					mode |= unikmer.UnikIncludeTaxID
-					writer, err = unikmer.NewWriter(outfh, k, mode)
+					mode |= unik.UnikIncludeTaxID
+					writer, err = unik.NewWriter(outfh, k, mode)
 					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {
@@ -334,7 +336,7 @@ func init() {
 }
 
 type rankFilter struct {
-	taxondb *unikmer.Taxonomy
+	taxondb *taxdump.Taxonomy
 
 	dbRanks   map[string]interface{}
 	rankOrder map[string]int
@@ -361,7 +363,7 @@ type rankFilter struct {
 	cache map[uint32]bool
 }
 
-func newRankFilter(taxondb *unikmer.Taxonomy, rankOrder map[string]int, noRanks map[string]interface{},
+func newRankFilter(taxondb *taxdump.Taxonomy, rankOrder map[string]int, noRanks map[string]interface{},
 	lower string, higher string, equals []string, blackList []string, discardNorank bool, saveKnownNoRank bool) (*rankFilter, error) {
 
 	if lower != "" && higher != "" {

@@ -28,7 +28,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts/sortutil"
 )
@@ -79,11 +81,11 @@ Tips:
 
 		threads := opt.NumCPUs
 
-		mc := make([]unikmer.CodeTaxid, 0, mapInitSize)
+		mc := make([]CodeTaxid, 0, mapInitSize)
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var code uint64
 		var taxid uint32
 		var k int = -1
@@ -92,7 +94,7 @@ Tips:
 		var hasTaxid bool
 		var ok bool
 
-		var taxondb *unikmer.Taxonomy
+		var taxondb *taxdump.Taxonomy
 
 		// -----------------------------------------------------------------------
 
@@ -106,7 +108,7 @@ Tips:
 		infh, r, _, err = inStream(file)
 		checkError(err)
 
-		reader, err := unikmer.NewReader(infh)
+		reader, err := unik.NewReader(infh)
 		checkError(errors.Wrap(err, file))
 
 		if !reader.IsSorted() { // query is sorted
@@ -139,7 +141,7 @@ Tips:
 				checkError(errors.Wrap(err, file))
 			}
 
-			mc = append(mc, unikmer.CodeTaxid{Code: code, Taxid: taxid})
+			mc = append(mc, CodeTaxid{Code: code, Taxid: taxid})
 		}
 		n0 = len(mc)
 
@@ -169,21 +171,21 @@ Tips:
 
 			var mode uint32
 			if sortKmers {
-				mode |= unikmer.UnikSorted
+				mode |= unik.UnikSorted
 			} else if opt.Compact && !hashed {
-				mode |= unikmer.UnikCompact
+				mode |= unik.UnikCompact
 			}
 			if canonical {
-				mode |= unikmer.UnikCanonical
+				mode |= unik.UnikCanonical
 			}
 			if hasTaxid {
-				mode |= unikmer.UnikIncludeTaxID
+				mode |= unik.UnikIncludeTaxID
 			}
 			if hashed {
-				mode |= unikmer.UnikHashed
+				mode |= unik.UnikHashed
 			}
 
-			writer, err := unikmer.NewWriter(outfh, k, mode)
+			writer, err := unik.NewWriter(outfh, k, mode)
 			checkError(errors.Wrap(err, outFile))
 			writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
@@ -228,7 +230,7 @@ Tips:
 
 		maps := make(map[int]map[uint64]uint32, threads)
 
-		mapsc := make(map[int][]unikmer.CodeTaxid, threads)
+		mapsc := make(map[int][]CodeTaxid, threads)
 		mapsc[0] = mc
 
 		if threads > 1 {
@@ -240,7 +242,7 @@ Tips:
 			type iMap struct {
 				i  int
 				m  map[uint64]uint32
-				mc []unikmer.CodeTaxid
+				mc []CodeTaxid
 			}
 			ch := make(chan iMap, threads)
 			doneClone := make(chan int)
@@ -253,10 +255,8 @@ Tips:
 			for i := 1; i < threads; i++ {
 				wg.Add(1)
 				go func(i int) {
-					mc1 := make([]unikmer.CodeTaxid, len(mc))
-					for i, ct := range mc {
-						mc1[i] = ct
-					}
+					mc1 := make([]CodeTaxid, len(mc))
+					copy(mc1, mc)
 					ch <- iMap{i: i, mc: mc1}
 					wg.Done()
 				}(i)
@@ -297,7 +297,7 @@ Tips:
 				var file string
 				var infh *bufio.Reader
 				var r *os.File
-				var reader *unikmer.Reader
+				var reader *unik.Reader
 				var ok bool
 				var sorted bool
 				var m1 map[uint64]uint32
@@ -322,7 +322,7 @@ Tips:
 					infh, r, _, err = inStream(file)
 					checkError(err)
 
-					reader, err = unikmer.NewReader(infh)
+					reader, err = unik.NewReader(infh)
 					checkError(errors.Wrap(err, file))
 
 					checkCompatibility(reader0, reader, file)
@@ -376,7 +376,7 @@ Tips:
 							return
 						}
 					} else {
-						mc2 := make([]unikmer.CodeTaxid, 0, len(mc1))
+						mc2 := make([]CodeTaxid, 0, len(mc1))
 						var qCode, code uint64
 						var qtaxid, taxid uint32
 						ii := 0
@@ -544,21 +544,21 @@ Tips:
 
 		var mode uint32
 		if sortKmers {
-			mode |= unikmer.UnikSorted
+			mode |= unik.UnikSorted
 		} else if opt.Compact && !hashed {
-			mode |= unikmer.UnikCompact
+			mode |= unik.UnikCompact
 		}
 		if canonical {
-			mode |= unikmer.UnikCanonical
+			mode |= unik.UnikCanonical
 		}
 		if hasTaxid {
-			mode |= unikmer.UnikIncludeTaxID
+			mode |= unik.UnikIncludeTaxID
 		}
 		if hashed {
-			mode |= unikmer.UnikHashed
+			mode |= unik.UnikHashed
 		}
 
-		writer, err := unikmer.NewWriter(outfh, k, mode)
+		writer, err := unik.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid)
 

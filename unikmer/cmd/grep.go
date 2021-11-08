@@ -31,7 +31,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/kmers"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts"
@@ -163,7 +165,7 @@ Tips:
 		}
 
 		// encode k-mers or parse taxids
-		var kcode unikmer.KmerCode
+		var kcode kmers.KmerCode
 		var mer []byte
 		var _queries [][]byte
 		var val uint64
@@ -191,7 +193,7 @@ Tips:
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var flag int
 		var canonical bool
 		var hashed bool
@@ -214,7 +216,7 @@ Tips:
 					checkError(err)
 					defer r.Close()
 
-					reader, err := unikmer.NewReader(infh)
+					reader, err := unik.NewReader(infh)
 					checkError(errors.Wrap(err, file))
 
 					canonical = reader.IsCanonical()
@@ -250,7 +252,7 @@ Tips:
 							continue
 						}
 						if !canonical && !hashed {
-							code = unikmer.Canonical(code, k)
+							code = kmers.Canonical(code, k)
 						}
 						m[code] = struct{}{}
 					}
@@ -314,7 +316,7 @@ Tips:
 		var outfh *bufio.Writer
 		var gw io.WriteCloser
 		var w *os.File
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 		var hasTaxid bool
 
 		if !mOutputs {
@@ -369,17 +371,17 @@ Tips:
 		tokens := make(chan int, threads)
 
 		var codes []uint64
-		var codesTaxids []unikmer.CodeTaxid
+		var codesTaxids []CodeTaxid
 		if sortKmers {
 			codes = make([]uint64, 0, mapInitSize)
-			codesTaxids = make([]unikmer.CodeTaxid, 0, mapInitSize)
+			codesTaxids = make([]CodeTaxid, 0, mapInitSize)
 		}
 
 		// read k-mers from goroutines
 		var ns int
 		var done chan int
 		var chCodes chan uint64
-		var chCodesTaxids chan unikmer.CodeTaxid
+		var chCodesTaxids chan CodeTaxid
 
 		var once sync.Once
 		chEncodeQueries := make(chan int)
@@ -387,7 +389,7 @@ Tips:
 		if !mOutputs {
 			done = make(chan int)
 			chCodes = make(chan uint64, threads)
-			chCodesTaxids = make(chan unikmer.CodeTaxid, threads)
+			chCodesTaxids = make(chan CodeTaxid, threads)
 		}
 
 		nfiles = len(files)
@@ -403,7 +405,7 @@ Tips:
 
 				var infh *bufio.Reader
 				var r *os.File
-				var reader *unikmer.Reader
+				var reader *unik.Reader
 
 				var n int
 				var _k int
@@ -423,7 +425,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err = unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				_k = reader.K
@@ -457,7 +459,7 @@ Tips:
 						}
 					} else {
 						for _, q := range _queries {
-							kcode, err = unikmer.NewKmerCode(q)
+							kcode, err = kmers.NewKmerCode(q)
 							if err != nil {
 								checkError(fmt.Errorf("fail to encode query '%s': %s", mer, err))
 							}
@@ -493,22 +495,22 @@ Tips:
 
 						var mode uint32
 
-						mode |= unikmer.UnikCanonical // forcing using canonical
+						mode |= unik.UnikCanonical // forcing using canonical
 						if sortKmers {
-							mode |= unikmer.UnikSorted
+							mode |= unik.UnikSorted
 						} else if len(files) == 1 && reader.IsSorted() {
 							// if the only input file is already sorted, we don't have to sort again.
-							mode |= unikmer.UnikSorted
+							mode |= unik.UnikSorted
 						} else if opt.Compact && !_hashed {
-							mode |= unikmer.UnikCompact
+							mode |= unik.UnikCompact
 						}
 						if hasTaxid {
-							mode |= unikmer.UnikIncludeTaxID
+							mode |= unik.UnikIncludeTaxID
 						}
 						if _hashed {
-							mode |= unikmer.UnikHashed
+							mode |= unik.UnikHashed
 						}
-						writer, err = unikmer.NewWriter(outfh, reader.K, mode)
+						writer, err = unik.NewWriter(outfh, reader.K, mode)
 						checkError(errors.Wrap(err, outFile))
 						writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 
@@ -559,9 +561,9 @@ Tips:
 					}
 				}
 
-				var _writer *unikmer.Writer
+				var _writer *unik.Writer
 				var _codes []uint64
-				var _codesTaxids []unikmer.CodeTaxid
+				var _codesTaxids []CodeTaxid
 				var _outFile string
 
 				if mOutputs {
@@ -578,21 +580,21 @@ Tips:
 					}()
 
 					var mode uint32
-					mode |= unikmer.UnikCanonical
+					mode |= unik.UnikCanonical
 					if sortKmers {
-						mode |= unikmer.UnikSorted
+						mode |= unik.UnikSorted
 					} else if reader.IsSorted() {
-						mode |= unikmer.UnikSorted
+						mode |= unik.UnikSorted
 					} else if opt.Compact && !hashed {
-						mode |= unikmer.UnikCompact
+						mode |= unik.UnikCompact
 					}
 					if _isIncludeTaxid {
-						mode |= unikmer.UnikIncludeTaxID
+						mode |= unik.UnikIncludeTaxID
 					}
 					if _hashed {
-						mode |= unikmer.UnikHashed
+						mode |= unik.UnikHashed
 					}
-					_writer, err = unikmer.NewWriter(_outfh, reader.K, mode)
+					_writer, err = unik.NewWriter(_outfh, reader.K, mode)
 					checkError(errors.Wrap(err, _outFile))
 					_writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 					if _hasGlobalTaxid {
@@ -601,7 +603,7 @@ Tips:
 
 					if sortKmers && _mustSort {
 						if _isIncludeTaxid {
-							_codesTaxids = make([]unikmer.CodeTaxid, 0, mapInitSize)
+							_codesTaxids = make([]CodeTaxid, 0, mapInitSize)
 						} else if _hasGlobalTaxid {
 							_codes = make([]uint64, 0, mapInitSize)
 						} else {
@@ -636,7 +638,7 @@ Tips:
 							}
 						} else {
 							if !_canonical && !hashed {
-								code = unikmer.Canonical(code, _k)
+								code = kmers.Canonical(code, _k)
 							}
 							_, ok = m[code]
 						}
@@ -655,7 +657,7 @@ Tips:
 					if mOutputs {
 						if sortKmers && _mustSort {
 							if _isIncludeTaxid {
-								_codesTaxids = append(_codesTaxids, unikmer.CodeTaxid{Code: code, Taxid: taxid})
+								_codesTaxids = append(_codesTaxids, CodeTaxid{Code: code, Taxid: taxid})
 							} else {
 								_codes = append(_codes, code)
 							}
@@ -665,7 +667,7 @@ Tips:
 						}
 					} else {
 						if hasTaxid {
-							chCodesTaxids <- unikmer.CodeTaxid{Code: code, Taxid: taxid}
+							chCodesTaxids <- CodeTaxid{Code: code, Taxid: taxid}
 						} else {
 							chCodes <- code
 						}
@@ -681,8 +683,8 @@ Tips:
 						if opt.Verbose {
 							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codesTaxids))
 						}
-						// sort.Sort(unikmer.CodeTaxidSlice(_codesTaxids))
-						sorts.Quicksort(unikmer.CodeTaxidSlice(_codesTaxids))
+						// sort.Sort(CodeTaxidSlice(_codesTaxids))
+						sorts.Quicksort(CodeTaxidSlice(_codesTaxids))
 					} else {
 						if opt.Verbose {
 							log.Infof("[file %d/%d] sorting %d k-mers", i+1, nfiles, len(_codes))
@@ -789,8 +791,8 @@ Tips:
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codesTaxids))
 				}
-				// sort.Sort(unikmer.CodeTaxidSlice(codesTaxids))
-				sorts.Quicksort(unikmer.CodeTaxidSlice(codesTaxids))
+				// sort.Sort(CodeTaxidSlice(codesTaxids))
+				sorts.Quicksort(CodeTaxidSlice(codesTaxids))
 			} else {
 				if opt.Verbose {
 					log.Infof("sorting %d k-mers", len(codes))

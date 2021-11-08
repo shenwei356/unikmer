@@ -18,27 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package unikmer
+package cmd
 
-import (
-	"testing"
-)
+// CodeTaxid is the code-taxid pair
+type CodeTaxid struct {
+	Code uint64
+	// _     uint32 // needed? to test
+	Taxid uint32
+}
 
-func TestPackTwoTaxids(t *testing.T) {
-	type Test struct {
-		a, b uint32
-		c    uint64
-	}
-	tests := []Test{
-		{0, 0, 0},
-		{1, 1, 1<<32 + 1},
-		{2, 1, 1<<32 + 2},
-	}
+// CodeTaxidSlice is a list of CodeTaxid, just for sorting
+type CodeTaxidSlice []CodeTaxid
 
-	for _, test := range tests {
-		c := pack2uint32(test.a, test.b)
-		if c != test.c {
-			t.Errorf("pack2uint32 error: %d != %d ", c, test.c)
-		}
-	}
+// Len return length of the slice
+func (pairs CodeTaxidSlice) Len() int {
+	return len(pairs)
+}
+
+// Swap swaps two elements
+func (pairs CodeTaxidSlice) Swap(i, j int) {
+	pairs[i], pairs[j] = pairs[j], pairs[i]
+}
+
+// Less simply compare two KmerCode
+func (pairs CodeTaxidSlice) Less(i, j int) bool {
+	return pairs[i].Code < pairs[j].Code
 }

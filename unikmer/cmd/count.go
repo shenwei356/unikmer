@@ -29,7 +29,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
 	"github.com/shenwei356/bio/seqio/fastx"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/sketches"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts/sortutil"
 )
@@ -199,12 +202,12 @@ K-mer sketches:
 			log.Infof("set global taxid: %d", taxid)
 		}
 
-		var writer *unikmer.Writer
+		var writer *unik.Writer
 		var mode uint32
 		var n uint64
 
 		var m map[uint64]struct{}
-		var taxondb *unikmer.Taxonomy
+		var taxondb *taxdump.Taxonomy
 		var mt map[uint64]uint32
 
 		// could use bloom filter
@@ -213,18 +216,18 @@ K-mer sketches:
 
 		if linear {
 			if opt.Compact && !hashed {
-				mode |= unikmer.UnikCompact
+				mode |= unik.UnikCompact
 			}
 			if canonical {
-				mode |= unikmer.UnikCanonical
+				mode |= unik.UnikCanonical
 			}
 			if parseTaxid {
-				mode |= unikmer.UnikIncludeTaxID
+				mode |= unik.UnikIncludeTaxID
 			}
 			if hashed {
-				mode |= unikmer.UnikHashed
+				mode |= unik.UnikHashed
 			}
-			writer, err = unikmer.NewWriter(outfh, k, mode)
+			writer, err = unik.NewWriter(outfh, k, mode)
 			checkError(errors.Wrap(err, outFile))
 			writer.SetMaxTaxid(opt.MaxTaxid)
 			if setGlobalTaxid {
@@ -256,8 +259,8 @@ K-mer sketches:
 		var mark bool
 		var nseq int64
 		var code uint64
-		var iter *unikmer.Iterator
-		var sketch *unikmer.Sketch
+		var iter *sketches.Iterator
+		var sketch *sketches.Sketch
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -275,16 +278,16 @@ K-mer sketches:
 				}
 
 				if syncmer {
-					sketch, err = unikmer.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
+					sketch, err = sketches.NewSyncmerSketch(record.Seq, k, syncmerS, circular)
 				} else if minimizer {
-					sketch, err = unikmer.NewMinimizerSketch(record.Seq, k, minimizerW, circular)
+					sketch, err = sketches.NewMinimizerSketch(record.Seq, k, minimizerW, circular)
 				} else if hashed {
-					iter, err = unikmer.NewHashIterator(record.Seq, k, canonical, circular)
+					iter, err = sketches.NewHashIterator(record.Seq, k, canonical, circular)
 				} else {
-					iter, err = unikmer.NewKmerIterator(record.Seq, k, canonical, circular)
+					iter, err = sketches.NewKmerIterator(record.Seq, k, canonical, circular)
 				}
 				if err != nil {
-					if err == unikmer.ErrShortSeq {
+					if err == sketches.ErrShortSeq {
 						if opt.Verbose && moreVerbose {
 							log.Infof("ignore short seq: %s", record.Name)
 						}
@@ -410,20 +413,20 @@ K-mer sketches:
 		}
 
 		if sortKmers {
-			mode |= unikmer.UnikSorted
+			mode |= unik.UnikSorted
 		} else if opt.Compact && !hashed {
-			mode |= unikmer.UnikCompact
+			mode |= unik.UnikCompact
 		}
 		if canonical {
-			mode |= unikmer.UnikCanonical
+			mode |= unik.UnikCanonical
 		}
 		if parseTaxid {
-			mode |= unikmer.UnikIncludeTaxID
+			mode |= unik.UnikIncludeTaxID
 		}
 		if hashed {
-			mode |= unikmer.UnikHashed
+			mode |= unik.UnikHashed
 		}
-		writer, err = unikmer.NewWriter(outfh, k, mode)
+		writer, err = unik.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid)
 		if setGlobalTaxid {
@@ -540,7 +543,7 @@ K-mer sketches:
 			if opt.Verbose {
 				log.Infof("sorting %d k-mers", len(codes))
 			}
-			// sort.Sort(unikmer.CodeSlice(codes))
+			// sort.Sort(sketches.CodeSlice(codes))
 			sortutil.Uint64s(codes)
 			if opt.Verbose {
 				log.Infof("done sorting")

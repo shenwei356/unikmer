@@ -27,7 +27,9 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
+
 	"github.com/spf13/cobra"
 )
 
@@ -72,14 +74,14 @@ Tips:
 		mixTaxid := getFlagBool(cmd, "mix-taxid")
 		var hasMixTaxid bool
 
-		var taxondb *unikmer.Taxonomy
+		var taxondb *taxdump.Taxonomy
 
-		mc := make([]unikmer.CodeTaxid, 0, mapInitSize)
+		mc := make([]CodeTaxid, 0, mapInitSize)
 		m := make([]bool, 0, mapInitSize) // marking common elements
 
 		var infh *bufio.Reader
 		var r *os.File
-		var reader0 *unikmer.Reader
+		var reader0 *unik.Reader
 		var k int = -1
 		var canonical bool
 		var hashed bool
@@ -130,7 +132,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err := unikmer.NewReader(infh)
+				reader, err := unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if !reader.IsSorted() {
@@ -168,7 +170,7 @@ Tips:
 			}()
 		}
 
-		var reader *unikmer.Reader
+		var reader *unik.Reader
 		for i, file := range files {
 			if opt.Verbose {
 				log.Infof("processing file (%d/%d): %s", i+1, nfiles, file)
@@ -179,7 +181,7 @@ Tips:
 				checkError(err)
 				defer r.Close()
 
-				reader, err = unikmer.NewReader(infh)
+				reader, err = unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
 				if firstFile {
@@ -192,7 +194,7 @@ Tips:
 							checkError(errors.Wrap(err, file))
 						}
 
-						mc = append(mc, unikmer.CodeTaxid{Code: code, Taxid: taxid})
+						mc = append(mc, CodeTaxid{Code: code, Taxid: taxid})
 						m = append(m, false)
 					}
 					firstFile = false
@@ -263,7 +265,7 @@ Tips:
 					}
 				}
 
-				mc1 := make([]unikmer.CodeTaxid, 0, n)
+				mc1 := make([]CodeTaxid, 0, n)
 				n = 0
 				for ii, found := range m {
 					if found {
@@ -319,18 +321,18 @@ Tips:
 		}()
 
 		var mode uint32
-		mode |= unikmer.UnikSorted
+		mode |= unik.UnikSorted
 		if canonical {
-			mode |= unikmer.UnikCanonical
+			mode |= unik.UnikCanonical
 		}
 		if hasTaxid || hasMixTaxid {
-			mode |= unikmer.UnikIncludeTaxID
+			mode |= unik.UnikIncludeTaxID
 		}
 		if hashed {
-			mode |= unikmer.UnikHashed
+			mode |= unik.UnikHashed
 		}
 
-		writer, err := unikmer.NewWriter(outfh, k, mode)
+		writer, err := unik.NewWriter(outfh, k, mode)
 		checkError(errors.Wrap(err, outFile))
 		writer.SetMaxTaxid(opt.MaxTaxid) // follow taxondb
 

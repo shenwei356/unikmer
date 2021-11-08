@@ -53,7 +53,7 @@ Version: v%s
 Author: Wei Shen <shenwei356@gmail.com>
 
 Documents  : https://shenwei356.github.io/unikmer
-Source code: https://github.com/shenwei356/unikmer
+Source code: https://github.com/shenwei356/unik/v5mer
 
 Dataset (optional):
 

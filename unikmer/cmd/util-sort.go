@@ -28,7 +28,8 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/taxdump"
+	"github.com/shenwei356/unik/v5"
 )
 
 func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
@@ -42,7 +43,7 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 		w.Close()
 	}()
 
-	writer, err := unikmer.NewWriter(outfh, k, mode)
+	writer, err := unik.NewWriter(outfh, k, mode)
 	checkError(err)
 	writer.SetMaxTaxid(opt.MaxTaxid)
 
@@ -80,7 +81,7 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 	return n
 }
 
-func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, taxondb *unikmer.Taxonomy, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
+func dumpCodesTaxids2File(mt []CodeTaxid, taxondb *taxdump.Taxonomy, k int, mode uint32, outFile string, opt *Options, unique bool, repeated bool) int64 {
 	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 	checkError(err)
 	defer func() {
@@ -91,7 +92,7 @@ func dumpCodesTaxids2File(mt []unikmer.CodeTaxid, taxondb *unikmer.Taxonomy, k i
 		w.Close()
 	}()
 
-	writer, err := unikmer.NewWriter(outfh, k, mode)
+	writer, err := unik.NewWriter(outfh, k, mode)
 	checkError(err)
 	writer.SetMaxTaxid(opt.MaxTaxid)
 
@@ -192,7 +193,7 @@ func (h codeEntryHeap) Pop() interface{} {
 	return x
 }
 
-func mergeChunksFile(opt *Options, taxondb *unikmer.Taxonomy, files []string, outFile string, k int, mode uint32, unique bool, repeated bool, finalRound bool) (int64, string) {
+func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, outFile string, k int, mode uint32, unique bool, repeated bool, finalRound bool) (int64, string) {
 	outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
 	checkError(err)
 	defer func() {
@@ -203,26 +204,26 @@ func mergeChunksFile(opt *Options, taxondb *unikmer.Taxonomy, files []string, ou
 		w.Close()
 	}()
 
-	var writer *unikmer.Writer
-	hasTaxid := mode&unikmer.UnikIncludeTaxID > 0
+	var writer *unik.Writer
+	hasTaxid := mode&unik.UnikIncludeTaxID > 0
 	if hasTaxid && taxondb == nil {
 		checkError(fmt.Errorf("taxon information is need when UnikIncludeTaxID is one"))
 	}
 
-	writer, err = unikmer.NewWriter(outfh, k, mode)
+	writer, err = unik.NewWriter(outfh, k, mode)
 	checkError(err)
 	writer.SetMaxTaxid(opt.MaxTaxid)
 
-	readers := make(map[int]*unikmer.Reader, len(files))
+	readers := make(map[int]*unik.Reader, len(files))
 	fhs := make([]*os.File, len(files))
 
-	var reader *unikmer.Reader
+	var reader *unik.Reader
 	for i, file := range files {
 		infh, fh, _, err := inStream(file)
 		checkError(errors.Wrap(err, file))
 		fhs = append(fhs, fh)
 
-		reader, err := unikmer.NewReader(infh)
+		reader, err := unik.NewReader(infh)
 		checkError(errors.Wrap(err, file))
 		readers[i] = reader
 	}

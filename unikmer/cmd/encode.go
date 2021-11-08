@@ -26,7 +26,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/breader"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/kmers"
+
 	"github.com/spf13/cobra"
 	"github.com/will-rowe/nthash"
 )
@@ -76,7 +77,7 @@ var encodeCmd = &cobra.Command{
 		var data interface{}
 		var line string
 		var linebytes []byte
-		var kcode unikmer.KmerCode
+		var kcode kmers.KmerCode
 		var hasher *nthash.NTHi
 		var hash uint64
 		for _, file := range files {
@@ -108,7 +109,7 @@ var encodeCmd = &cobra.Command{
 						continue
 					}
 
-					kcode, err = unikmer.NewKmerCode([]byte(line))
+					kcode, err = kmers.NewKmerCode([]byte(line))
 					if err != nil {
 						checkError(fmt.Errorf("fail to encode '%s': %s", line, err))
 					}

@@ -32,7 +32,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seqio/fastx"
-	"github.com/shenwei356/unikmer"
+	"github.com/shenwei356/bio/sketches"
+	"github.com/shenwei356/bio/taxdump"
+
 	"github.com/shenwei356/util/pathutil"
 	"github.com/spf13/cobra"
 	"github.com/twotwotwo/sorts"
@@ -108,18 +110,18 @@ func checkDataDir(opt *Options) {
 	}
 }
 
-func loadTaxonomy(opt *Options, withRank bool) *unikmer.Taxonomy {
+func loadTaxonomy(opt *Options, withRank bool) *taxdump.Taxonomy {
 	checkDataDir(opt)
 
 	if opt.Verbose {
 		log.Infof("loading Taxonomy from: %s", opt.DataDir)
 	}
-	var t *unikmer.Taxonomy
+	var t *taxdump.Taxonomy
 	var err error
 	if withRank {
-		t, err = unikmer.NewTaxonomyWithRankFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
+		t, err = taxdump.NewTaxonomyWithRankFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
 	} else {
-		t, err = unikmer.NewTaxonomyFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
+		t, err = taxdump.NewTaxonomyFromNCBI(filepath.Join(opt.DataDir, "nodes.dmp"))
 	}
 	if err != nil {
 		checkError(fmt.Errorf("err on loading Taxonomy nodes: %s", err))
@@ -230,7 +232,7 @@ func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
 			}
 
 		} else {
-			return dseqs, unikmer.ErrIllegalBase
+			return dseqs, fmt.Errorf("invalid degenerate bases: %s", base)
 		}
 	}
 	return dseqs, nil
@@ -343,7 +345,7 @@ func loadHash2Loc(files []string, k int) ([][]byte, map[uint64][2]int, error) {
 	var err error
 	var fastxReader *fastx.Reader
 	var record *fastx.Record
-	var iter *unikmer.Iterator
+	var iter *sketches.Iterator
 	var code uint64
 	var ok bool
 	var seqIdx int
@@ -360,7 +362,7 @@ func loadHash2Loc(files []string, k int) ([][]byte, map[uint64][2]int, error) {
 				checkError(errors.Wrap(err, file))
 				break
 			}
-			iter, err = unikmer.NewHashIterator(record.Seq, k, true, true)
+			iter, err = sketches.NewHashIterator(record.Seq, k, true, true)
 			if err != nil {
 				checkError(errors.Wrapf(err, "seq: %s", record.Name))
 			}
