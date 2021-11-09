@@ -44,10 +44,10 @@ Attentions:
   0. The first file should be sorted.
   1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. By default taxids in the 2nd and later files are ignored.
-  3. You can switch on flag -t/--compare-taxid , and input
+  3. You can switch on flag -t/--compare-taxid, and input
      files should ALL have or don't have taxid information.
      A same k-mer found but query taxid equals to target taxid,
-     or query taxid is ancester of target taxid, this k-mer remains
+     or query taxid is ancester of target taxid, this k-mer remains.
 
 Tips:
   1. Increasing threads number (-j/--threads) to accelerate computation

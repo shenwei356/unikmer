@@ -1,6 +1,7 @@
 # unikmer
 
-`unikmer` is a toolkit for nucleic acid [k-mer]((https://en.wikipedia.org/wiki/K-mer)) analysis, providing functions
+`unikmer` is a toolkit for nucleic acid [k-mer](https://en.wikipedia.org/wiki/K-mer) analysis, 
+providing functions
 including set operation k-mers (sketch) optional with
 TaxIds but without count information.
 
@@ -46,7 +47,7 @@ repeated k-mers.
 
 1. Information
 
-        stats           Statistics of binary files
+        stats           Information of binary files
         num             Quickly inspect number of k-mers in binary files
 
 1. Format conversion
@@ -83,8 +84,7 @@ repeated k-mers.
 
 1. Misc
 
-        genautocomplete Generate shell autocompletion script
-        help            Help about any command
+        autocomplete    Generate shell autocompletion script
         version         Print version information and check for update
 
 ## Binary file

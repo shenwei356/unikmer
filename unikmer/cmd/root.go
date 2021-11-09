@@ -90,11 +90,11 @@ func init() {
 	checkError(err)
 
 	defaultThreads := runtime.NumCPU()
-	if defaultThreads > 2 {
-		defaultThreads = 2
+	if defaultThreads > 4 {
+		defaultThreads = 4
 	}
 
-	RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs to use. (default value: 1 for single-CPU PC, 2 for others)")
+	RootCmd.PersistentFlags().IntP("threads", "j", defaultThreads, "number of CPUs to use")
 	RootCmd.PersistentFlags().BoolP("verbose", "", false, "print verbose information")
 	RootCmd.PersistentFlags().BoolP("no-compress", "C", false, "do not compress binary file (not recommended)")
 	RootCmd.PersistentFlags().IntP("compression-level", "", flate.DefaultCompression, "compression level")
@@ -105,7 +105,10 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
 	RootCmd.PersistentFlags().StringP("data-dir", "", defaultDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
 
-	RootCmd.PersistentFlags().BoolP("nocheck-file", "", false, "do not check binary file, when using process substitution/named pipe")
+	RootCmd.PersistentFlags().BoolP("nocheck-file", "", false, "do not check binary file, when using process substitution or named pipe")
+
+	RootCmd.CompletionOptions.DisableDefaultCmd = true
+	RootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
 }
 
 const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overides global flag -c/--compact"

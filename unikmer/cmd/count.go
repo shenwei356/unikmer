@@ -49,7 +49,7 @@ K-mer:
 K-mer sketches:
   1. Scaled MinHash
   2. Minimizer
-  3. Syncmer
+  3. Closed Syncmer
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

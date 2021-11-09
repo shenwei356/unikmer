@@ -1,5 +1,9 @@
 # Changelog
 
+- v0.19.0
+  - rename command `genautocomplete` to `autocomplete`.
+  - remove command `help`.
+  - change default value of option `-j` from `2` to `4`.
 - v0.18.8
   - `unikmer info`: fix typoes.
 - v0.18.7
