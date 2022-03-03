@@ -84,7 +84,7 @@ repeated k-mers.
 
 1. Misc
 
-        autocomplete    Generate shell autocompletion script
+        autocompletion  Generate shell autocompletion script
         version         Print version information and check for update
 
 ## Binary file

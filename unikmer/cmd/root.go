@@ -53,7 +53,7 @@ Version: v%s
 Author: Wei Shen <shenwei356@gmail.com>
 
 Documents  : https://shenwei356.github.io/unikmer
-Source code: https://github.com/shenwei356/unik/v5mer
+Source code: https://github.com/shenwei356/unikmer
 
 Dataset (optional):
 
@@ -68,7 +68,7 @@ Dataset (optional):
   for taxonomy conversion.
 
   Note that TaxIds are represented using uint32 and stored in 4 or
-  less bytes, all TaxIds should be in range of [1, %d]
+  less bytes, all TaxIds should be in the range of [1, %d]
 
 `, VERSION, maxUint32),
 }
@@ -109,6 +109,35 @@ func init() {
 
 	RootCmd.CompletionOptions.DisableDefaultCmd = true
 	RootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
+
+	RootCmd.SetUsageTemplate(usageTemplate(""))
 }
 
 const helpSort = "sort k-mers, this significantly reduce file size for k<=25. This flag overides global flag -c/--compact"
+
+func usageTemplate(s string) string {
+	return fmt.Sprintf(`Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}} %s{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsagesWrapped 110 | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsagesWrapped 110 | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`, s)
+}

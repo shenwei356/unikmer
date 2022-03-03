@@ -32,7 +32,7 @@ import (
 
 // genautocompleteCmd represents the fq2fa command
 var genautocompleteCmd = &cobra.Command{
-	Use:   "autocomplete",
+	Use:   "autocompletion",
 	Short: "Generate shell autocompletion script (bash|zsh|fish|powershell)",
 	Long: `Generate shell autocompletion script
 
@@ -41,7 +41,7 @@ Supported shell: bash|zsh|fish|powershell
 Bash:
 
     # generate completion shell
-    unikmer autocomplete --shell bash
+    unikmer autocompletion --shell bash
 
     # configure if never did.
     # install bash-completion if the "complete" command is not found.
@@ -51,7 +51,7 @@ Bash:
 Zsh:
 
     # generate completion shell
-    unikmer autocomplete --shell zsh --file ~/.zfunc/_unikmer
+    unikmer autocompletion --shell zsh --file ~/.zfunc/_unikmer
 
     # configure if never did
     echo 'fpath=( ~/.zfunc "${fpath[@]}" )' >> ~/.zshrc
@@ -59,7 +59,7 @@ Zsh:
 
 fish:
 
-    unikmer autocomplete --shell fish --file ~/.config/fish/completions/unikmer.fish
+    unikmer autocompletion --shell fish --file ~/.config/fish/completions/unikmer.fish
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {

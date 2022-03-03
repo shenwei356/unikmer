@@ -43,8 +43,8 @@ var countCmd = &cobra.Command{
 	Long: `Generate k-mers (sketch) from FASTA/Q sequences
 
 K-mer:
-  1. K-mer code (k<=32):
-  2. Hased k-mer (ntHash):
+  1. K-mer code (k<=32)
+  2. Hashed k-mer (ntHash)
 
 K-mer sketches:
   1. Scaled MinHash
