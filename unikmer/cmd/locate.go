@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -55,6 +56,20 @@ Attention:
 		seq.ValidateSeq = false
 
 		var err error
+
+		reSeqNameStrs := getFlagStringSlice(cmd, "seq-name-filter")
+		reSeqNames := make([]*regexp.Regexp, 0, len(reSeqNameStrs))
+		for _, kw := range reSeqNameStrs {
+			if !reIgnoreCase.MatchString(kw) {
+				kw = reIgnoreCaseStr + kw
+			}
+			re, err := regexp.Compile(kw)
+			if err != nil {
+				checkError(errors.Wrapf(err, "failed to parse regular expression for matching sequence header: %s", kw))
+			}
+			reSeqNames = append(reSeqNames, re)
+		}
+		filterNames := len(reSeqNames) > 0
 
 		if opt.Verbose {
 			log.Info("checking input files ...")
@@ -138,6 +153,8 @@ Attention:
 		var code uint64
 		var ok bool
 		var seqIdx int
+		var ignoreSeq bool
+		var re *regexp.Regexp
 
 		for _, file := range genomes {
 			if opt.Verbose {
@@ -155,6 +172,20 @@ Attention:
 					checkError(errors.Wrap(err, file))
 					break
 				}
+
+				if filterNames {
+					ignoreSeq = false
+					for _, re = range reSeqNames {
+						if re.Match(record.Name) {
+							ignoreSeq = true
+							break
+						}
+					}
+					if ignoreSeq {
+						continue
+					}
+				}
+
 				// using ntHash
 				if hashed {
 					iter, err = sketches.NewHashIterator(record.Seq, k, true, circular)
@@ -258,6 +289,8 @@ Attention:
 
 func init() {
 	RootCmd.AddCommand(locateCmd)
+
+	locateCmd.Flags().StringSliceP("seq-name-filter", "B", []string{}, `list of regular expressions for filtering out sequences by header/name, case ignored.`)
 
 	locateCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	locateCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")

@@ -58,6 +58,20 @@ K-mer sketches:
 
 		var err error
 
+		reSeqNameStrs := getFlagStringSlice(cmd, "seq-name-filter")
+		reSeqNames := make([]*regexp.Regexp, 0, len(reSeqNameStrs))
+		for _, kw := range reSeqNameStrs {
+			if !reIgnoreCase.MatchString(kw) {
+				kw = reIgnoreCaseStr + kw
+			}
+			re, err := regexp.Compile(kw)
+			if err != nil {
+				checkError(errors.Wrapf(err, "failed to parse regular expression for matching sequence header: %s", kw))
+			}
+			reSeqNames = append(reSeqNames, re)
+		}
+		filterNames := len(reSeqNames) > 0
+
 		outFile := getFlagString(cmd, "out-prefix")
 		k := getFlagPositiveInt(cmd, "kmer-len")
 		canonical := getFlagBool(cmd, "canonical")
@@ -261,6 +275,9 @@ K-mer sketches:
 		var code uint64
 		var iter *sketches.Iterator
 		var sketch *sketches.Sketch
+		var ignoreSeq bool
+		var re *regexp.Regexp
+
 		for _, file := range files {
 			if opt.Verbose {
 				log.Infof("reading sequence file: %s", file)
@@ -275,6 +292,19 @@ K-mer sketches:
 					}
 					checkError(errors.Wrap(err, file))
 					break
+				}
+
+				if filterNames {
+					ignoreSeq = false
+					for _, re = range reSeqNames {
+						if re.Match(record.Name) {
+							ignoreSeq = true
+							break
+						}
+					}
+					if ignoreSeq {
+						continue
+					}
 				}
 
 				if syncmer {
@@ -570,6 +600,8 @@ K-mer sketches:
 func init() {
 	RootCmd.AddCommand(countCmd)
 
+	countCmd.Flags().StringSliceP("seq-name-filter", "B", []string{}, `list of regular expressions for filtering out sequences by header/name, case ignored.`)
+
 	countCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	countCmd.Flags().IntP("kmer-len", "k", 0, "k-mer length")
 	countCmd.Flags().BoolP("canonical", "K", false, "only keep the canonical k-mers")
@@ -589,3 +621,6 @@ func init() {
 
 	countCmd.Flags().BoolP("linear", "l", false, `output k-mers in linear order`)
 }
+
+var reIgnoreCaseStr = "(?i)"
+var reIgnoreCase = regexp.MustCompile(`\(\?i\)`)

@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -54,6 +55,20 @@ Attention:
 		seq.ValidateSeq = false
 
 		var err error
+
+		reSeqNameStrs := getFlagStringSlice(cmd, "seq-name-filter")
+		reSeqNames := make([]*regexp.Regexp, 0, len(reSeqNameStrs))
+		for _, kw := range reSeqNameStrs {
+			if !reIgnoreCase.MatchString(kw) {
+				kw = reIgnoreCaseStr + kw
+			}
+			re, err := regexp.Compile(kw)
+			if err != nil {
+				checkError(errors.Wrapf(err, "failed to parse regular expression for matching sequence header: %s", kw))
+			}
+			reSeqNames = append(reSeqNames, re)
+		}
+		filterNames := len(reSeqNames) > 0
 
 		if opt.Verbose {
 			log.Info("checking input files ...")
@@ -160,6 +175,8 @@ Attention:
 		var i int
 		var ok bool
 		var multipleMapped bool
+		var ignoreSeq bool
+		var re *regexp.Regexp
 
 		if !mMapped {
 			m2 = make(map[int]map[uint64]bool, 8)
@@ -180,6 +197,19 @@ Attention:
 						}
 						checkError(errors.Wrap(err, genomeFile))
 						break
+					}
+
+					if filterNames {
+						ignoreSeq = false
+						for _, re = range reSeqNames {
+							if re.Match(record.Name) {
+								ignoreSeq = true
+								break
+							}
+						}
+						if ignoreSeq {
+							continue
+						}
 					}
 
 					if hashed {
@@ -276,6 +306,19 @@ Attention:
 					}
 					checkError(errors.Wrap(err, genomeFile))
 					break
+				}
+
+				if filterNames {
+					ignoreSeq = false
+					for _, re = range reSeqNames {
+						if re.Match(record.Name) {
+							ignoreSeq = true
+							break
+						}
+					}
+					if ignoreSeq {
+						continue
+					}
 				}
 
 				length0 = len(record.Seq.Seq)
@@ -436,6 +479,8 @@ Attention:
 
 func init() {
 	RootCmd.AddCommand(uniqsCmd)
+
+	uniqsCmd.Flags().StringSliceP("seq-name-filter", "B", []string{}, `list of regular expressions for filtering out sequences by header/name, case ignored.`)
 
 	uniqsCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
 	uniqsCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
