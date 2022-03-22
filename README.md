@@ -273,14 +273,15 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     bwa index $g; samtools faidx $g
 
     ncpu=12
-    ls $f.fa.gz | rush -j 1 -v ref=$g -v j=$ncpu \
-    ' bwa aln -o 0 -l 17 -k 0 -t {j} {ref} {} \
-        | bwa samse {ref} - {} \
-        | samtools view -bS > {}.bam; \
-        samtools sort -T {}.tmp -@ {j} {}.bam -o {}.sorted.bam; \
-        samtools index {}.sorted.bam; \
-        samtools flagstat {}.sorted.bam > {}.sorted.bam.flagstat; \
-        /bin/rm {}.bam '  
+    ls $f.fa.gz \
+        | rush -j 1 -v ref=$g -v j=$ncpu \
+            'bwa aln -o 0 -l 17 -k 0 -t {j} {ref} {} \
+                | bwa samse {ref} - {} \
+                | samtools view -bS > {}.bam; \
+             samtools sort -T {}.tmp -@ {j} {}.bam -o {}.sorted.bam; \
+             samtools index {}.sorted.bam; \
+             samtools flagstat {}.sorted.bam > {}.sorted.bam.flagstat; \
+             /bin/rm {}.bam '  
 
 ## Support
 
