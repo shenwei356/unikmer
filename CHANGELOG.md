@@ -4,7 +4,8 @@
   - rename command `genautocomplete` to `autocompletion`.
   - remove command `help`.
   - change default value of option `-j` from `2` to `4`.
-  - `unikmer count/uniqs/locate`: new flag `-B/--seq-name-filter`.
+  - `unikmer count/uniqs/locate`: new flag `-B/--seq-name-filter` for filtering out unwanted sequences like plasmids.
+  - `unikmer count`: add support of '.xz' and '.zst' files.
 - v0.18.8
   - `unikmer info`: fix typoes.
 - v0.18.7
