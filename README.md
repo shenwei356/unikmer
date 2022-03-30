@@ -60,20 +60,20 @@ repeated k-mers.
 
 1. Set operations
 
-        head            Extract the first N k-mers
         concat          Concatenate multiple binary files without removing duplicates
         inter           Intersection of multiple binary files
         common          Find k-mers shared by most of multiple binary files
         union           Union of multiple binary files
         diff            Set difference of multiple binary files
-        grep            Search k-mers from binary files
 
         sort            Sort k-mers in binary files to reduce file size
         split           Split k-mers into sorted chunk files
         tsplit          Split k-mers according to TaxId
         merge           Merge k-mers from sorted chunk files
 
+        head            Extract the first N k-mers
         sample          Sample k-mers from binary files
+        grep            Search k-mers from binary files
         filter          Filter low-complexity k-mers
         rfilter         Filter k-mers by taxonomic rank
 
@@ -89,7 +89,7 @@ repeated k-mers.
 
 ## Binary file
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/uniq.svg)](https://pkg.go.dev/github.com/shenwei356/uniq)
+[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/unik.svg)](https://pkg.go.dev/github.com/shenwei356/unik)
 
 K-mers (represented in `uint64` in RAM ) are serialized in 8-Byte
 (or less Bytes for shorter k-mers in compact format,
