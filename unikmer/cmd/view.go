@@ -186,24 +186,32 @@ Attentions:
 
 					if outFasta {
 						if showTaxid {
-							outfh.WriteString(fmt.Sprintf(">%d %d\n%s\n", code, taxid, kmer))
+							// outfh.WriteString(fmt.Sprintf(">%d %d\n%s\n", code, taxid, kmer))
+							fmt.Fprintf(outfh, ">%d %d\n%s\n", code, taxid, kmer)
 						} else {
-							outfh.WriteString(fmt.Sprintf(">%d\n%s\n", code, kmer))
+							// outfh.WriteString(fmt.Sprintf(">%d\n%s\n", code, kmer))
+							fmt.Fprintf(outfh, ">%d\n%s\n", code, kmer)
 						}
 					} else if outFastq {
 						if showTaxid {
-							outfh.WriteString(fmt.Sprintf("@%d %d\n%s\n+\n%s\n", code, taxid, kmer, quality))
+							// outfh.WriteString(fmt.Sprintf("@%d %d\n%s\n+\n%s\n", code, taxid, kmer, quality))
+							fmt.Fprintf(outfh, "@%d %d\n%s\n+\n%s\n", code, taxid, kmer, quality)
 						} else {
-							outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", code, kmer, quality))
+							// outfh.WriteString(fmt.Sprintf("@%d\n%s\n+\n%s\n", code, kmer, quality))
+							fmt.Fprintf(outfh, "@%d\n%s\n+\n%s\n", code, kmer, quality)
 						}
 					} else if showTaxid {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kmer, taxid))
+						// outfh.WriteString(fmt.Sprintf("%s\t%d\n", kmer, taxid))
+						fmt.Fprintf(outfh, "%s\t%d\n", kmer, taxid)
 					} else if showTaxidOnly {
-						outfh.WriteString(fmt.Sprintf("%d\n", taxid))
+						// outfh.WriteString(fmt.Sprintf("%d\n", taxid))
+						fmt.Fprintf(outfh, "%d\n", taxid)
 					} else if showCodeOnly {
-						outfh.WriteString(fmt.Sprintf("%d\n", code))
+						// outfh.WriteString(fmt.Sprintf("%d\n", code))
+						fmt.Fprintf(outfh, "%d\n", code)
 					} else if showCode {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\n", kmer, code))
+						// outfh.WriteString(fmt.Sprintf("%s\t%d\n", kmer, code))
+						fmt.Fprintf(outfh, "%s\t%d\n", kmer, code)
 					} else {
 						outfh.WriteString(string(kmer) + "\n")
 					}

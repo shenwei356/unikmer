@@ -617,7 +617,7 @@ func init() {
 
 	countCmd.Flags().IntP("scale", "D", 1, `scale/down-sample factor`)
 	countCmd.Flags().IntP("minimizer-w", "W", 0, `minimizer window size`)
-	countCmd.Flags().IntP("syncmer-s", "S", 0, `bounded syncmer length`)
+	countCmd.Flags().IntP("syncmer-s", "S", 0, `closed syncmer length`)
 
 	countCmd.Flags().BoolP("linear", "l", false, `output k-mers in linear order`)
 }
