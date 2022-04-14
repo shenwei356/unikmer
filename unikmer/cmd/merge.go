@@ -344,7 +344,7 @@ func init() {
 	mergeCmd.Flags().StringP("pattern", "p", `^chunk_\d+\.unik$`, `chunk file pattern (regular expression)`)
 
 	mergeCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	mergeCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
+	mergeCmd.Flags().BoolP("unique", "u", false, `remove duplicate k-mers`)
 	mergeCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 
 	mergeCmd.Flags().IntP("max-open-files", "M", 400, `max number of open files`)

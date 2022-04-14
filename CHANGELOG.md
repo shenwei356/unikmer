@@ -83,7 +83,7 @@
 - v0.10.0 - 2020-05-21
   - `unikmer`: fix loading custom taxonomy files.
   - `unikmer count`:
-    - new flag `-d` for only count duplicated k-mers, for removing singleton in FASTQ.
+    - new flag `-d` for only count duplicate k-mers, for removing singleton in FASTQ.
     - fix nil pointer bug of `-t`.
   - `unikmer split`: fix memery and last odd k-mer mising bug for given ONE sorted input file.
   - `unikmer sort`: skip loading taxonomy data when neither `-u` or `-d` given.
@@ -120,7 +120,7 @@
   - `unikmer union`:
     - new option `-d/--repeated` for only printing duplicate k-mers.
   - `unikmer sort`:
-    - new option `-u/--unique` for removing duplicated k-mers.
+    - new option `-u/--unique` for removing duplicate k-mers.
     - new option `-d/--repeated` for only printing duplicate k-mers.
     - new option `-m/--chunk-size` for limiting maximum memory for sorting.
   - `unikmer diff`:

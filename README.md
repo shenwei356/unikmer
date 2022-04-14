@@ -212,7 +212,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     4c038832209278840d4d75944b29219c  -
     
     
-    # duplicated k-mers
+    # duplicate k-mers
     $ memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d -m 1M
     elapsed time: 1.143s
     peak rss: 240.18 MB

@@ -417,6 +417,6 @@ func init() {
 	splitCmd.Flags().StringP("out-dir", "O", "", `output directory`)
 	splitCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N k-mers, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	splitCmd.Flags().BoolP("force", "", false, `overwrite output directory`)
-	splitCmd.Flags().BoolP("unique", "u", false, `split for further removing duplicated k-mers`)
+	splitCmd.Flags().BoolP("unique", "u", false, `split for further removing duplicate k-mers`)
 	splitCmd.Flags().BoolP("repeated", "d", false, `split for further printing duplicate k-mers`)
 }

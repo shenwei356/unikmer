@@ -905,7 +905,7 @@ func init() {
 	grepCmd.Flags().BoolP("force", "", false, "overwrite output directory")
 
 	grepCmd.Flags().BoolP("sort", "s", false, helpSort)
-	grepCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
+	grepCmd.Flags().BoolP("unique", "u", false, `remove duplicate k-mers`)
 	grepCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 
 }

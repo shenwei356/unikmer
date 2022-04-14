@@ -582,7 +582,7 @@ func init() {
 	RootCmd.AddCommand(sortCmd)
 
 	sortCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicated k-mers`)
+	sortCmd.Flags().BoolP("unique", "u", false, `remove duplicate k-mers`)
 	sortCmd.Flags().BoolP("repeated", "d", false, `only print duplicate k-mers`)
 	sortCmd.Flags().StringP("chunk-size", "m", "", `split input into chunks of N k-mers, supports K/M/G suffix, type "unikmer sort -h" for detail`)
 	sortCmd.Flags().StringP("tmp-dir", "t", "./", `directory for intermediate files`)
