@@ -1,0 +1,22 @@
+site_name: unikmer - Toolkit for k-mer with taxonomic information
+site_url: https://bioinf.shenwei.me/unikmer
+nav:
+- Home: index.md
+- Download: download.md
+- Usage: usage.md
+- More tools: https://github.com/shenwei356
+
+theme:
+    name: material
+    palette:
+        primary: teal
+        accent: blue grey
+    feature:
+        navigation.tabs: false
+extra:
+  manifest: manifest.webmanifest
+
+repo_url: https://github.com/shenwei356/unikmer
+site_description: unikmer - Toolkit for k-mer with taxonomic information
+site_author: Wei Shen
+# google_analytics: ['UA-28948626-9', 'bioinf.shenwei.me/unikmer']

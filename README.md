@@ -1,4 +1,4 @@
-# unikmer
+# unikmer: Toolkit for k-mer with taxonomic information
 
 `unikmer` is a toolkit for nucleic acid [k-mer](https://en.wikipedia.org/wiki/K-mer) analysis, 
 providing functions
@@ -17,29 +17,32 @@ repeated k-mers.
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 ## Table of Contents
 
-- [Installation](#installation-1)
+- [Using cases](#using-cases)
+- [Installation](#installation)
 - [Commands](#commands)
 - [Binary file](#binary-file)
-- [Quick Start](#quick-start)
-- [Contributing](#contributing)
+- [Quick start](#quick-start)
+- [Support](#support)
 - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+## Using cases
+
+- Finding conserved regions in all genomes of a species.
+- Finding species/strain-specific sequences for designing probes/primers.
 
 ## Installation
 
-1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases) (Latest version).
+1. Downloading [executable binary files](https://github.com/shenwei356/unikmer/releases).
 
-1. Via Bioconda (not available now)
+1. Via Bioconda [![Anaconda Cloud](https://anaconda.org/bioconda/unikmer/badges/version.svg)](https://anaconda.org/bioconda/unikmer) [![downloads](https://anaconda.org/bioconda/unikmer/badges/downloads.svg)](https://anaconda.org/bioconda/unikmer)
 
-        conda install unikmer
+        conda install -c bioconda unikmer
 
-1. Via Homebrew (not lastest version)
+## Commands
 
-        brew install brewsci/bio/unikmer
-
-### Commands
+[Usages](https://bioinf.shenwei.me/unikmer/usage)
 
 1. Counting
 
@@ -47,16 +50,17 @@ repeated k-mers.
 
 1. Information
 
-        stats           Information of binary files
+        info            Information of binary files
         num             Quickly inspect number of k-mers in binary files
 
 1. Format conversion
 
+        view            Read and output binary format to plain text
+        dump            Convert plain k-mer text to binary format
+
         encode          Encode plain k-mer text to integer
         decode          Decode encoded integer to k-mer text
         
-        view            Read and output binary format to plain text
-        dump            Convert plain k-mer text to binary format
 
 1. Set operations
 
@@ -66,15 +70,19 @@ repeated k-mers.
         union           Union of multiple binary files
         diff            Set difference of multiple binary files
 
+1. Split and merge
+
         sort            Sort k-mers in binary files to reduce file size
         split           Split k-mers into sorted chunk files
         tsplit          Split k-mers according to TaxId
         merge           Merge k-mers from sorted chunk files
 
+1. Subset
+
         head            Extract the first N k-mers
         sample          Sample k-mers from binary files
         grep            Search k-mers from binary files
-        filter          Filter low-complexity k-mers
+        filter          Filter out low-complexity k-mers
         rfilter         Filter k-mers by taxonomic rank
 
 1. Searching on genomes
@@ -124,7 +132,7 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 - In all test, flag `--canonical` is ON when running `unikmer count`.
 
 
-### Quick Start
+## Quick Start
 
 
     # memusg is for compute time and RAM usage: https://github.com/shenwei356/memusg

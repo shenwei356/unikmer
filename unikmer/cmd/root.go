@@ -33,8 +33,8 @@ import (
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "unikmer",
-	Short: "Unique-Kmer Toolkit",
-	Long: fmt.Sprintf(`unikmer - Unique-Kmer Toolkit
+	Short: "Toolkit for k-mer with taxonomic information",
+	Long: fmt.Sprintf(`unikmer - Toolkit for k-mer with taxonomic information
 
 unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
 including set operation on k-mers optional with TaxIds but without count
@@ -52,7 +52,7 @@ Version: v%s
 
 Author: Wei Shen <shenwei356@gmail.com>
 
-Documents  : https://shenwei356.github.io/unikmer
+Documents  : https://bioinf.shenwei.me/unikmer
 Source code: https://github.com/shenwei356/unikmer
 
 Dataset (optional):
@@ -64,8 +64,9 @@ Dataset (optional):
   or some other directory, and later you can refer to using flag
   --data-dir or environment variable UNIKMER_DB.
 
-  For GTDB, use https://github.com/nick-youngblut/gtdb_to_taxdump 
-  for taxonomy conversion.
+  For GTDB, use 'taxonkit create-taxdump' to create NCBI-style
+  taxonomy dump files, or download from:
+    https://github.com/shenwei356/gtdb-taxonomy
 
   Note that TaxIds are represented using uint32 and stored in 4 or
   less bytes, all TaxIds should be in the range of [1, %d]

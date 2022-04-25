@@ -48,7 +48,7 @@ var rfilterCmd = &cobra.Command{
 Attentions:
   1. Flag -L/--lower-than and -H/--higher-than are exclusive, and can be
      used along with -E/--equal-to which values can be different.
-  2. A list of pre-ordered ranks is in ~/.taxonkit/ranks.txt, you can use
+  2. A list of pre-ordered ranks is in ~/.unikmer/ranks.txt, you can use
      your list by -r/--rank-file, the format specification is below.
   3. All ranks in taxonomy database should be defined in rank file.
   4. Ranks can be removed with black list via -B/--black-list.
@@ -112,6 +112,9 @@ Rank file:
 
 		if saveNorank {
 			discardNoRank = true
+			if !discardNoRank {
+				log.Infof("flag -N/--discard-noranks is switched on when using -n/--save-predictable-norank")
+			}
 
 			if lower == "" {
 				checkError(fmt.Errorf("flag -n/--save-predictable-norank only works along with -L/--lower-than"))
@@ -199,13 +202,16 @@ Rank file:
 
 		if opt.Verbose {
 			if discardNoRank {
-				log.Debugf("ranks without order will be discarded: %s", strings.Join(noRanksList, ", "))
+				log.Infof("ranks without order will be discarded: %s", strings.Join(noRanksList, ", "))
+			}
+			if saveNorank {
+				log.Infof("but some predictable 'no rank' will be saved with -n/--save-predictable-norank)")
 			}
 			if discardRoot {
-				log.Debugf("root rank without order will be discarded")
+				log.Infof("root rank without order will be discarded")
 			}
 			if len(blackListRanks) > 0 {
-				log.Debugf("ranks in black list will be discarded: %s", strings.Join(blackListRanks, ", "))
+				log.Infof("ranks in black list will be discarded: %s", strings.Join(blackListRanks, ", "))
 			}
 		}
 

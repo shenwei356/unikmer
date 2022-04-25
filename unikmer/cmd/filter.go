@@ -34,8 +34,8 @@ import (
 
 var filterCmd = &cobra.Command{
 	Use:   "filter",
-	Short: "Filter low-complexity k-mers (experimental)",
-	Long: `Filter low-complexity k-mers (experimental)
+	Short: "Filter out low-complexity k-mers (experimental)",
+	Long: `Filter out low-complexity k-mers (experimental)
 
 Attentions:
   1. This command only detects single base repeat now.

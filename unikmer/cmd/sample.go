@@ -111,7 +111,12 @@ Attentions:
 					reader0 = reader
 					k = reader.K
 					hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
-					writer, err = unik.NewWriter(outfh, k, reader.Flag)
+
+					mode := reader.Flag
+					if hasTaxid {
+						mode |= unik.UnikIncludeTaxID // for multiple input files
+					}
+					writer, err = unik.NewWriter(outfh, k, mode)
 					checkError(errors.Wrap(err, outFile))
 					writer.SetMaxTaxid(maxUint32N(reader.GetTaxidBytesLength())) // follow reader
 				} else {
