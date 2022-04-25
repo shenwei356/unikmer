@@ -130,7 +130,7 @@ K-mer sketches:
   3. Closed Syncmer
 
 Usage:
-  unikmer count [flags] 
+  unikmer count [flags] -K -k <k> -u -s [-t <taxid>] <seq files> -o <out prefix>
 
 Flags:
   -K, --canonical                   only keep the canonical k-mers

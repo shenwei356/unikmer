@@ -620,6 +620,9 @@ func init() {
 	countCmd.Flags().IntP("syncmer-s", "S", 0, `closed syncmer length`)
 
 	countCmd.Flags().BoolP("linear", "l", false, `output k-mers in linear order`)
+
+	countCmd.SetUsageTemplate(usageTemplate("-K -k <k> -u -s [-t <taxid>] <seq files> -o <out prefix>"))
+
 }
 
 var reIgnoreCaseStr = "(?i)"
