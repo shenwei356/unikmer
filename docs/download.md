@@ -5,7 +5,7 @@ statically-linked executable binary files are [freely available](https://github.
 
 ## Current Version
 
-### [v0.19.0](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0) - 2022-04-00 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0)
+### [v0.19.0](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0) - 2022-04-25 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0)
 
 ### Links
 
@@ -76,7 +76,7 @@ fish:
 
 ## Release History
 
-### [v0.19.0](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0) - 2022-00-00 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0)
+### [v0.19.0](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0) - 2022-04-25 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0)
 
 - rename command `genautocomplete` to `autocompletion`.
 - remove command `help`.

@@ -1,6 +1,6 @@
 # Changelog
 
-- v0.19.0 - 2022-00-00
+- v0.19.0 - 2022-04-25
   - rename command `genautocomplete` to `autocompletion`.
   - remove command `help`.
   - change default value of option `-j` from `2` to `4`.
