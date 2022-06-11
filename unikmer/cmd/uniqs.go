@@ -212,6 +212,10 @@ Attention:
 						}
 					}
 
+					if len(record.Seq.Seq) < k {
+						continue
+					}
+
 					if hashed {
 						iter, err = sketches.NewHashIterator(record.Seq, k, true, circular)
 					} else {
@@ -319,6 +323,10 @@ Attention:
 					if ignoreSeq {
 						continue
 					}
+				}
+
+				if len(record.Seq.Seq) < k {
+					continue
 				}
 
 				length0 = len(record.Seq.Seq)

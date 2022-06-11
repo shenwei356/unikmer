@@ -1,5 +1,7 @@
 # Changelog
 
+- v0.19.1 - 2022-04-25
+  - `unikmer uniqs`: skip sequences shorter than K.
 - v0.19.0 - 2022-04-25
   - rename command `genautocomplete` to `autocompletion`.
   - remove command `help`.
