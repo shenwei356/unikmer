@@ -1,4 +1,6 @@
-# unikmer: Toolkit for k-mer with taxonomic information
+# unikmer: toolkit for k-mer with taxonomic information
+
+Documents: https://bioinf.shenwei.me/unikmer/
 
 `unikmer` is a toolkit for nucleic acid [k-mer](https://en.wikipedia.org/wiki/K-mer) analysis, 
 providing functions
@@ -12,6 +14,17 @@ TaxIds can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
 including computing union, intersecton, set difference, unique and
 repeated k-mers.
+
+Related projects:
+
+- [kmers](https://github.com/shenwei356/kmers) provides bit-packed k-mers methods for this tool.
+- [unik](https://github.com/shenwei356/unik) provides k-mer serialization methods for this tool.
+- [sketches](https://pkg.go.dev/github.com/shenwei356/bio/sketches) provides generators/iterators for k-mer sketches 
+([Minimizer](https://academic.oup.com/bioinformatics/article/20/18/3363/202143),
+ [Scaled MinHash](https://f1000research.com/articles/8-1006),
+ [Closed Syncmers](https://peerj.com/articles/10805/)).
+- [taxdump](https://github.com/shenwei356/bio/tree/master/taxdump) provides querying manipulations from NCBI Taxonomy taxdump files.
+
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
