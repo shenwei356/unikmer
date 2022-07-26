@@ -619,7 +619,7 @@ func init() {
 	countCmd.Flags().IntP("minimizer-w", "W", 0, `minimizer window size`)
 	countCmd.Flags().IntP("syncmer-s", "S", 0, `closed syncmer length`)
 
-	countCmd.Flags().BoolP("linear", "l", false, `output k-mers in linear order`)
+	countCmd.Flags().BoolP("linear", "l", false, `output k-mers in linear order, duplicate k-mers are not removed`)
 
 	countCmd.SetUsageTemplate(usageTemplate("-K -k <k> -u -s [-t <taxid>] <seq files> -o <out prefix>"))
 

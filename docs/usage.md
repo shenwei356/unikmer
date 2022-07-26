@@ -139,7 +139,7 @@ Flags:
                                     global flag -c/--compact
   -h, --help                        help for count
   -k, --kmer-len int                k-mer length
-  -l, --linear                      output k-mers in linear order
+  -l, --linear                      output k-mers in linear order, duplicate k-mers are not removed
   -W, --minimizer-w int             minimizer window size
   -V, --more-verbose                print extra verbose information
   -o, --out-prefix string           out file prefix ("-" for stdout) (default "-")
