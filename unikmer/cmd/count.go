@@ -81,6 +81,9 @@ K-mer sketches:
 			hashed = true
 			log.Warning("flag -H/--hash is switched on for k > 32")
 		}
+		if hashed && k > 64 {
+			checkError(fmt.Errorf("k-mer size (%d) should be <=64", k))
+		}
 
 		scale := getFlagPositiveInt(cmd, "scale")
 		if scale > 1<<31-1 {

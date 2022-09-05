@@ -94,6 +94,9 @@ var encodeCmd = &cobra.Command{
 						continue
 					} else if k == -1 {
 						k = l
+						if k > 64 {
+							checkError(fmt.Errorf("k-mer size (%d) should be <=64", k))
+						}
 					} else if l != k {
 						checkError(fmt.Errorf("K-mer length mismatch, previous: %d, current: %d. %s", k, l, line))
 					}
