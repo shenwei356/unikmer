@@ -1,6 +1,7 @@
 # Changelog
 
-- v0.19.1 - 2022-04-25
+- v0.19.1 - 2022-
+  - `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
   - `unikmer uniqs`: skip sequences shorter than K.
   - `unikmer count/encode`: [limit the maximum k-mer size to 65](https://github.com/bcgsc/ntHash/issues/41).
 - v0.19.0 - 2022-04-25

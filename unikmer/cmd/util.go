@@ -72,7 +72,11 @@ func getOptions(cmd *cobra.Command) *Options {
 
 	var val, dataDir string
 	if val = os.Getenv("UNIKMER_DB"); val != "" {
-		dataDir = val
+		if cmd.Flags().Lookup("data-dir").Changed { // users explicitly set the option
+			dataDir = getFlagString(cmd, "data-dir")
+		} else {
+			dataDir = val
+		}
 	} else {
 		dataDir = getFlagString(cmd, "data-dir")
 	}
