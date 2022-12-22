@@ -2,7 +2,7 @@
 
 - v0.19.1 - 2022-04-25
   - `unikmer uniqs`: skip sequences shorter than K.
-  - `unikmer count/encode`: [limit k-mer size to below 65](https://github.com/bcgsc/ntHash/issues/41).
+  - `unikmer count/encode`: [limit the maximum k-mer size to 65](https://github.com/bcgsc/ntHash/issues/41).
 - v0.19.0 - 2022-04-25
   - rename command `genautocomplete` to `autocompletion`.
   - remove command `help`.
