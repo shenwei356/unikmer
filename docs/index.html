@@ -478,7 +478,8 @@
 </a>
 
 
-<h1 id="unikmer-toolkit-for-k-mer-with-taxonomic-information">unikmer: Toolkit for k-mer with taxonomic information</h1>
+<h1 id="unikmer-toolkit-for-k-mer-with-taxonomic-information">unikmer: toolkit for k-mer with taxonomic information</h1>
+<p>Documents: https://bioinf.shenwei.me/unikmer/</p>
 <p><code>unikmer</code> is a toolkit for nucleic acid <a href="https://en.wikipedia.org/wiki/K-mer">k-mer</a> analysis, 
 providing functions
 including set operation k-mers (sketch) optional with
@@ -489,6 +490,16 @@ and serialized in binary file with extension <code>.unik</code>.</p>
 and LCA (Lowest Common Ancestor) is computed during set opertions
 including computing union, intersecton, set difference, unique and
 repeated k-mers.</p>
+<p>Related projects:</p>
+<ul>
+<li><a href="https://github.com/shenwei356/kmers">kmers</a> provides bit-packed k-mers methods for this tool.</li>
+<li><a href="https://github.com/shenwei356/unik">unik</a> provides k-mer serialization methods for this tool.</li>
+<li><a href="https://pkg.go.dev/github.com/shenwei356/bio/sketches">sketches</a> provides generators/iterators for k-mer sketches 
+(<a href="https://academic.oup.com/bioinformatics/article/20/18/3363/202143">Minimizer</a>,
+ <a href="https://f1000research.com/articles/8-1006">Scaled MinHash</a>,
+ <a href="https://peerj.com/articles/10805/">Closed Syncmers</a>).</li>
+<li><a href="https://github.com/shenwei356/bio/tree/master/taxdump">taxdump</a> provides querying manipulations from NCBI Taxonomy taxdump files.</li>
+</ul>
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <h2 id="table-of-contents">Table of Contents</h2>

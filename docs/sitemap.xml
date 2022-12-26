@@ -2,17 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://bioinf.shenwei.me/unikmer/</loc>
-         <lastmod>2022-05-10</lastmod>
+         <lastmod>2022-12-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://bioinf.shenwei.me/unikmer/download/</loc>
-         <lastmod>2022-05-10</lastmod>
+         <lastmod>2022-12-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://bioinf.shenwei.me/unikmer/usage/</loc>
-         <lastmod>2022-05-10</lastmod>
+         <lastmod>2022-12-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
