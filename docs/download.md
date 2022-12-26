@@ -5,15 +5,19 @@ statically-linked executable binary files are [freely available](https://github.
 
 ## Current Version
 
-### [v0.19.0](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0) - 2022-04-25 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0)
+### [v0.19.1](https://github.com/shenwei356/unikmer/releases/tag/v0.19.1) - 2022-12-26 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.1/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.1)
+
+- `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
+- `unikmer uniqs`: skip sequences shorter than K.
+- `unikmer count/encode`: [limit the maximum k-mer size to 65](https://github.com/bcgsc/ntHash/issues/41).
 
 ### Links
 
 OS     |Arch      |File, 中国镜像                                                                                                                                                                                  |Download Count
 :------|:---------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Linux  |**64-bit**|[**unikmer_linux_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.0/unikmer_linux_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_linux_amd64.tar.gz)                  |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.0/unikmer_linux_amd64.tar.gz)
-macOS  |**64-bit**|[**unikmer_darwin_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.0/unikmer_darwin_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_darwin_amd64.tar.gz)               |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.0/unikmer_darwin_amd64.tar.gz)
-Windows|**64-bit**|[**unikmer_windows_amd64.exe.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.0/unikmer_windows_amd64.exe.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_windows_amd64.exe.tar.gz)|[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_windows_amd64.exe.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.0/unikmer_windows_amd64.exe.tar.gz)
+Linux  |**64-bit**|[**unikmer_linux_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_linux_amd64.tar.gz)                  |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_amd64.tar.gz)
+macOS  |**64-bit**|[**unikmer_darwin_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_darwin_amd64.tar.gz)               |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_amd64.tar.gz)
+Windows|**64-bit**|[**unikmer_windows_amd64.exe.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_windows_amd64.exe.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_windows_amd64.exe.tar.gz)|[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_windows_amd64.exe.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_windows_amd64.exe.tar.gz)
 
 *Notes:*
 
@@ -45,6 +49,44 @@ And then:
             mkdir -p $HOME/bin/; cp unikmer $HOME/bin/
 
 - **For Windows**, just copy `unikmer.exe` to `C:\WINDOWS\system32`.
+
+#### Method 3: Compile from source
+
+1. [Install go](https://go.dev/doc/install)
+
+        wget https://go.dev/dl/go1.17.13.linux-amd64.tar.gz
+
+        tar -zxf go1.17.13.linux-amd64.tar.gz -C $HOME/
+
+        # or
+        #   echo "export PATH=$PATH:$HOME/go/bin" >> ~/.bashrc
+        #   source ~/.bashrc
+        export PATH=$PATH:$HOME/go/bin
+
+2. Compile KMCP
+
+        # ------------- the latest stable version -------------
+
+        go get -v -u github.com/shenwei356/unikmer/unikmer
+
+        # The executable binary file is located in:
+        #   ~/go/bin/unikmer
+        # You can also move it to anywhere in the $PATH
+        mkdir -p $HOME/bin
+        cp ~/go/bin/unikmer $HOME/bin/
+
+
+        # --------------- the development version --------------
+
+        git clone https://github.com/shenwei356/unikmer
+        cd unikmer/unikmer/
+        go build
+
+        # The executable binary file is located in:
+        #   ./unikmer
+        # You can also move it to anywhere in the $PATH
+        mkdir -p $HOME/bin
+        cp ./unikmer $HOME/bin/
 
 
 ## Shell-completion
