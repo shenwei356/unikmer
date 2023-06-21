@@ -12,9 +12,6 @@
 *.out
 
 *.directory
-unikmer/unikmer*
-unikmer/binaries*
-site
 
 *ssshtest
 *.unik
