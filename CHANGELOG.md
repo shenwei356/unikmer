@@ -5,11 +5,13 @@
     - update help messages
     - rename subcommand `uniqs` to `map`.
   - `unikmer sort`:
-    - fix the bug of `-m/--chunk-size`, which seems to existed for 4 years.
+    - fix the bug of using both `-d/--repeated` and `-m/--chunk-size`, which seems to existed for 4 years.
   - `unikmer merge`:
     - fix the bug of missing one record when taxid information is contained.
   - `unikmer num`:
     - `-f/--force` also support sorted files.
+  - `unikmer map`:
+    - fix a bug of missing some regions.
 - v0.19.1 - 2022-12-26
   - `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
   - `unikmer uniqs`: skip sequences shorter than K.

@@ -230,7 +230,8 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     
     
     # duplicate k-mers
-    $ memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d -m 1M
+    # memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d -m 1M # limit memory usage
+    $ memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d
     elapsed time: 1.143s
     peak rss: 240.18 MB
 
@@ -248,47 +249,49 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
 
 
     $ ls -lh *.unik
-    -rw-r--r-- 1 shenwei shenwei 9.5M  2月 13 00:55 A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik
-    -rw-r--r-- 1 shenwei shenwei  46M  2月 13 00:59 concat.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 8.7M  2月 13 01:00 diff.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  11M  2月 13 01:04 dup.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  18M  2月 13 00:55 Ecoli-IAI39.fasta.gz.k23.sorted.unik
-    -rw-r--r-- 1 shenwei shenwei  21M  2月 13 00:48 Ecoli-IAI39.fasta.gz.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  17M  2月 13 00:55 Ecoli-MG1655.fasta.gz.k23.sorted.unik
-    -rw-r--r-- 1 shenwei shenwei  19M  2月 13 00:48 Ecoli-MG1655.fasta.gz.k23.unik
-    -rw-r--r-- 1 shenwei shenwei 9.5M  2月 13 00:59 inter.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  27M  2月 13 01:04 union2.k23.unik
-    -rw-r--r-- 1 shenwei shenwei  27M  2月 13 00:58 union.k23.unik
-
+    -rw-r--r-- 1 shenwei shenwei 6.6M Sep  9 17:24 A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik
+    -rw-r--r-- 1 shenwei shenwei 9.5M Sep  9 17:24 A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  46M Sep  9 17:25 concat.k23.unik
+    -rw-r--r-- 1 shenwei shenwei 9.2M Sep  9 17:27 diff.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  11M Sep  9 17:26 dup.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  18M Sep  9 17:23 Ecoli-IAI39.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  29M Sep  9 17:24 Ecoli-IAI39.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  17M Sep  9 17:23 Ecoli-MG1655.fasta.gz.k23.sorted.unik
+    -rw-r--r-- 1 shenwei shenwei  27M Sep  9 17:25 Ecoli-MG1655.fasta.gz.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  11M Sep  9 17:27 inter.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  26M Sep  9 17:26 union2.k23.unik
+    -rw-r--r-- 1 shenwei shenwei  26M Sep  9 17:25 union.k23.unik
 
     $ unikmer stats *.unik -a -j 10
     file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
-    A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23          ✓       ✓       ✕              ✕                     ✕        ✕        ✓     v5.0    860,900  
-    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23          ✓       ✕       ✕              ✕        349741       ✓        ✕        ✓     v5.0  2,630,905  
-    concat.k23.unik                                  23          ✓       ✕       ✕              ✓                     ✕        ✓        ✓     v5.0         -1  
-    diff.k23.unik                                    23          ✓       ✕       ✕              ✓                     ✕        ✕        ✓     v5.0  2,326,096  
-    dup.k23.unik                                     23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0          0  
-    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23          ✓       ✕       ✕              ✕        585057       ✓        ✕        ✓     v5.0  4,902,266  
-    Ecoli-IAI39.fasta.gz.k23.unik                    23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,902,266  
-    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23          ✓       ✕       ✕              ✕        511145       ✓        ✕        ✓     v5.0  4,546,632  
-    Ecoli-MG1655.fasta.gz.k23.unik                   23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,546,632  
-    inter.k23.unik                                   23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  2,576,170  
-    union2.k23.unik                                  23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  6,872,728  
-    union.k23.unik                                   23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  6,872,728
-
+    A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23  ✓          ✓       ✕       ✕                            ✕       ✕        ✓        v5.0       860,900             
+    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓          ✕       ✕       ✕                    349741  ✓       ✕        ✓        v5.0     2,630,905             
+    concat.k23.unik                                  23  ✓          ✕       ✕       ✓                            ✕       ✓        ✓        v5.0            -1             
+    diff.k23.unik                                    23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     2,326,096             
+    dup.k23.unik                                     23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     2,576,170             
+    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓          ✕       ✕       ✕                    585057  ✓       ✕        ✓        v5.0     4,902,266             
+    Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,902,266             
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23  ✓          ✕       ✕       ✕                    511145  ✓       ✕        ✓        v5.0     4,546,632             
+    Ecoli-MG1655.fasta.gz.k23.unik                   23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,546,632             
+    inter.k23.unik                                   23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     2,576,170             
+    union2.k23.unik                                  23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     6,872,728             
+    union.k23.unik                                   23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     6,872,728
 
     # -----------------------------------------------------------------------------------------
 
     # mapping k-mers to genome
+    seqkit seq Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta
     g=Ecoli-IAI39.fasta
     f=inter.k23.unik
-
+    # mapping k-mers back to the genome and extract successive regions/subsequences
+    unikmer map -g $g $f -a | more
+    
+    
+    # using bwa
     # to fasta
     unikmer view $f -a -o $f.fa.gz
-
     # make index
     bwa index $g; samtools faidx $g
-
     ncpu=12
     ls $f.fa.gz \
         | rush -j 1 -v ref=$g -v j=$ncpu \

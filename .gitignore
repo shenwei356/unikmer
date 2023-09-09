@@ -24,3 +24,10 @@ t_*
 */Rplots.pdf
 
 *.unik.*
+*.amb
+*.ann
+*.bwt
+*.fai
+*.pac
+*.sa
+Ecoli-IAI39.fasta

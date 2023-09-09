@@ -297,9 +297,10 @@ Attention:
 
 		var genomeIdx int
 		for _, genomeFile := range genomes {
-			var c, start, nonUniqs, nonUniqsNum, lastNonUniqsNum, lastmatch int
-			var length0 int // origninal length of sequence
-			var flag bool = true
+			var c, start, gaps, gapNums, lastGapNum, lastmatch int // c is the number of continuous sites
+
+			var length0 int      // origninal length of sequence
+			var flag bool = true // re-count
 			if opt.Verbose {
 				log.Infof("reading genome file: %s", genomeFile)
 			}
@@ -344,8 +345,8 @@ Attention:
 
 				c = 0
 				start = -1
-				nonUniqs = 0
-				nonUniqsNum = 0
+				gaps = 0
+				gapNums = 0
 
 				if hashed {
 					iter, err = sketches.NewHashIterator(record.Seq, k, true, false)
@@ -370,10 +371,10 @@ Attention:
 					i = iter.Index()
 
 					if _, ok = m[code]; ok {
-						nonUniqs = 0
+						gaps = 0
 						if !mMapped {
 							if multipleMapped, ok = _m2[code]; ok && multipleMapped {
-								if lastNonUniqsNum <= maxGapNum &&
+								if lastGapNum <= maxGapNum &&
 									start >= 0 && lastmatch-start+k >= minLen {
 
 									// subsequence longer than original sequence
@@ -387,6 +388,7 @@ Attention:
 									} else {
 										fmt.Fprintf(outfh, "%s\t%d\t%d\n", record.ID, start, lastmatch+k)
 									}
+									outfh.Flush()
 								}
 
 								c = 0
@@ -397,9 +399,9 @@ Attention:
 								if c == 1 { // re-count
 									if flag {
 										start = i
-										nonUniqsNum = 0
-										nonUniqs = 0
-										lastNonUniqsNum = 0
+										gapNums = 0
+										gaps = 0
+										lastGapNum = 0
 
 										// 2nd clone of seq
 										if circular && start >= length0 {
@@ -413,9 +415,9 @@ Attention:
 							if c == 1 { // re-count
 								if flag {
 									start = i
-									nonUniqsNum = 0
-									nonUniqs = 0
-									lastNonUniqsNum = 0
+									gapNums = 0
+									gaps = 0
+									lastGapNum = 0
 
 									// 2nd clone of seq
 									if circular && start >= length0 {
@@ -427,20 +429,20 @@ Attention:
 
 						if c >= 1 { // at least 1 continuous sites.
 							lastmatch = i
-							lastNonUniqsNum = nonUniqsNum
+							lastGapNum = gapNums
 						}
 					} else { // k-mer not found
-						nonUniqs++
-						if nonUniqs == 1 {
-							nonUniqsNum++
+						gaps++
+						if gaps == 1 {
+							gapNums++
 						}
-						if nonUniqs <= maxGapSize && nonUniqsNum <= maxGapNum {
+						if gaps <= maxGapSize && gapNums <= maxGapNum {
 							c = 0
-							if start > 0 {
+							if start >= 0 {
 								flag = false
 							}
 						} else {
-							if lastNonUniqsNum <= maxGapNum &&
+							if lastGapNum <= maxGapNum &&
 								start >= 0 && lastmatch-start+k >= minLen {
 
 								// subsequence longer than original sequence
@@ -454,6 +456,7 @@ Attention:
 								} else {
 									fmt.Fprintf(outfh, "%s\t%d\t%d\n", record.ID, start, lastmatch+k)
 								}
+								outfh.Flush()
 							}
 							// re-count
 							c = 0
@@ -468,7 +471,7 @@ Attention:
 
 					// debug.WriteString(fmt.Sprintln(i, c, start, lastmatch, nonUniqs, nonUniqsNum, lastNonUniqsNum))
 				}
-				if lastNonUniqsNum <= maxGapNum+1 &&
+				if lastGapNum <= maxGapNum+1 &&
 					start >= 0 && lastmatch-start+k >= minLen {
 
 					// subsequence longer than original sequence
@@ -482,6 +485,7 @@ Attention:
 					} else {
 						fmt.Fprintf(outfh, "%s\t%d\t%d\n", record.ID, start, lastmatch+k)
 					}
+					outfh.Flush()
 				}
 			}
 		}
