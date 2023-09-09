@@ -6,6 +6,8 @@
     - rename subcommand `uniqs` to `map`.
   - `unikmer sort`:
     - fix the bug of `-m/--chunk-size`, which seems to existed for 4 years.
+  - `unikmer merge`:
+    - fix the bug of missing one record when taxid information is contained.
   - `unikmer num`:
     - `-f/--force` also support sorted files.
 - v0.19.1 - 2022-12-26

@@ -305,20 +305,22 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 	var taxid uint32
 	var count int
 
-	for {
-		if len(*(codes.entries)) == 0 {
-			checkError(fillBuffer())
-		}
-		if len(*(codes.entries)) == 0 {
-			break
-		}
+	if hasTaxid {
+		if unique {
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
 
-		e = heap.Pop(codes).(*codeEntry)
-		code = e.code
-		taxid = e.taxid
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+				taxid = e.taxid
 
-		if hasTaxid {
-			if unique {
+				// -------------------------------------------------
+
 				if code == last {
 					lca = taxondb.LCA(taxid, lca)
 				} else {
@@ -332,7 +334,41 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 					last = code
 					lca = taxid
 				}
-			} else if repeated {
+
+				// -------------------------------------------------
+
+				reader = readers[e.idx]
+				if reader != nil {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
+				}
+			}
+
+			// the last one
+			writer.WriteCodeWithTaxid(last, lca)
+			n++
+		} else if repeated {
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
+
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+				taxid = e.taxid
+
+				// -------------------------------------------------
+
 				// same k-mer, compute LCA and handle it later
 				if code == last {
 					lca = taxondb.LCA(taxid, lca)
@@ -355,18 +391,128 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 					last = code
 					lca = taxid
 				}
-			} else {
-				writer.WriteCodeWithTaxid(code, taxid)
-				n++
+
+				// -------------------------------------------------
+
+				reader = readers[e.idx]
+				if reader != nil {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
+				}
+			}
+
+			// the last one
+			if count > 0 { // not the first one
+				if !finalRound {
+					// write all codes once
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+				}
+				// write repeated one another time
+				if count > 1 {
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+				}
 			}
 		} else {
-			if unique {
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
+
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+				taxid = e.taxid
+
+				// -------------------------------------------------
+
+				writer.WriteCodeWithTaxid(code, taxid)
+				n++
+
+				// -------------------------------------------------
+
+				reader = readers[e.idx]
+				if reader != nil {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
+				}
+			}
+		}
+	} else {
+		if unique {
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
+
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+				taxid = e.taxid
+
+				// -------------------------------------------------
+
 				if code != last {
 					writer.WriteCode(code)
 					n++
 					last = code
 				}
-			} else if repeated {
+
+				// -------------------------------------------------
+
+				reader = readers[e.idx]
+				if reader != nil {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
+				}
+			}
+
+			// the last one
+			if code != last {
+				writer.WriteCode(code)
+				n++
+			}
+		} else if repeated {
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
+
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+				taxid = e.taxid
+
+				// -------------------------------------------------
+
 				if code == last {
 					count++
 				} else {
@@ -386,51 +532,24 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 					count = 1
 					last = code
 				}
-			} else {
-				writer.WriteCode(code)
-				n++
-			}
-		}
 
-		reader = readers[e.idx]
-		if reader != nil {
-			code, taxid, err = reader.ReadCodeWithTaxid()
-			if err != nil {
-				if err == io.EOF {
-					delete(readers, e.idx)
-					continue
-				}
-				checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
-			}
-			heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
-		}
-	}
+				// -------------------------------------------------
 
-	if hasTaxid {
-		if unique {
-			writer.WriteCodeWithTaxid(last, lca)
-			n++
-		} else if repeated {
-			if count > 0 { // not the first one
-				if !finalRound {
-					// write all codes once
-					writer.WriteCodeWithTaxid(last, lca)
-					n++
-				}
-				// write repeated one another time
-				if count > 1 {
-					writer.WriteCodeWithTaxid(last, lca)
-					n++
+				reader = readers[e.idx]
+				if reader != nil {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
 				}
 			}
-		}
-	} else {
-		if unique {
-			if code != last {
-				writer.WriteCode(code)
-				n++
-			}
-		} else if repeated {
+
+			// the last one
 			if code != last {
 				if count > 0 { // not the first one
 					if !finalRound {
@@ -443,6 +562,39 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 						writer.WriteCode(last)
 						n++
 					}
+				}
+			}
+		} else {
+			for {
+				if len(*(codes.entries)) == 0 {
+					checkError(fillBuffer())
+				}
+				if len(*(codes.entries)) == 0 {
+					break
+				}
+
+				e = heap.Pop(codes).(*codeEntry)
+				code = e.code
+				taxid = e.taxid
+
+				// -------------------------------------------------
+
+				writer.WriteCode(code)
+				n++
+
+				// -------------------------------------------------
+
+				reader = readers[e.idx]
+				if reader != nil {
+					code, taxid, err = reader.ReadCodeWithTaxid()
+					if err != nil {
+						if err == io.EOF {
+							delete(readers, e.idx)
+							continue
+						}
+						checkError(fmt.Errorf("faild to read from file '%s': %s", files[e.idx], err))
+					}
+					heap.Push(codes, &codeEntry{idx: e.idx, code: code, taxid: taxid})
 				}
 			}
 		}
