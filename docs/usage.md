@@ -2,31 +2,31 @@
 
 ## summary
 
-|Category            |Command|Input       |In.sorted        |In.flag-consistency|Output   |Out.sorted  |Out.unique  |
-|:-------------------|:------|:-----------|:----------------|:------------------|:--------|:-----------|:-----------|
-|Counting            |count  |fastx       |/                |/                  |.unik    |optional    |optional    |
-|Information         |info   |.unik       |optional         |no need            |tsv      |/           |/           |
-|                    |num    |.unik       |optional         |no need            |tsv      |/           |/           |
-|Format conversion   |view   |.unik       |optional         |required           |tsv      |/           |/           |
-|                    |dump   |tsv         |optional         |/                  |.unik    |optional    |follow input|
-|                    |encode |tsv         |/                |/                  |tsv      |/           |/           |
-|                    |decode |tsv         |/                |/                  |tsv      |/           |/           |
-|Set operations      |concat |.unik       |optional         |required           |.unik    |optional    |no          |
-|                    |inter  |.unik       |required         |required           |.unik    |yes         |yes         |
-|                    |common |.unik       |required         |required           |.unik    |yes         |yes         |
-|                    |union  |.unik       |optional         |required           |.unik    |optional    |yes         |
-|                    |diff   |.unik       |1th file required|required           |.unik    |optional    |yes         |
-|Split and merge     |sort   |.unik       |optional         |required           |.unik    |yes         |optional    |
-|                    |split  |.unik       |optional         |required           |.unik    |yes         |optional    |
-|                    |tsplit |.unik       |required         |required           |.unik    |yes         |yes         |
-|                    |merge  |.unik       |required         |required           |.unik    |yes         |optional    |
-|Subset              |head   |.unik       |optional         |required           |.unik    |follow input|follow input|
-|                    |sample |.unik       |optional         |required           |.unik    |follow input|follow input|
-|                    |grep   |.unik       |optional         |required           |.unik    |follow input|optional    |
-|                    |filter |.unik       |optional         |required           |.unik    |follow input|follow input|
-|                    |rfilter|.unik       |optional         |required           |.unik    |follow input|follow input|
-|Searching on genomes|locate |.unik, fasta|optional         |required           |tsv      |/           |/           |
-|                    |uniqs  |.unik, fasta|optional         |required           |bed/fasta|/           |/           |
+|Category            |Command|Function                                                                     |Input       |In.sorted        |In.flag-consistency|Output   |Out.sorted  |Out.unique  |
+|:-------------------|:------|:----------------------------------------------------------------------------|:-----------|:----------------|:------------------|:--------|:-----------|:-----------|
+|Counting            |count  |Generate k-mers (sketch) from FASTA/Q sequences                              |fastx       |/                |/                  |.unik    |optional    |optional    |
+|Information         |info   |Information of binary files                                                  |.unik       |optional         |no need            |tsv      |/           |/           |
+|                    |num    |Quickly inspect the number of k-mers in binary files                         |.unik       |optional         |no need            |tsv      |/           |/           |
+|Format conversion   |view   |Read and output binary format to plain text                                  |.unik       |optional         |required           |tsv      |/           |/           |
+|                    |dump   |Convert plain k-mer text to binary format                                    |tsv         |optional         |/                  |.unik    |optional    |follow input|
+|                    |encode |Encode plain k-mer texts to integers                                         |tsv         |/                |/                  |tsv      |/           |/           |
+|                    |decode |Decode encoded integers to k-mer texts                                       |tsv         |/                |/                  |tsv      |/           |/           |
+|Set operations      |concat |Concatenate multiple binary files without removing duplicates                |.unik       |optional         |required           |.unik    |optional    |no          |
+|                    |inter  |Intersection of k-mers in multiple binary files                              |.unik       |required         |required           |.unik    |yes         |yes         |
+|                    |common |Find k-mers shared by most of the binary files                               |.unik       |required         |required           |.unik    |yes         |yes         |
+|                    |union  |Union of k-mers in multiple binary files                                     |.unik       |optional         |required           |.unik    |optional    |yes         |
+|                    |diff   |Set difference of k-mers in multiple binary files                            |.unik       |1th file required|required           |.unik    |optional    |yes         |
+|Split and merge     |sort   |Sort k-mers to reduce the file size and accelerate downstream analysis       |.unik       |optional         |required           |.unik    |yes         |optional    |
+|                    |split  |Split k-mers into sorted chunk files                                         |.unik       |optional         |required           |.unik    |yes         |optional    |
+|                    |tsplit |Split k-mers according to TaxId                                              |.unik       |required         |required           |.unik    |yes         |yes         |
+|                    |merge  |Merge k-mers from sorted chunk files                                         |.unik       |required         |required           |.unik    |yes         |optional    |
+|Subset              |head   |Extract the first N k-mers                                                   |.unik       |optional         |required           |.unik    |follow input|follow input|
+|                    |sample |Sample k-mers from binary files                                              |.unik       |optional         |required           |.unik    |follow input|follow input|
+|                    |grep   |Search k-mers from binary files                                              |.unik       |optional         |required           |.unik    |follow input|optional    |
+|                    |filter |Filter out low-complexity k-mers                                             |.unik       |optional         |required           |.unik    |follow input|follow input|
+|                    |rfilter|Filter k-mers by taxonomic rank                                              |.unik       |optional         |required           |.unik    |follow input|follow input|
+|Searching on genomes|locate |Locate k-mers in genome                                                      |.unik, fasta|optional         |required           |tsv      |/           |/           |
+|                    |map    |Mapping k-mers back to the genome and extract successive regions/subsequences|.unik, fasta|optional         |required           |bed/fasta|/           |/           |
 
 ## unikmer
 
@@ -37,15 +37,15 @@ unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
 including set operation on k-mers optional with TaxIds but without count
 information.
 
-K-mers are either encoded (k<=32) or hashed (arbitrary k) into 'uint64',
-and serialized in binary file with extension '.unik'.
+K-mers are either encoded (k<=32) or hashed (k<=64) into 'uint64',
+and serialized in binary file with the extension '.unik'.
 
 TaxIds can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
 including computing union, intersection, set difference, unique and
 repeated k-mers.
 
-Version: v0.19.0
+Version: v0.20.0
 
 Author: Wei Shen <shenwei356@gmail.com>
 
@@ -66,35 +66,35 @@ Dataset (optional):
     https://github.com/shenwei356/gtdb-taxonomy
 
   Note that TaxIds are represented using uint32 and stored in 4 or
-  less bytes, all TaxIds should be in the range of [1, 4294967295]
+  less bytes, all TaxIds should be in the range of [1, 4294967295].
 
 Usage:
   unikmer [command] 
 
 Available Commands:
   autocompletion Generate shell autocompletion script (bash|zsh|fish|powershell)
-  common         Find k-mers shared by most of multiple binary files
+  common         Find k-mers shared by most of the binary files
   concat         Concatenate multiple binary files without removing duplicates
   count          Generate k-mers (sketch) from FASTA/Q sequences
   decode         Decode encoded integer to k-mer text
-  diff           Set difference of multiple binary files
+  diff           Set difference of k-mers in multiple binary files
   dump           Convert plain k-mer text to binary format
-  encode         Encode plain k-mer text to integer
+  encode         Encode plain k-mer texts to integers
   filter         Filter out low-complexity k-mers (experimental)
   grep           Search k-mers from binary files
   head           Extract the first N k-mers
   info           Information of binary files
-  inter          Intersection of multiple binary files
+  inter          Intersection of k-mers in multiple binary files
   locate         Locate k-mers in genome
+  map            Mapping k-mers back to the genome and extract successive regions/subsequences
   merge          Merge k-mers from sorted chunk files
-  num            Quickly inspect number of k-mers in binary files
+  num            Quickly inspect the number of k-mers in binary files
   rfilter        Filter k-mers by taxonomic rank
   sample         Sample k-mers from binary files
-  sort           Sort k-mers in binary files to reduce file size
+  sort           Sort k-mers to reduce the file size and accelerate downstream analysis
   split          Split k-mers into sorted chunk files
   tsplit         Split k-mers according to taxid
-  union          Union of multiple binary files
-  uniqs          Mapping k-mers back to genome and find unique subsequences
+  union          Union of k-mers in multiple binary files
   version        Print version information and check for update
   view           Read and output binary format to plain text
 
@@ -113,6 +113,9 @@ Flags:
       --nocheck-file            do not check binary file, when using process substitution or named pipe
   -j, --threads int             number of CPUs to use (default 4)
       --verbose                 print verbose information
+
+Use "unikmer [command] --help" for more information about a command.
+
 ```
      
 ## count
@@ -122,7 +125,7 @@ Generate k-mers (sketch) from FASTA/Q sequences
 
 K-mer:
   1. K-mer code (k<=32)
-  2. Hashed k-mer (ntHash)
+  2. Hashed k-mer (ntHash, k<=64)
 
 K-mer sketches:
   1. Scaled MinHash
@@ -184,6 +187,27 @@ Flags:
 
 ```
 
+## num
+
+```text
+Quickly inspect the number of k-mers in binary files
+
+Attention:
+  1. This command is designed to quickly inspect the number of k-mers in binary file,
+  2. For non-sorted file, it returns '-1' unless switching on flag '-f/--force'.
+
+Usage:
+  unikmer num [flags] 
+
+Flags:
+  -b, --basename          only output basename of files
+  -n, --file-name         show file name
+  -f, --force             read the whole file and count k-mers
+  -h, --help              help for num
+  -o, --out-file string   out file ("-" for stdout, suffix .gz for gzipped out) (default "-")
+
+```
+
 
 ## view
 
@@ -241,7 +265,7 @@ Flags:
 ## encode
 
 ```text
-Encode plain k-mer text to integer
+Encode plain k-mer texts to integers
 
 Usage:
   unikmer encode [flags] 
@@ -258,7 +282,7 @@ Flags:
 ## decode
 
 ```text
-Decode encoded integer to k-mer text
+Decode encoded integers to k-mer texts
 
 Usage:
   unikmer decode [flags] 
@@ -295,7 +319,7 @@ Flags:
 ## inter
 
 ```text
-Intersection of multiple binary files
+Intersection of k-mers in multiple binary files
 
 Attentions:
   0. All input files should be sorted, and output file is sorted.
@@ -321,7 +345,7 @@ Flags:
 ## common
 
 ```text
-Find k-mers shared by most of multiple binary files
+Find k-mers shared by most of the binary files
 
 This command is similar to "unikmer inter" but with looser restriction,
 k-mers shared by some number/proportion of multiple files are outputted.
@@ -352,7 +376,7 @@ Flags:
 ## union
 
 ```text
-Union of multiple binary files
+Union of k-mers in multiple binary files
 
 Attentions:
   1. The 'canonical/scaled/hashed' flags of all files should be consistent.
@@ -376,7 +400,7 @@ Flags:
 ## diff
 
 ```text
-Set difference of multiple binary files
+Set difference of k-mers in multiple binary files
 
 Attentions:
   0. The first file should be sorted.
@@ -703,12 +727,14 @@ Flags:
 
 ```
 
-## uniqs
+## map
 
 ```text
-Mapping k-mers back to genome and find unique subsequences
+Mapping k-mers back to the genome and extract successive regions/subsequences
 
 Attention:
+  0. By default, only unique-mapped k-mers are considered.
+     You can use -M/--allow-multiple-mapped-kmerss to allow mutiple-mapped k-mers.
   1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Default output is in BED3 format, with left-closed and right-open
      0-based interval.
@@ -716,20 +742,23 @@ Attention:
      crossing genome sequence end would be greater than sequence length.
 
 Usage:
-  unikmer uniqs [flags] 
+  unikmer map [flags] 
+
+Aliases:
+  map, uniqs
 
 Flags:
-  -M, --allow-multiple-mapped-kmer        allow multiple mapped k-mers
-      --circular                          circular genome. type "unikmer uniqs -h" for details
-  -g, --genome strings                    genomes in (gzipped) fasta file(s)
-  -h, --help                              help for uniqs
-  -x, --max-cont-non-uniq-kmers int       max continuous non-unique k-mers
-  -X, --max-num-cont-non-uniq-kmers int   max number of continuous non-unique k-mers
-  -m, --min-len int                       minimum length of subsequence (default 200)
-  -o, --out-prefix string                 out file prefix ("-" for stdout) (default "-")
-  -a, --output-fasta                      output fasta format instead of BED3
-  -B, --seq-name-filter strings           list of regular expressions for filtering out sequences by
-                                          header/name, case ignored.
-  -W, --seqs-in-a-file-as-one-genome      treat seqs in a genome file as one genome
+  -M, --allow-multiple-mapped-kmers    allow multiple mapped k-mers
+      --circular                       circular genome. type "unikmer uniqs -h" for details
+  -g, --genome strings                 genomes in (gzipped) fasta file(s)
+  -h, --help                           help for map
+  -X, --max-gap-num int                max number of gaps (consecutive unmapped k-mers)
+  -x, --max-gap-size int               max gap size (the number of consecutive unmapped k-mers)
+  -m, --min-len int                    minimum length of subsequence (default 200)
+  -o, --out-prefix string              out file prefix ("-" for stdout) (default "-")
+  -a, --output-fasta                   output fasta format instead of BED3
+  -B, --seq-name-filter strings        list of regular expressions for filtering out sequences by
+                                       header/name, case ignored
+  -W, --seqs-in-a-file-as-one-genome   treat seqs in a genome file as one genome
 
 ```

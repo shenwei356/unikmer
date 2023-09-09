@@ -40,8 +40,8 @@ unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
 including set operation on k-mers optional with TaxIds but without count
 information.
 
-K-mers are either encoded (k<=32) or hashed (arbitrary k) into 'uint64',
-and serialized in binary file with extension '.unik'.
+K-mers are either encoded (k<=32) or hashed (k<=64) into 'uint64',
+and serialized in binary file with the extension '.unik'.
 
 TaxIds can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
@@ -69,7 +69,7 @@ Dataset (optional):
     https://github.com/shenwei356/gtdb-taxonomy
 
   Note that TaxIds are represented using uint32 and stored in 4 or
-  less bytes, all TaxIds should be in the range of [1, %d]
+  less bytes, all TaxIds should be in the range of [1, %d].
 
 `, VERSION, maxUint32),
 }

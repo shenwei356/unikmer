@@ -7,7 +7,7 @@ providing functions
 including set operation k-mers (sketch) optional with
 TaxIds but without count information.
 
-K-mers are either encoded (k<=32) or hashed (arbitrary k) into `uint64`,
+K-mers are either encoded (k<=32) or hashed (<=64) into `uint64`,
 and serialized in binary file with extension `.unik`.
 
 TaxIds can be assigned when counting k-mers from genome sequences,
@@ -64,28 +64,28 @@ Related projects:
 1. Information
 
         info            Information of binary files
-        num             Quickly inspect number of k-mers in binary files
+        num             Quickly inspect the number of k-mers in binary files
 
 1. Format conversion
 
         view            Read and output binary format to plain text
         dump            Convert plain k-mer text to binary format
 
-        encode          Encode plain k-mer text to integer
-        decode          Decode encoded integer to k-mer text
+        encode          Encode plain k-mer texts to integers
+        decode          Decode encoded integers to k-mer texts
         
 
 1. Set operations
 
         concat          Concatenate multiple binary files without removing duplicates
-        inter           Intersection of multiple binary files
-        common          Find k-mers shared by most of multiple binary files
-        union           Union of multiple binary files
-        diff            Set difference of multiple binary files
+        inter           Intersection of k-mers in multiple binary files
+        common          Find k-mers shared by most of the binary files
+        union           Union of k-mers in multiple binary files
+        diff            Set difference of k-mers in multiple binary files
 
 1. Split and merge
 
-        sort            Sort k-mers in binary files to reduce file size
+        sort            Sort k-mers to reduce the file size and accelerate downstream analysis
         split           Split k-mers into sorted chunk files
         tsplit          Split k-mers according to TaxId
         merge           Merge k-mers from sorted chunk files
@@ -101,7 +101,7 @@ Related projects:
 1. Searching on genomes
 
         locate          Locate k-mers in genome
-        uniqs           Mapping k-mers back to genome and find unique subsequences
+        map             Mapping k-mers back to the genome and extract successive regions/subsequences
 
 1. Misc
 
@@ -186,27 +186,23 @@ label           |encoded-kmer<sup>a</sup>|gzip-compressed<sup>b</sup>|compact-fo
     AACTGATTTTTGATGATGACTCC 3542156397282
     
     # find the positions of k-mers
-    $ seqkit locate -M A.muciniphila-ATCC_BAA-835.fasta.gz \
-        -f <(unikmer view -a -g A.muciniphila-ATCC_BAA-835.fasta.gz A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik | seqkit head -n 5 ) \
-        | csvtk sort -t -k start:n | head -n 6 | csvtk pretty -t
-    seqID         patternName           pattern                   strand   start   end
-    -----------   -------------------   -----------------------   ------   -----   ---
-    NC_010655.1   2090893901864583115   ATCTTATAAAATAACCACATAAC   +        3       25
-    NC_010655.1   696051979077366638    TTATAAAATAACCACATAACTTA   +        6       28
-    NC_010655.1   390297872016815006    TATAAAATAACCACATAACTTAA   +        7       29
-    NC_010655.1   2582400417208090837   AAAATAACCACATAACTTAAAAA   +        10      32
-    NC_010655.1   3048591415312050785   TAACCACATAACTTAAAAAGAAT   +        14      36
-    
-    # stats
-    $ unikmer stats *.unik -a -j 10
-    file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
-    A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23          ✓       ✓       ✕              ✕                     ✕        ✕        ✓     v5.0    860,900  
-    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23          ✓       ✕       ✕              ✕        349741       ✓        ✕        ✓     v5.0  2,630,905  
-    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23          ✓       ✕       ✕              ✕        585057       ✓        ✕        ✓     v5.0  4,902,266  
-    Ecoli-IAI39.fasta.gz.k23.unik                    23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,902,266  
-    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23          ✓       ✕       ✕              ✕        511145       ✓        ✕        ✓     v5.0  4,546,632  
-    Ecoli-MG1655.fasta.gz.k23.unik                   23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,546,632 
+    $ unikmer locate -g A.muciniphila-ATCC_BAA-835.fasta.gz A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik | head -n 5
+    NC_010655.1     2       25      ATCTTATAAAATAACCACATAAC 0       .
+    NC_010655.1     5       28      TTATAAAATAACCACATAACTTA 0       .
+    NC_010655.1     6       29      TATAAAATAACCACATAACTTAA 0       .
+    NC_010655.1     9       32      AAAATAACCACATAACTTAAAAA 0       .
+    NC_010655.1     13      36      TAACCACATAACTTAAAAAGAAT 0       .
 
+    # info
+    $ unikmer info *.unik -a -j 10
+    file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
+    A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23  ✓          ✓       ✕       ✕                            ✕       ✕        ✓        v5.0       860,900             
+    A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓          ✕       ✕       ✕                    349741  ✓       ✕        ✓        v5.0     2,630,905             
+    Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓          ✕       ✕       ✕                    585057  ✓       ✕        ✓        v5.0     4,902,266             
+    Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,902,266             
+    Ecoli-MG1655.fasta.gz.k23.sorted.unik            23  ✓          ✕       ✕       ✕                    511145  ✓       ✕        ✓        v5.0     4,546,632             
+    Ecoli-MG1655.fasta.gz.k23.unik                   23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,546,632             
+    
     
     # concat
     $ memusg -t unikmer concat *.k23.sorted.unik -o concat.k23 -c

@@ -41,8 +41,8 @@ import (
 
 var sortCmd = &cobra.Command{
 	Use:   "sort",
-	Short: "Sort k-mers in binary files to reduce file size",
-	Long: `Sort k-mers in binary files to reduce file size
+	Short: "Sort k-mers to reduce the file size and accelerate downstream analysis",
+	Long: `Sort k-mers to reduce the file size and accelerate downstream analysis
 
 Attentions:
   1. The 'canonical/scaled/hashed' flags of all files should be consistent.

@@ -36,8 +36,8 @@ import (
 
 var numCmd = &cobra.Command{
 	Use:   "num",
-	Short: "Quickly inspect number of k-mers in binary files",
-	Long: `Quickly inspect number of k-mers in binary files
+	Short: "Quickly inspect the number of k-mers in binary files",
+	Long: `Quickly inspect the number of k-mers in binary files
 
 Attention:
   1. This command is designed to quickly inspect the number of k-mers in binary file,
@@ -90,7 +90,7 @@ Attention:
 				reader, err = unik.NewReader(infh)
 				checkError(errors.Wrap(err, file))
 
-				if reader.Number < 0 && force {
+				if reader.Number < 0 || force {
 					var n uint64
 					for {
 						_, _, err = reader.ReadCodeWithTaxid()
@@ -127,5 +127,5 @@ func init() {
 	numCmd.Flags().StringP("out-file", "o", "-", `out file ("-" for stdout, suffix .gz for gzipped out)`)
 	numCmd.Flags().BoolP("file-name", "n", false, `show file name`)
 	numCmd.Flags().BoolP("basename", "b", false, "only output basename of files")
-	numCmd.Flags().BoolP("force", "f", false, "read whole file and count k-mers")
+	numCmd.Flags().BoolP("force", "f", false, "read the whole file and count k-mers")
 }

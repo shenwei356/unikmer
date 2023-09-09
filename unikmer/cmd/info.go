@@ -34,8 +34,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unik/v5"
 
+	"github.com/shenwei356/stable"
 	"github.com/spf13/cobra"
-	prettytable "github.com/tatsushid/go-prettytable"
 	"github.com/twotwotwo/sorts/sortutil"
 )
 
@@ -438,29 +438,36 @@ Tips:
 			return
 		}
 
+		style := &stable.TableStyle{
+			Name: "plain",
+
+			HeaderRow: stable.RowStyle{Begin: "", Sep: "  ", End: ""},
+			DataRow:   stable.RowStyle{Begin: "", Sep: "  ", End: ""},
+			Padding:   "",
+		}
+
 		// format output
-		columns := []prettytable.Column{
+		columns := []stable.Column{
 			{Header: "file"},
-			{Header: "k", AlignRight: true},
-			{Header: "canonical", AlignRight: true},
-			{Header: "hashed", AlignRight: true},
-			{Header: "scaled", AlignRight: true},
-			{Header: "include-taxid", AlignRight: true},
-			{Header: "global-taxid", AlignRight: true},
-			{Header: "sorted", AlignRight: true},
+			{Header: "k", Align: stable.AlignRight},
+			{Header: "canonical", Align: stable.AlignLeft},
+			{Header: "hashed", Align: stable.AlignLeft},
+			{Header: "scaled", Align: stable.AlignLeft},
+			{Header: "include-taxid", Align: stable.AlignLeft},
+			{Header: "global-taxid", Align: stable.AlignRight},
+			{Header: "sorted", Align: stable.AlignLeft},
 		}
 		if all {
-			columns = append(columns, []prettytable.Column{
-				{Header: "compact", AlignRight: true},
-				{Header: "gzipped", AlignRight: true},
-				{Header: "version", AlignRight: true},
-				{Header: "number", AlignRight: true},
-				{Header: "description", AlignRight: false},
+			columns = append(columns, []stable.Column{
+				{Header: "compact", Align: stable.AlignLeft},
+				{Header: "gzipped", Align: stable.AlignLeft},
+				{Header: "version", Align: stable.AlignLeft},
+				{Header: "number", Align: stable.AlignRight},
+				{Header: "description", Align: stable.AlignLeft},
 			}...)
 		}
-		tbl, err := prettytable.NewTable(columns...)
-		checkError(err)
-		tbl.Separator = "  "
+		tbl := stable.New()
+		tbl.HeaderWithFormat(columns)
 
 		var scaled string
 
@@ -471,37 +478,28 @@ Tips:
 				scaled = sFalse
 			}
 
-			if !all {
-				tbl.AddRow(
-					info.file,
-					info.k,
-					boolStr(sTrue, sFalse, info.canonical),
-					boolStr(sTrue, sFalse, info.hashed),
-					scaled,
-					boolStr(sTrue, sFalse, info.includeTaxid),
-					info.globalTaxid,
-					boolStr(sTrue, sFalse, info.sorted),
-				)
-			} else {
-				tbl.AddRow(
-					info.file,
-					info.k,
-					boolStr(sTrue, sFalse, info.canonical),
-					boolStr(sTrue, sFalse, info.hashed),
-					scaled,
-					boolStr(sTrue, sFalse, info.includeTaxid),
-					info.globalTaxid,
-					boolStr(sTrue, sFalse, info.sorted),
+			row := make([]interface{}, 0, len(columns))
 
-					boolStr(sTrue, sFalse, info.compact),
-					boolStr(sTrue, sFalse, info.gzipped),
-					info.version,
-					humanize.Comma(int64(info.number)),
-					info.description,
-				)
+			row = append(row, info.file)
+			row = append(row, info.k)
+			row = append(row, boolStr(sTrue, sFalse, info.canonical))
+			row = append(row, boolStr(sTrue, sFalse, info.hashed))
+			row = append(row, scaled)
+			row = append(row, boolStr(sTrue, sFalse, info.includeTaxid))
+			row = append(row, info.globalTaxid)
+			row = append(row, boolStr(sTrue, sFalse, info.sorted))
+
+			if all {
+				row = append(row, boolStr(sTrue, sFalse, info.compact))
+				row = append(row, boolStr(sTrue, sFalse, info.gzipped))
+				row = append(row, info.version)
+				row = append(row, humanize.Comma(int64(info.number)))
+				row = append(row, info.description)
 			}
+
+			tbl.AddRow(row)
 		}
-		outfh.Write(tbl.Bytes())
+		outfh.Write(tbl.Render(style))
 	},
 }
 

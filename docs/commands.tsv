@@ -1,17 +1,17 @@
 Category	Command	Function	Input	In.sorted	In.flag-consistency	Output	Out.sorted	Out.unique
 Counting	count	Generate k-mers (sketch) from FASTA/Q sequences	fastx	/	/	.unik	optional	optional
 Information	info	Information of binary files	.unik	optional	no need	tsv	/	/
-	num	Quickly inspect number of k-mers in binary files	.unik	optional	no need	tsv	/	/
+	num	Quickly inspect the number of k-mers in binary files	.unik	optional	no need	tsv	/	/
 Format conversion	view	Read and output binary format to plain text	.unik	optional	required	tsv	/	/
 	dump	Convert plain k-mer text to binary format	tsv	optional	/	.unik	optional	follow input
-	encode	Encode plain k-mer text to integer	tsv	/	/	tsv	/	/
-	decode	Decode encoded integer to k-mer text	tsv	/	/	tsv	/	/
+	encode	Encode plain k-mer texts to integers	tsv	/	/	tsv	/	/
+	decode	Decode encoded integers to k-mer texts	tsv	/	/	tsv	/	/
 Set operations	concat	Concatenate multiple binary files without removing duplicates	.unik	optional	required	.unik	optional	no
-	inter	Intersection of multiple binary files	.unik	required	required	.unik	yes	yes
-	common	Find k-mers shared by most of multiple binary files	.unik	required	required	.unik	yes	yes
-	union	Union of multiple binary files	.unik	optional	required	.unik	optional	yes
-	diff	Set difference of multiple binary files	.unik	1th file required	required	.unik	optional	yes
-Split and merge	sort	Sort k-mers in binary files to reduce file size	.unik	optional	required	.unik	yes	optional
+	inter	Intersection of k-mers in multiple binary files	.unik	required	required	.unik	yes	yes
+	common	Find k-mers shared by most of the binary files	.unik	required	required	.unik	yes	yes
+	union	Union of k-mers in multiple binary files	.unik	optional	required	.unik	optional	yes
+	diff	Set difference of k-mers in multiple binary files	.unik	1th file required	required	.unik	optional	yes
+Split and merge	sort	Sort k-mers to reduce the file size and accelerate downstream analysis	.unik	optional	required	.unik	yes	optional
 	split	Split k-mers into sorted chunk files	.unik	optional	required	.unik	yes	optional
 	tsplit	Split k-mers according to TaxId	.unik	required	required	.unik	yes	yes
 	merge	Merge k-mers from sorted chunk files	.unik	required	required	.unik	yes	optional
@@ -21,4 +21,4 @@ Subset	head	Extract the first N k-mers	.unik	optional	required	.unik	follow inpu
 	filter	Filter out low-complexity k-mers	.unik	optional	required	.unik	follow input	follow input
 	rfilter	Filter k-mers by taxonomic rank	.unik	optional	required	.unik	follow input	follow input
 Searching on genomes	locate	Locate k-mers in genome	.unik, fasta	optional	required	tsv	/	/
-	uniqs	Mapping k-mers back to genome and find unique subsequences	.unik, fasta	optional	required	bed/fasta	/	/
+	map	Mapping k-mers back to the genome and extract successive regions/subsequences	.unik, fasta	optional	required	bed/fasta	/	/

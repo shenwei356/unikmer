@@ -44,7 +44,7 @@ var countCmd = &cobra.Command{
 
 K-mer:
   1. K-mer code (k<=32)
-  2. Hashed k-mer (ntHash)
+  2. Hashed k-mer (ntHash, k<=64)
 
 K-mer sketches:
   1. Scaled MinHash

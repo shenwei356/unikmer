@@ -14,7 +14,7 @@
 *.directory
 unikmer/unikmer*
 unikmer/binaries*
-site
+site/
 
 *ssshtest
 *.unik

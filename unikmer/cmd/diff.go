@@ -37,8 +37,8 @@ import (
 
 var diffCmd = &cobra.Command{
 	Use:   "diff",
-	Short: "Set difference of multiple binary files",
-	Long: `Set difference of multiple binary files
+	Short: "Set difference of k-mers in multiple binary files",
+	Long: `Set difference of k-mers in multiple binary files
 
 Attentions:
   0. The first file should be sorted.

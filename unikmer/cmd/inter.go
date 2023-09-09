@@ -35,8 +35,8 @@ import (
 
 var interCmd = &cobra.Command{
 	Use:   "inter",
-	Short: "Intersection of multiple binary files",
-	Long: `Intersection of multiple binary files
+	Short: "Intersection of k-mers in multiple binary files",
+	Long: `Intersection of k-mers in multiple binary files
 
 Attentions:
   0. All input files should be sorted, and output file is sorted.

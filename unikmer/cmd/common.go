@@ -36,10 +36,10 @@ import (
 
 var commonCmd = &cobra.Command{
 	Use:   "common",
-	Short: "Find k-mers shared by most of multiple binary files",
-	Long: `Find k-mers shared by most of multiple binary files
+	Short: "Find k-mers shared by most of the binary files",
+	Long: `Find k-mers shared by most of the binary files
 
-This command is similar to "unikmer inter" but with looser restriction,
+This command is similar to "unikmer inter" but with a looser restriction,
 k-mers shared by some number/proportion of multiple files are outputted.
 
 Attentions:

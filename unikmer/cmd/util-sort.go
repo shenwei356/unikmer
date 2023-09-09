@@ -49,29 +49,49 @@ func dumpCodes2File(m []uint64, k int, mode uint32, outFile string, opt *Options
 
 	var n int64
 	var last = ^uint64(0)
-	var count int
-	for _, code := range m {
-		if unique {
+
+	if unique {
+		for _, code := range m {
 			if code != last {
 				writer.WriteCode(code)
 				n++
 				last = code
 			}
-		} else if repeated {
+		}
+	} else if repeated {
+		var count int
+		var code uint64
+		for _, code = range m {
 			if code == last {
-				if count == 1 { // write once
-					writer.WriteCode(code)
-					n++
-					count++
-				}
-			} else {
-				writer.WriteCode(code)
-				n++
-
-				last = code
-				count = 1
+				count++
+				continue
 			}
-		} else {
+
+			if count > 0 { // not the first one
+				// write all codes once
+				writer.WriteCode(last)
+				n++
+				// write repeated one another time
+				if count > 1 {
+					writer.WriteCode(last)
+					n++
+				}
+			}
+
+			count = 1
+			last = code
+		}
+		// write all codes once
+		writer.WriteCode(last)
+		n++
+		// write repeated one another time
+		if count > 1 {
+			writer.WriteCode(last)
+			n++
+		}
+	} else {
+		for _, code := range m {
+
 			writer.WriteCode(code)
 			n++
 		}
@@ -97,10 +117,11 @@ func dumpCodesTaxids2File(mt []CodeTaxid, taxondb *taxdump.Taxonomy, k int, mode
 	writer.SetMaxTaxid(opt.MaxTaxid)
 
 	var n int64
+	var last uint64 = ^uint64(0)
+	var lca uint32
+
 	if unique {
-		var last uint64 = ^uint64(0)
 		var first bool = true
-		var lca uint32
 		for _, codeT := range mt {
 			// same k-mer, compute LCA and handle it later
 			if codeT.Code == last {
@@ -122,10 +143,9 @@ func dumpCodesTaxids2File(mt []CodeTaxid, taxondb *taxdump.Taxonomy, k int, mode
 		writer.WriteCodeWithTaxid(last, lca)
 		n++
 	} else if repeated {
-		var last uint64 = ^uint64(0)
-		var count int = 1
-		var lca uint32
-		for _, codeT := range mt {
+		var count int
+		var codeT CodeTaxid
+		for _, codeT = range mt {
 			// same k-mer, compute LCA and handle it later
 			if codeT.Code == last {
 				lca = taxondb.LCA(codeT.Taxid, lca)
@@ -133,18 +153,29 @@ func dumpCodesTaxids2File(mt []CodeTaxid, taxondb *taxdump.Taxonomy, k int, mode
 				continue
 			}
 
-			if count > 1 { // repeated
+			if count > 0 { // not the first one
+				// write all codes once
 				writer.WriteCodeWithTaxid(last, lca)
 				n++
-				count = 1
+				// write repeated one another time
+				if count > 1 {
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+				}
 			}
+
+			count = 1
 			last = codeT.Code
 			lca = codeT.Taxid
 		}
-		if count > 1 { // last one
+		// the last one
+		// write all codes once
+		writer.WriteCodeWithTaxid(last, lca)
+		n++
+		// write repeated one another time
+		if count > 1 {
 			writer.WriteCodeWithTaxid(last, lca)
 			n++
-			count = 0
 		}
 	} else {
 		writer.Number = uint64(len(mt))
@@ -307,16 +338,20 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 					lca = taxondb.LCA(taxid, lca)
 					count++
 				} else {
-					if count > 1 { // repeated
-						writer.WriteCodeWithTaxid(last, lca)
-						n++
+					if count > 0 { // not the first one
 						if !finalRound {
+							// write all codes once
 							writer.WriteCodeWithTaxid(last, lca)
 							n++
 						}
-						count = 1
+						// write repeated one another time
+						if count > 1 {
+							writer.WriteCodeWithTaxid(last, lca)
+							n++
+						}
 					}
 
+					count = 1
 					last = code
 					lca = taxid
 				}
@@ -333,19 +368,23 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 				}
 			} else if repeated {
 				if code == last {
-					if count == 1 { // write another copy
-						writer.WriteCode(code)
-						n++
-						count++
-					}
+					count++
 				} else {
-					if !finalRound {
-						writer.WriteCode(code)
-						n++
+					if count > 0 { // not the first one
+						if !finalRound {
+							// write all codes once
+							writer.WriteCode(last)
+							n++
+						}
+						// write repeated one another time
+						if count > 1 {
+							writer.WriteCode(last)
+							n++
+						}
 					}
 
-					last = code
 					count = 1
+					last = code
 				}
 			} else {
 				writer.WriteCode(code)
@@ -371,11 +410,40 @@ func mergeChunksFile(opt *Options, taxondb *taxdump.Taxonomy, files []string, ou
 		if unique {
 			writer.WriteCodeWithTaxid(last, lca)
 			n++
+		} else if repeated {
+			if count > 0 { // not the first one
+				if !finalRound {
+					// write all codes once
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+				}
+				// write repeated one another time
+				if count > 1 {
+					writer.WriteCodeWithTaxid(last, lca)
+					n++
+				}
+			}
 		}
-		if repeated {
-			if count > 1 { // last one
-				writer.WriteCodeWithTaxid(last, lca)
+	} else {
+		if unique {
+			if code != last {
+				writer.WriteCode(code)
 				n++
+			}
+		} else if repeated {
+			if code != last {
+				if count > 0 { // not the first one
+					if !finalRound {
+						// write all codes once
+						writer.WriteCode(last)
+						n++
+					}
+					// write repeated one another time
+					if count > 1 {
+						writer.WriteCode(last)
+						n++
+					}
+				}
 			}
 		}
 	}

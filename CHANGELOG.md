@@ -1,9 +1,17 @@
 # Changelog
 
+- v0.20.0 - 2023-09-10
+  - `unikmer`:
+    - update help messages
+    - rename subcommand `uniqs` to `map`.
+  - `unikmer sort`:
+    - fix the bug of `-m/--chunk-size`, which seems to existed for 4 years.
+  - `unikmer num`:
+    - `-f/--force` also support sorted files.
 - v0.19.1 - 2022-12-26
   - `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
   - `unikmer uniqs`: skip sequences shorter than K.
-  - `unikmer count/encode`: [limit the maximum k-mer size to 65](https://github.com/bcgsc/ntHash/issues/41).
+  - `unikmer count/encode`: [limit the maximum k-mer size to 64](https://github.com/bcgsc/ntHash/issues/41).
 - v0.19.0 - 2022-04-25
   - rename command `genautocomplete` to `autocompletion`.
   - remove command `help`.

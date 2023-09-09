@@ -36,8 +36,8 @@ import (
 
 var unionCmd = &cobra.Command{
 	Use:   "union",
-	Short: "Union of multiple binary files",
-	Long: `Union of multiple binary files
+	Short: "Union of k-mers in multiple binary files",
+	Long: `Union of k-mers in multiple binary files
 
 Attentions:
   1. The 'canonical/scaled/hashed' flags of all files should be consistent.

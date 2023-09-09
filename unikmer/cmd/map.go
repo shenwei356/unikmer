@@ -37,12 +37,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var uniqsCmd = &cobra.Command{
-	Use:   "uniqs",
-	Short: "Mapping k-mers back to genome and find unique subsequences",
-	Long: `Mapping k-mers back to genome and find unique subsequences
+var mapCmd = &cobra.Command{
+	Use:     "map",
+	Aliases: []string{"uniqs"},
+	Short:   "Mapping k-mers back to the genome and extract successive regions/subsequences",
+	Long: `Mapping k-mers back to the genome and extract successive regions/subsequences
 
 Attention:
+  0. By default, only unique-mapped k-mers are considered.
+     You can use -M/--allow-multiple-mapped-kmerss to allow mutiple-mapped k-mers.
   1. The 'canonical/scaled/hashed' flags of all files should be consistent.
   2. Default output is in BED3 format, with left-closed and right-open
      0-based interval.
@@ -92,22 +95,22 @@ Attention:
 		}
 
 		minLen := getFlagPositiveInt(cmd, "min-len")
-		mMapped := getFlagBool(cmd, "allow-multiple-mapped-kmer")
+		mMapped := getFlagBool(cmd, "allow-multiple-mapped-kmers")
 		outputFASTA := getFlagBool(cmd, "output-fasta")
-		maxContNonUniqKmers := getFlagNonNegativeInt(cmd, "max-cont-non-uniq-kmers")
-		maxContNonUniqKmersNum := getFlagNonNegativeInt(cmd, "max-num-cont-non-uniq-kmers")
+		maxGapSize := getFlagNonNegativeInt(cmd, "max-gap-size")
+		maxGapNum := getFlagNonNegativeInt(cmd, "max-gap-num")
 		seqsAsOneGenome := getFlagBool(cmd, "seqs-in-a-file-as-one-genome")
 		circular := getFlagBool(cmd, "circular")
 
 		if seqsAsOneGenome && mMapped {
-			checkError(fmt.Errorf("flag -M/--allow-multiple-mapped-kmer and -W/--seqs-in-a-file-as-one-genome are not compatible"))
+			checkError(fmt.Errorf("flag -M/--allow-multiple-mapped-kmers and -W/--seqs-in-a-file-as-one-genome are not compatible"))
 		}
 
-		if maxContNonUniqKmersNum > 0 && maxContNonUniqKmers == 0 {
-			log.Warningf("-X/--max-num-cont-non-uniq-kmers %d is ignored becaue value of -x/--max-cont-non-uniq-kmers is 0", maxContNonUniqKmersNum)
+		if maxGapNum > 0 && maxGapSize == 0 {
+			log.Warningf("-X/--max-gap-num %d is ignored becaue value of -x/--max-gap-size is 0", maxGapNum)
 		}
-		if maxContNonUniqKmers > 0 && maxContNonUniqKmersNum == 0 {
-			checkError(fmt.Errorf("value of -X/--max-num-cont-non-uniq-kmers should be > 0 when value of -x/--max-cont-non-uniq-kmers is > 0"))
+		if maxGapSize > 0 && maxGapNum == 0 {
+			checkError(fmt.Errorf("value of -X/--max-gap-num should be > 0 when value of -x/--max-gap-size is > 0"))
 		}
 
 		// all kmers in .unik files
@@ -370,7 +373,7 @@ Attention:
 						nonUniqs = 0
 						if !mMapped {
 							if multipleMapped, ok = _m2[code]; ok && multipleMapped {
-								if lastNonUniqsNum <= maxContNonUniqKmersNum &&
+								if lastNonUniqsNum <= maxGapNum &&
 									start >= 0 && lastmatch-start+k >= minLen {
 
 									// subsequence longer than original sequence
@@ -379,10 +382,10 @@ Attention:
 									}
 
 									if outputFASTA {
-										outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
-											record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
+										fmt.Fprintf(outfh, ">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+											record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60))
 									} else {
-										outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+										fmt.Fprintf(outfh, "%s\t%d\t%d\n", record.ID, start, lastmatch+k)
 									}
 								}
 
@@ -431,13 +434,13 @@ Attention:
 						if nonUniqs == 1 {
 							nonUniqsNum++
 						}
-						if nonUniqs <= maxContNonUniqKmers && nonUniqsNum <= maxContNonUniqKmersNum {
+						if nonUniqs <= maxGapSize && nonUniqsNum <= maxGapNum {
 							c = 0
 							if start > 0 {
 								flag = false
 							}
 						} else {
-							if lastNonUniqsNum <= maxContNonUniqKmersNum &&
+							if lastNonUniqsNum <= maxGapNum &&
 								start >= 0 && lastmatch-start+k >= minLen {
 
 								// subsequence longer than original sequence
@@ -446,10 +449,10 @@ Attention:
 								}
 
 								if outputFASTA {
-									outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
-										record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
+									fmt.Fprintf(outfh, ">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+										record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60))
 								} else {
-									outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+									fmt.Fprintf(outfh, "%s\t%d\t%d\n", record.ID, start, lastmatch+k)
 								}
 							}
 							// re-count
@@ -465,7 +468,7 @@ Attention:
 
 					// debug.WriteString(fmt.Sprintln(i, c, start, lastmatch, nonUniqs, nonUniqsNum, lastNonUniqsNum))
 				}
-				if lastNonUniqsNum <= maxContNonUniqKmersNum+1 &&
+				if lastNonUniqsNum <= maxGapNum+1 &&
 					start >= 0 && lastmatch-start+k >= minLen {
 
 					// subsequence longer than original sequence
@@ -474,10 +477,10 @@ Attention:
 					}
 
 					if outputFASTA {
-						outfh.WriteString(fmt.Sprintf(">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
-							record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60)))
+						fmt.Fprintf(outfh, ">%s:%d-%d\n%s\n", record.ID, start+1, lastmatch+k,
+							record.Seq.SubSeq(start+1, lastmatch+k).FormatSeq(60))
 					} else {
-						outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\n", record.ID, start, lastmatch+k))
+						fmt.Fprintf(outfh, "%s\t%d\t%d\n", record.ID, start, lastmatch+k)
 					}
 				}
 			}
@@ -486,18 +489,18 @@ Attention:
 }
 
 func init() {
-	RootCmd.AddCommand(uniqsCmd)
+	RootCmd.AddCommand(mapCmd)
 
-	uniqsCmd.Flags().StringSliceP("seq-name-filter", "B", []string{}, `list of regular expressions for filtering out sequences by header/name, case ignored`)
+	mapCmd.Flags().StringSliceP("seq-name-filter", "B", []string{}, `list of regular expressions for filtering out sequences by header/name, case ignored`)
 
-	uniqsCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
-	uniqsCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
-	uniqsCmd.Flags().IntP("min-len", "m", 200, "minimum length of subsequence")
-	uniqsCmd.Flags().BoolP("allow-multiple-mapped-kmer", "M", false, "allow multiple mapped k-mers")
-	uniqsCmd.Flags().BoolP("seqs-in-a-file-as-one-genome", "W", false, "treat seqs in a genome file as one genome")
-	uniqsCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
+	mapCmd.Flags().StringP("out-prefix", "o", "-", `out file prefix ("-" for stdout)`)
+	mapCmd.Flags().StringSliceP("genome", "g", []string{}, "genomes in (gzipped) fasta file(s)")
+	mapCmd.Flags().IntP("min-len", "m", 200, "minimum length of subsequence")
+	mapCmd.Flags().BoolP("allow-multiple-mapped-kmers", "M", false, "allow multiple mapped k-mers")
+	mapCmd.Flags().BoolP("seqs-in-a-file-as-one-genome", "W", false, "treat seqs in a genome file as one genome")
+	mapCmd.Flags().BoolP("output-fasta", "a", false, "output fasta format instead of BED3")
 
-	uniqsCmd.Flags().IntP("max-cont-non-uniq-kmers", "x", 0, "max continuous non-unique k-mers")
-	uniqsCmd.Flags().IntP("max-num-cont-non-uniq-kmers", "X", 0, "max number of continuous non-unique k-mers")
-	uniqsCmd.Flags().BoolP("circular", "", false, `circular genome. type "unikmer uniqs -h" for details`)
+	mapCmd.Flags().IntP("max-gap-size", "x", 0, "max gap size (the number of consecutive unmapped k-mers)")
+	mapCmd.Flags().IntP("max-gap-num", "X", 0, "max number of gaps (consecutive unmapped k-mers)")
+	mapCmd.Flags().BoolP("circular", "", false, `circular genome. type "unikmer uniqs -h" for details`)
 }
