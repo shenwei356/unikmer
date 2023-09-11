@@ -31,7 +31,7 @@
 ## unikmer
 
 ```text
-unikmer - Toolkit for k-mer with taxonomic information
+unikmer - a versatile toolkit for k-mers with taxonomic information
 
 unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
 including set operation on k-mers optional with TaxIds but without count

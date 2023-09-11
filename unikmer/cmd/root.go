@@ -33,8 +33,8 @@ import (
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "unikmer",
-	Short: "Toolkit for k-mer with taxonomic information",
-	Long: fmt.Sprintf(`unikmer - Toolkit for k-mer with taxonomic information
+	Short: "a versatile toolkit for k-mers with taxonomic information",
+	Long: fmt.Sprintf(`unikmer - a versatile toolkit for k-mers with taxonomic information
 
 unikmer is a toolkit for nucleic acid k-mer analysis, providing functions
 including set operation on k-mers optional with TaxIds but without count

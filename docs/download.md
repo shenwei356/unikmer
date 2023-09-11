@@ -9,7 +9,7 @@ statically-linked executable binary files are [freely available](https://github.
 
 - `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
 - `unikmer uniqs`: skip sequences shorter than K.
-- `unikmer count/encode`: [limit the maximum k-mer size to 65](https://github.com/bcgsc/ntHash/issues/41).
+- `unikmer count/encode`: [limit the maximum k-mer size to 64](https://github.com/bcgsc/ntHash/issues/41).
 
 ### Links
 

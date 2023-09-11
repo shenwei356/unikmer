@@ -1,4 +1,4 @@
-# unikmer: toolkit for k-mer with taxonomic information
+# unikmer: a versatile toolkit for k-mers with taxonomic information
 
 Documents: https://bioinf.shenwei.me/unikmer/
 
@@ -7,7 +7,7 @@ providing functions
 including set operation k-mers (sketch) optional with
 TaxIds but without count information.
 
-K-mers are either encoded (k<=32) or hashed (<=64) into `uint64`,
+K-mers are either encoded (k<=32) or hashed ([k<=64, using ntHash v1](https://github.com/bcgsc/ntHash/issues/41)) into `uint64`,
 and serialized in binary file with extension `.unik`.
 
 TaxIds can be assigned when counting k-mers from genome sequences,
