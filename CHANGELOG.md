@@ -1,5 +1,8 @@
 # Changelog
 
+- v0.21.0 - 2023
+  - `unikmer locate`:
+    - fix seq ID error in output.
 - v0.20.0 - 2023-09-10
   - `unikmer`:
     - update help messages

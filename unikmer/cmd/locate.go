@@ -208,7 +208,7 @@ Attention:
 					seqClone = append(seqClone, seqClone[0:k-1]...)
 				}
 				sequences = append(sequences, seqClone)
-				ids = append(ids, record.ID)
+				ids = append(ids, []byte(string(record.ID)))
 
 				for {
 					code, ok, err = iter.Next()
