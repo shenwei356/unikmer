@@ -280,6 +280,8 @@ Attention:
 							outfh.WriteString(fmt.Sprintf("%s\t%d\t%d\t%s\t0\t.\n",
 								ids[i], j, j+k, kmer))
 						}
+
+						delete(m, code)
 					}
 				}
 			}()
