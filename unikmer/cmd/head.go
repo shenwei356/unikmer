@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/unik/v5"
@@ -64,7 +65,7 @@ Attentions:
 		outFile := getFlagString(cmd, "out-prefix")
 		N := getFlagNonNegativeInt(cmd, "number")
 
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 		outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)

@@ -86,7 +86,7 @@ Attentions:
 			}
 		}
 
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 		outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)

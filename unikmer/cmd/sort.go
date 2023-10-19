@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -107,7 +108,7 @@ Tips:
 		var mt []CodeTaxid
 
 		outFile := outFile0
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 

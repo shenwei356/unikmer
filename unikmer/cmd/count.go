@@ -25,6 +25,7 @@ import (
 	"io"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/seq"
@@ -202,7 +203,7 @@ K-mer sketches:
 			}
 		}
 
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 		outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)

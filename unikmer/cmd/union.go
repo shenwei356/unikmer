@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/taxdump"
@@ -75,7 +76,7 @@ Tips:
 		var taxondb *taxdump.Taxonomy
 		var mt map[uint64]uint32
 
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 		outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
@@ -101,7 +102,7 @@ Tips:
 			checkError(err)
 			defer r.Close()
 
-			if !isStdout(outFile) {
+			if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 				outFile += extDataFile
 			}
 

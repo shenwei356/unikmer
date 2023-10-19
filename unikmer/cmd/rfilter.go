@@ -24,7 +24,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -218,7 +217,7 @@ Rank file:
 		filter, err := newRankFilter(taxondb, rankOrder, noRanks, lower, higher, equals, blackListRanks, discardNoRank, saveNorank)
 		checkError(err)
 
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 		outfh, gw, w, err := outStream(outFile, opt.Compress, opt.CompressionLevel)
@@ -610,7 +609,7 @@ func readRankOrder(opt *Options, rankFile string) (map[string]int, map[string]in
 }
 
 func writeDefaltRankOrderFile(file string) error {
-	return ioutil.WriteFile(file, []byte(defaultRanksText), 0644)
+	return os.WriteFile(file, []byte(defaultRanksText), 0644)
 }
 
 const defaultRanksFile = "ranks.txt"

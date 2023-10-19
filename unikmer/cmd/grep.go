@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -486,7 +487,7 @@ Tips:
 
 						hasTaxid = !opt.IgnoreTaxid && reader.HasTaxidInfo()
 
-						if !isStdout(outFile) {
+						if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 							outFile += extDataFile
 						}
 						// the global writer

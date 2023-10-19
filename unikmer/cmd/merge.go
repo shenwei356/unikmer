@@ -23,7 +23,6 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -84,7 +83,7 @@ Tips:
 
 			_files := make([]string, 0, 10)
 			var existed bool
-			var list []os.FileInfo
+			var list []os.DirEntry
 			var filename string
 			var N, n int
 			for _, dir := range files {
@@ -101,7 +100,7 @@ Tips:
 					log.Warning("skip unexisted dir: %s", dir)
 				}
 
-				list, err = ioutil.ReadDir(dir)
+				list, err = os.ReadDir(dir)
 				if err != nil {
 					checkError(fmt.Errorf("check given directory '%s': %s", dir, err))
 				}

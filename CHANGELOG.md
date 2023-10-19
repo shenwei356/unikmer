@@ -1,6 +1,8 @@
 # Changelog
 
 - v0.21.0 - 2023
+  - `unikmer`:
+    - do not add the extension `.unik` if the value of flag `-o/--out-prefix` already has one.
   - `unikmer locate`:
     - fix seq ID error in output.
     - deduplicate output.
