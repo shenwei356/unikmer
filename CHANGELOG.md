@@ -1,15 +1,10 @@
 # Changelog
 
-- v0.21.0 - 2023
-  - `unikmer`:
-    - do not add the extension `.unik` if the value of flag `-o/--out-prefix` already has one.
-  - `unikmer locate`:
-    - fix seq ID error in output.
-    - deduplicate output.
-- v0.20.0 - 2023-09-10
+- v0.20.0 - 2023-11-11
   - `unikmer`:
     - update help messages
-    - rename subcommand `uniqs` to `map`.
+    - **rename subcommand `uniqs` to `map`**.
+    - do not add the extension `.unik` if the value of flag `-o/--out-prefix` already has one.
   - `unikmer sort`:
     - fix the bug of using both `-d/--repeated` and `-m/--chunk-size`, which seems to existed for 4 years.
   - `unikmer merge`:
@@ -18,6 +13,9 @@
     - `-f/--force` also support sorted files.
   - `unikmer map`:
     - fix a bug of missing some regions.
+  - `unikmer locate`:
+    - fix seq ID error in output.
+    - deduplicate output.
 - v0.19.1 - 2022-12-26
   - `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
   - `unikmer uniqs`: skip sequences shorter than K.
