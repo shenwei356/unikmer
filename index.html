@@ -14,8 +14,13 @@
       
         <link rel="canonical" href="https://bioinf.shenwei.me/unikmer/">
       
+      
+      
+        <link rel="next" href="download/">
+      
+      
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.5">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
     
     
       
@@ -23,31 +28,33 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ee0f47ba.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.4b4a2bd9.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.e6a45f82.min.css">
-        
-          
-          
-          <meta name="theme-color" content="#009485">
-        
+        <link rel="stylesheet" href="assets/stylesheets/palette.356b1318.min.css">
       
-    
+      
+
+
     
     
       
+    
+    
+      
+        
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
     
-    <script>__md_scope=new URL(".",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
+    
     
     
   </head>
@@ -58,7 +65,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="teal" data-md-color-accent="blue-grey">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="blue-grey">
   
     
     
@@ -68,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#unikmer-toolkit-for-k-mer-with-taxonomic-information" class="md-skip">
+        <a href="#unikmer-a-versatile-toolkit-for-k-mers-with-taxonomic-information" class="md-skip">
           Skip to content
         </a>
       
@@ -80,16 +87,19 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="." title="unikmer - Toolkit for k-mer with taxonomic information" class="md-header__button md-logo" aria-label="unikmer - Toolkit for k-mer with taxonomic information" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -108,10 +118,13 @@
       </div>
     </div>
     
+      
+    
     
     
       <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
       <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
@@ -119,13 +132,16 @@
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
-        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
         </button>
       </nav>
       
@@ -136,7 +152,7 @@
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
@@ -145,10 +161,10 @@
     
     
       <div class="md-header__source">
-        <a href="https://github.com/shenwei356/unikmer/" title="Go to repository" class="md-source" data-md-component="source">
+        <a href="https://github.com/shenwei356/unikmer" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -178,22 +194,23 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="." title="unikmer - Toolkit for k-mer with taxonomic information" class="md-nav__button md-logo" aria-label="unikmer - Toolkit for k-mer with taxonomic information" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
 
     </a>
     unikmer - Toolkit for k-mer with taxonomic information
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/shenwei356/unikmer/" title="Go to repository" class="md-source" data-md-component="source">
+      <a href="https://github.com/shenwei356/unikmer" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -205,8 +222,6 @@
     
       
       
-      
-
   
   
     
@@ -214,19 +229,31 @@
   
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Home
+          
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="." class="md-nav__link md-nav__link--active">
-        Home
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
       </a>
       
         
@@ -323,14 +350,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="download/" class="md-nav__link">
-        Download
+        
+  
+  <span class="md-ellipsis">
+    Download
+  </span>
+  
+
       </a>
     </li>
   
@@ -338,14 +369,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="usage/" class="md-nav__link">
-        Usage
+        
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
       </a>
     </li>
   
@@ -353,14 +388,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="https://github.com/shenwei356" class="md-nav__link">
-        More tools
+        
+  
+  <span class="md-ellipsis">
+    More tools
+  </span>
+  
+
       </a>
     </li>
   
@@ -469,22 +508,23 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
                 
-<a href="https://github.com/shenwei356/unikmer/edit/master/docs/index.md" title="Edit this page" class="md-content__button md-icon">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
-</a>
+                  
+
+  
+  
 
 
-<h1 id="unikmer-toolkit-for-k-mer-with-taxonomic-information">unikmer: toolkit for k-mer with taxonomic information</h1>
+<h1 id="unikmer-a-versatile-toolkit-for-k-mers-with-taxonomic-information">unikmer: a versatile toolkit for k-mers with taxonomic information</h1>
 <p>Documents: https://bioinf.shenwei.me/unikmer/</p>
 <p><code>unikmer</code> is a toolkit for nucleic acid <a href="https://en.wikipedia.org/wiki/K-mer">k-mer</a> analysis, 
 providing functions
 including set operation k-mers (sketch) optional with
 TaxIds but without count information.</p>
-<p>K-mers are either encoded (k&lt;=32) or hashed (arbitrary k) into <code>uint64</code>,
+<p>K-mers are either encoded (k&lt;=32) or hashed (<a href="https://github.com/bcgsc/ntHash/issues/41">k&lt;=64, using ntHash v1</a>) into <code>uint64</code>,
 and serialized in binary file with extension <code>.unik</code>.</p>
 <p>TaxIds can be assigned when counting k-mers from genome sequences,
 and LCA (Lowest Common Ancestor) is computed during set opertions
@@ -541,7 +581,7 @@ repeated k-mers.</p>
 <li>
 <p>Information</p>
 <pre><code>info            Information of binary files
-num             Quickly inspect number of k-mers in binary files
+num             Quickly inspect the number of k-mers in binary files
 </code></pre>
 </li>
 <li>
@@ -549,22 +589,22 @@ num             Quickly inspect number of k-mers in binary files
 <pre><code>view            Read and output binary format to plain text
 dump            Convert plain k-mer text to binary format
 
-encode          Encode plain k-mer text to integer
-decode          Decode encoded integer to k-mer text
+encode          Encode plain k-mer texts to integers
+decode          Decode encoded integers to k-mer texts
 </code></pre>
 </li>
 <li>
 <p>Set operations</p>
 <pre><code>concat          Concatenate multiple binary files without removing duplicates
-inter           Intersection of multiple binary files
-common          Find k-mers shared by most of multiple binary files
-union           Union of multiple binary files
-diff            Set difference of multiple binary files
+inter           Intersection of k-mers in multiple binary files
+common          Find k-mers shared by most of the binary files
+union           Union of k-mers in multiple binary files
+diff            Set difference of k-mers in multiple binary files
 </code></pre>
 </li>
 <li>
 <p>Split and merge</p>
-<pre><code>sort            Sort k-mers in binary files to reduce file size
+<pre><code>sort            Sort k-mers to reduce the file size and accelerate downstream analysis
 split           Split k-mers into sorted chunk files
 tsplit          Split k-mers according to TaxId
 merge           Merge k-mers from sorted chunk files
@@ -582,7 +622,7 @@ rfilter         Filter k-mers by taxonomic rank
 <li>
 <p>Searching on genomes</p>
 <pre><code>locate          Locate k-mers in genome
-uniqs           Mapping k-mers back to genome and find unique subsequences
+map             Mapping k-mers back to the genome and extract successive regions/subsequences
 </code></pre>
 </li>
 <li>
@@ -605,54 +645,54 @@ TaxIds are optionally stored next to k-mers with 4 or less bytes.</p>
 <table>
 <thead>
 <tr>
-<th align="left">label</th>
-<th align="center">encoded-kmer<sup>a</sup></th>
-<th align="center">gzip-compressed<sup>b</sup></th>
-<th align="center">compact-format<sup>c</sup></th>
-<th align="center">sorted<sup>d</sup></th>
-<th align="left">comment</th>
+<th style="text-align: left;">label</th>
+<th style="text-align: center;">encoded-kmer<sup>a</sup></th>
+<th style="text-align: center;">gzip-compressed<sup>b</sup></th>
+<th style="text-align: center;">compact-format<sup>c</sup></th>
+<th style="text-align: center;">sorted<sup>d</sup></th>
+<th style="text-align: left;">comment</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td align="left"><code>plain</code></td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="left">plain text</td>
+<td style="text-align: left;"><code>plain</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">plain text</td>
 </tr>
 <tr>
-<td align="left"><code>gzip</code></td>
-<td align="center"></td>
-<td align="center">✔</td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="left">gzipped plain text</td>
+<td style="text-align: left;"><code>gzip</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">gzipped plain text</td>
 </tr>
 <tr>
-<td align="left"><code>unik.default</code></td>
-<td align="center">✔</td>
-<td align="center">✔</td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="left">gzipped encoded k-mers in fixed-length byte array</td>
+<td style="text-align: left;"><code>unik.default</code></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">gzipped encoded k-mers in fixed-length byte array</td>
 </tr>
 <tr>
-<td align="left"><code>unik.compat</code></td>
-<td align="center">✔</td>
-<td align="center">✔</td>
-<td align="center">✔</td>
-<td align="center"></td>
-<td align="left">gzipped encoded k-mers in shorter fixed-length byte array</td>
+<td style="text-align: left;"><code>unik.compat</code></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">gzipped encoded k-mers in shorter fixed-length byte array</td>
 </tr>
 <tr>
-<td align="left"><code>unik.sorted</code></td>
-<td align="center">✔</td>
-<td align="center">✔</td>
-<td align="center"></td>
-<td align="center">✔</td>
-<td align="left">gzipped sorted encoded k-mers</td>
+<td style="text-align: left;"><code>unik.sorted</code></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">✔</td>
+<td style="text-align: left;">gzipped sorted encoded k-mers</td>
 </tr>
 </tbody>
 </table>
@@ -707,26 +747,22 @@ AGCGCAAAATCCCCAAACATGTA 2286899379883
 AACTGATTTTTGATGATGACTCC 3542156397282
 
 # find the positions of k-mers
-$ seqkit locate -M A.muciniphila-ATCC_BAA-835.fasta.gz \
-    -f &lt;(unikmer view -a -g A.muciniphila-ATCC_BAA-835.fasta.gz A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik | seqkit head -n 5 ) \
-    | csvtk sort -t -k start:n | head -n 6 | csvtk pretty -t
-seqID         patternName           pattern                   strand   start   end
------------   -------------------   -----------------------   ------   -----   ---
-NC_010655.1   2090893901864583115   ATCTTATAAAATAACCACATAAC   +        3       25
-NC_010655.1   696051979077366638    TTATAAAATAACCACATAACTTA   +        6       28
-NC_010655.1   390297872016815006    TATAAAATAACCACATAACTTAA   +        7       29
-NC_010655.1   2582400417208090837   AAAATAACCACATAACTTAAAAA   +        10      32
-NC_010655.1   3048591415312050785   TAACCACATAACTTAAAAAGAAT   +        14      36
+$ unikmer locate -g A.muciniphila-ATCC_BAA-835.fasta.gz A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik | head -n 5
+NC_010655.1     2       25      ATCTTATAAAATAACCACATAAC 0       .
+NC_010655.1     5       28      TTATAAAATAACCACATAACTTA 0       .
+NC_010655.1     6       29      TATAAAATAACCACATAACTTAA 0       .
+NC_010655.1     9       32      AAAATAACCACATAACTTAAAAA 0       .
+NC_010655.1     13      36      TAACCACATAACTTAAAAAGAAT 0       .
 
-# stats
-$ unikmer stats *.unik -a -j 10
+# info
+$ unikmer info *.unik -a -j 10
 file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
-A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23          ✓       ✓       ✕              ✕                     ✕        ✕        ✓     v5.0    860,900  
-A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23          ✓       ✕       ✕              ✕        349741       ✓        ✕        ✓     v5.0  2,630,905  
-Ecoli-IAI39.fasta.gz.k23.sorted.unik             23          ✓       ✕       ✕              ✕        585057       ✓        ✕        ✓     v5.0  4,902,266  
-Ecoli-IAI39.fasta.gz.k23.unik                    23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,902,266  
-Ecoli-MG1655.fasta.gz.k23.sorted.unik            23          ✓       ✕       ✕              ✕        511145       ✓        ✕        ✓     v5.0  4,546,632  
-Ecoli-MG1655.fasta.gz.k23.unik                   23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,546,632
+A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23  ✓          ✓       ✕       ✕                            ✕       ✕        ✓        v5.0       860,900             
+A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓          ✕       ✕       ✕                    349741  ✓       ✕        ✓        v5.0     2,630,905             
+Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓          ✕       ✕       ✕                    585057  ✓       ✕        ✓        v5.0     4,902,266             
+Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,902,266             
+Ecoli-MG1655.fasta.gz.k23.sorted.unik            23  ✓          ✕       ✕       ✕                    511145  ✓       ✕        ✓        v5.0     4,546,632             
+Ecoli-MG1655.fasta.gz.k23.unik                   23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,546,632
 
 
 # concat
@@ -755,7 +791,8 @@ $ unikmer view -t union2.k23.unik | md5sum
 
 
 # duplicate k-mers
-$ memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d -m 1M
+# memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d -m 1M # limit memory usage
+$ memusg -t unikmer sort *.k23.sorted.unik -o dup.k23 -d
 elapsed time: 1.143s
 peak rss: 240.18 MB
 
@@ -773,47 +810,49 @@ peak rss: 338.06 MB
 
 
 $ ls -lh *.unik
--rw-r--r-- 1 shenwei shenwei 9.5M  2月 13 00:55 A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik
--rw-r--r-- 1 shenwei shenwei  46M  2月 13 00:59 concat.k23.unik
--rw-r--r-- 1 shenwei shenwei 8.7M  2月 13 01:00 diff.k23.unik
--rw-r--r-- 1 shenwei shenwei  11M  2月 13 01:04 dup.k23.unik
--rw-r--r-- 1 shenwei shenwei  18M  2月 13 00:55 Ecoli-IAI39.fasta.gz.k23.sorted.unik
--rw-r--r-- 1 shenwei shenwei  21M  2月 13 00:48 Ecoli-IAI39.fasta.gz.k23.unik
--rw-r--r-- 1 shenwei shenwei  17M  2月 13 00:55 Ecoli-MG1655.fasta.gz.k23.sorted.unik
--rw-r--r-- 1 shenwei shenwei  19M  2月 13 00:48 Ecoli-MG1655.fasta.gz.k23.unik
--rw-r--r-- 1 shenwei shenwei 9.5M  2月 13 00:59 inter.k23.unik
--rw-r--r-- 1 shenwei shenwei  27M  2月 13 01:04 union2.k23.unik
--rw-r--r-- 1 shenwei shenwei  27M  2月 13 00:58 union.k23.unik
-
+-rw-r--r-- 1 shenwei shenwei 6.6M Sep  9 17:24 A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik
+-rw-r--r-- 1 shenwei shenwei 9.5M Sep  9 17:24 A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik
+-rw-r--r-- 1 shenwei shenwei  46M Sep  9 17:25 concat.k23.unik
+-rw-r--r-- 1 shenwei shenwei 9.2M Sep  9 17:27 diff.k23.unik
+-rw-r--r-- 1 shenwei shenwei  11M Sep  9 17:26 dup.k23.unik
+-rw-r--r-- 1 shenwei shenwei  18M Sep  9 17:23 Ecoli-IAI39.fasta.gz.k23.sorted.unik
+-rw-r--r-- 1 shenwei shenwei  29M Sep  9 17:24 Ecoli-IAI39.fasta.gz.k23.unik
+-rw-r--r-- 1 shenwei shenwei  17M Sep  9 17:23 Ecoli-MG1655.fasta.gz.k23.sorted.unik
+-rw-r--r-- 1 shenwei shenwei  27M Sep  9 17:25 Ecoli-MG1655.fasta.gz.k23.unik
+-rw-r--r-- 1 shenwei shenwei  11M Sep  9 17:27 inter.k23.unik
+-rw-r--r-- 1 shenwei shenwei  26M Sep  9 17:26 union2.k23.unik
+-rw-r--r-- 1 shenwei shenwei  26M Sep  9 17:25 union.k23.unik
 
 $ unikmer stats *.unik -a -j 10
 file                                              k  canonical  hashed  scaled  include-taxid  global-taxid  sorted  compact  gzipped  version     number  description
-A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23          ✓       ✓       ✕              ✕                     ✕        ✕        ✓     v5.0    860,900  
-A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23          ✓       ✕       ✕              ✕        349741       ✓        ✕        ✓     v5.0  2,630,905  
-concat.k23.unik                                  23          ✓       ✕       ✕              ✓                     ✕        ✓        ✓     v5.0         -1  
-diff.k23.unik                                    23          ✓       ✕       ✕              ✓                     ✕        ✕        ✓     v5.0  2,326,096  
-dup.k23.unik                                     23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0          0  
-Ecoli-IAI39.fasta.gz.k23.sorted.unik             23          ✓       ✕       ✕              ✕        585057       ✓        ✕        ✓     v5.0  4,902,266  
-Ecoli-IAI39.fasta.gz.k23.unik                    23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,902,266  
-Ecoli-MG1655.fasta.gz.k23.sorted.unik            23          ✓       ✕       ✕              ✕        511145       ✓        ✕        ✓     v5.0  4,546,632  
-Ecoli-MG1655.fasta.gz.k23.unik                   23          ✓       ✕       ✕              ✕                     ✕        ✓        ✓     v5.0  4,546,632  
-inter.k23.unik                                   23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  2,576,170  
-union2.k23.unik                                  23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  6,872,728  
-union.k23.unik                                   23          ✓       ✕       ✕              ✓                     ✓        ✕        ✓     v5.0  6,872,728
-
+A.muciniphila-ATCC_BAA-835.fasta.gz.m.unik       23  ✓          ✓       ✕       ✕                            ✕       ✕        ✓        v5.0       860,900             
+A.muciniphila-ATCC_BAA-835.fasta.gz.sorted.unik  23  ✓          ✕       ✕       ✕                    349741  ✓       ✕        ✓        v5.0     2,630,905             
+concat.k23.unik                                  23  ✓          ✕       ✕       ✓                            ✕       ✓        ✓        v5.0            -1             
+diff.k23.unik                                    23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     2,326,096             
+dup.k23.unik                                     23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     2,576,170             
+Ecoli-IAI39.fasta.gz.k23.sorted.unik             23  ✓          ✕       ✕       ✕                    585057  ✓       ✕        ✓        v5.0     4,902,266             
+Ecoli-IAI39.fasta.gz.k23.unik                    23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,902,266             
+Ecoli-MG1655.fasta.gz.k23.sorted.unik            23  ✓          ✕       ✕       ✕                    511145  ✓       ✕        ✓        v5.0     4,546,632             
+Ecoli-MG1655.fasta.gz.k23.unik                   23  ✓          ✕       ✕       ✕                            ✕       ✓        ✓        v5.0     4,546,632             
+inter.k23.unik                                   23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     2,576,170             
+union2.k23.unik                                  23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     6,872,728             
+union.k23.unik                                   23  ✓          ✕       ✕       ✓                            ✓       ✕        ✓        v5.0     6,872,728
 
 # -----------------------------------------------------------------------------------------
 
 # mapping k-mers to genome
+seqkit seq Ecoli-IAI39.fasta.gz -o Ecoli-IAI39.fasta
 g=Ecoli-IAI39.fasta
 f=inter.k23.unik
+# mapping k-mers back to the genome and extract successive regions/subsequences
+unikmer map -g $g $f -a | more
 
+
+# using bwa
 # to fasta
 unikmer view $f -a -o $f.fa.gz
-
 # make index
 bwa index $g; samtools faidx $g
-
 ncpu=12
 ls $f.fa.gz \
     | rush -j 1 -v ref=$g -v j=$ncpu \
@@ -831,34 +870,20 @@ propose new functions or ask for help.</p>
 <h2 id="license">License</h2>
 <p><a href="https://github.com/shenwei356/unikmer/blob/master/LICENSE">MIT License</a></p>
 
-              
-            </article>
-          </div>
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
         </div>
         
       </main>
       
         <footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-      
-        
-        <a href="download/" class="md-footer__link md-footer__link--next" aria-label="Next: Download" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Download
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -880,10 +905,12 @@ propose new functions or ask for help.</p>
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": ".", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "assets/javascripts/workers/search.b6ff8c07.min.js"}</script>
     
     
-      <script src="assets/javascripts/bundle.5e13d264.min.js"></script>
+    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="assets/javascripts/bundle.81fa17fe.min.js"></script>
       
     
   </body>

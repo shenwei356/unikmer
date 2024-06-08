@@ -14,8 +14,15 @@
       
         <link rel="canonical" href="https://bioinf.shenwei.me/unikmer/download/">
       
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../usage/">
+      
+      
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.5">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
     
     
       
@@ -23,31 +30,33 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ee0f47ba.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b4a2bd9.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
-        
-          
-          
-          <meta name="theme-color" content="#009485">
-        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.356b1318.min.css">
       
-    
+      
+
+
     
     
       
+    
+    
+      
+        
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
     
-    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
+    
     
     
   </head>
@@ -58,7 +67,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="teal" data-md-color-accent="blue-grey">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="blue-grey">
   
     
     
@@ -80,16 +89,19 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="unikmer - Toolkit for k-mer with taxonomic information" class="md-header__button md-logo" aria-label="unikmer - Toolkit for k-mer with taxonomic information" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -108,10 +120,13 @@
       </div>
     </div>
     
+      
+    
     
     
       <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
       <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
@@ -119,13 +134,16 @@
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
-        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
         </button>
       </nav>
       
@@ -136,7 +154,7 @@
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
@@ -145,10 +163,10 @@
     
     
       <div class="md-header__source">
-        <a href="https://github.com/shenwei356/unikmer/" title="Go to repository" class="md-source" data-md-component="source">
+        <a href="https://github.com/shenwei356/unikmer" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -178,22 +196,23 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="unikmer - Toolkit for k-mer with taxonomic information" class="md-nav__button md-logo" aria-label="unikmer - Toolkit for k-mer with taxonomic information" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
 
     </a>
     unikmer - Toolkit for k-mer with taxonomic information
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/shenwei356/unikmer/" title="Go to repository" class="md-source" data-md-component="source">
+      <a href="https://github.com/shenwei356/unikmer" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -205,14 +224,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href=".." class="md-nav__link">
-        Home
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
       </a>
     </li>
   
@@ -220,8 +243,6 @@
     
       
       
-      
-
   
   
     
@@ -229,19 +250,31 @@
   
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Download
+          
+  
+  <span class="md-ellipsis">
+    Download
+  </span>
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Download
+        
+  
+  <span class="md-ellipsis">
+    Download
+  </span>
+  
+
       </a>
       
         
@@ -268,8 +301,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#v0191-2022-12-26" class="md-nav__link">
-    v0.19.1 - 2022-12-26
+  <a href="#v0200-2023-11-11" class="md-nav__link">
+    v0.20.0 - 2023-11-11
   </a>
   
 </li>
@@ -334,6 +367,13 @@
   
     <nav class="md-nav" aria-label="Release History">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v0191-2022-12-26" class="md-nav__link">
+    v0.19.1 - 2022-12-26
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#v0190-2022-04-25" class="md-nav__link">
@@ -588,14 +628,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../usage/" class="md-nav__link">
-        Usage
+        
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
       </a>
     </li>
   
@@ -603,14 +647,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="https://github.com/shenwei356" class="md-nav__link">
-        More tools
+        
+  
+  <span class="md-ellipsis">
+    More tools
+  </span>
+  
+
       </a>
     </li>
   
@@ -651,8 +699,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#v0191-2022-12-26" class="md-nav__link">
-    v0.19.1 - 2022-12-26
+  <a href="#v0200-2023-11-11" class="md-nav__link">
+    v0.20.0 - 2023-11-11
   </a>
   
 </li>
@@ -717,6 +765,13 @@
   
     <nav class="md-nav" aria-label="Release History">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v0191-2022-12-26" class="md-nav__link">
+    v0.19.1 - 2022-12-26
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#v0190-2022-04-25" class="md-nav__link">
@@ -969,65 +1024,90 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
                 
-<a href="https://github.com/shenwei356/unikmer/edit/master/docs/download.md" title="Edit this page" class="md-content__button md-icon">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
-</a>
+                  
+
+  
+  
 
 
 <h1 id="download">Download</h1>
 <p>unikmer is implemented in <a href="https://golang.org/">Go</a> programming language,
 statically-linked executable binary files are <a href="https://github.com/shenwei356/unikmer/releases">freely available</a>.</p>
 <h2 id="current-version">Current Version</h2>
-<h3 id="v0191-2022-12-26"><a href="https://github.com/shenwei356/unikmer/releases/tag/v0.19.1">v0.19.1</a> - 2022-12-26 <a href="https://github.com/shenwei356/unikmer/releases/tag/v0.19.1"><img alt="Github Releases (by Release)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.1/total.svg" /></a></h3>
+<h3 id="v0200-2023-11-11"><a href="https://github.com/shenwei356/unikmer/releases/tag/v0.20.0">v0.20.0</a> - 2023-11-11 <a href="https://github.com/shenwei356/unikmer/releases/tag/v0.20.0"><img alt="Github Releases (by Release)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/v0.20.0/total.svg" /></a></h3>
 <ul>
-<li><code>unikmer</code>: When environment variable <code>UNIKMER_DB</code> is set, explicitly setting <code>--data-dir</code> will overide the value of <code>UNIKMER_DB</code>.</li>
-<li><code>unikmer uniqs</code>: skip sequences shorter than K.</li>
-<li><code>unikmer count/encode</code>: <a href="https://github.com/bcgsc/ntHash/issues/41">limit the maximum k-mer size to 65</a>.</li>
+<li><code>unikmer</code>:<ul>
+<li>update help messages</li>
+<li><strong>rename subcommand <code>uniqs</code> to <code>map</code></strong>.</li>
+<li>do not add the extension <code>.unik</code> if the value of flag <code>-o/--out-prefix</code> already has one.</li>
+</ul>
+</li>
+<li><code>unikmer sort</code>:<ul>
+<li>fix the bug of using both <code>-d/--repeated</code> and <code>-m/--chunk-size</code>, which seems to existed for 4 years.</li>
+</ul>
+</li>
+<li><code>unikmer merge</code>:<ul>
+<li>fix the bug of missing one record when taxid information is contained.</li>
+</ul>
+</li>
+<li><code>unikmer num</code>:<ul>
+<li><code>-f/--force</code> also support sorted files.</li>
+</ul>
+</li>
+<li><code>unikmer map</code>:<ul>
+<li>fix a bug of missing some regions.</li>
+</ul>
+</li>
+<li><code>unikmer locate</code>:<ul>
+<li>fix seq ID error in output.</li>
+<li>deduplicate output.</li>
+</ul>
+</li>
 </ul>
 <h3 id="links">Links</h3>
 <table>
 <thead>
 <tr>
-<th align="left">OS</th>
-<th align="left">Arch</th>
-<th align="left">File, 中国镜像</th>
-<th align="left">Download Count</th>
+<th style="text-align: left;">OS</th>
+<th style="text-align: left;">Arch</th>
+<th style="text-align: left;">File, 中国镜像</th>
+<th style="text-align: left;">Download Count</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td align="left">Linux</td>
-<td align="left"><strong>64-bit</strong></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_amd64.tar.gz"><strong>unikmer_linux_amd64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_linux_amd64.tar.gz">中国镜像</a></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_amd64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_amd64.tar.gz.svg?maxAge=3600" /></a></td>
+<td style="text-align: left;">Linux</td>
+<td style="text-align: left;"><strong>64-bit</strong></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_amd64.tar.gz"><strong>unikmer_linux_amd64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_linux_amd64.tar.gz">中国镜像</a></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_amd64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_amd64.tar.gz.svg?maxAge=3600" /></a></td>
 </tr>
 <tr>
-<td align="left">Linux</td>
-<td align="left"><strong>64-bit</strong></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_arm64.tar.gz"><strong>unikmer_linux_arm64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_linux_arm64.tar.gz">中国镜像</a></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_arm64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_arm64.tar.gz.svg?maxAge=3600" /></a></td>
+<td style="text-align: left;">Linux</td>
+<td style="text-align: left;">arm64</td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_arm64.tar.gz"><strong>unikmer_linux_arm64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_linux_arm64.tar.gz">中国镜像</a></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_arm64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_arm64.tar.gz.svg?maxAge=3600" /></a></td>
 </tr>
 <tr>
-<td align="left">macOS</td>
-<td align="left"><strong>64-bit</strong></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_amd64.tar.gz"><strong>unikmer_darwin_amd64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_darwin_amd64.tar.gz">中国镜像</a></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_amd64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_amd64.tar.gz.svg?maxAge=3600" /></a></td>
+<td style="text-align: left;">macOS</td>
+<td style="text-align: left;"><strong>64-bit</strong></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_amd64.tar.gz"><strong>unikmer_darwin_amd64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_darwin_amd64.tar.gz">中国镜像</a></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_amd64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_amd64.tar.gz.svg?maxAge=3600" /></a></td>
 </tr>
 <tr>
-<td align="left">macOS</td>
-<td align="left"><strong>64-bit</strong></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_arm64.tar.gz"><strong>unikmer_darwin_arm64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_darwin_arm64.tar.gz">中国镜像</a></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_arm64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_arm64.tar.gz.svg?maxAge=3600" /></a></td>
+<td style="text-align: left;">macOS</td>
+<td style="text-align: left;">arm64</td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_arm64.tar.gz"><strong>unikmer_darwin_arm64.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_darwin_arm64.tar.gz">中国镜像</a></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_arm64.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_arm64.tar.gz.svg?maxAge=3600" /></a></td>
 </tr>
 <tr>
-<td align="left">Windows</td>
-<td align="left"><strong>64-bit</strong></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_windows_amd64.exe.tar.gz"><strong>unikmer_windows_amd64.exe.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_windows_amd64.exe.tar.gz">中国镜像</a></td>
-<td align="left"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_windows_amd64.exe.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_windows_amd64.exe.tar.gz.svg?maxAge=3600" /></a></td>
+<td style="text-align: left;">Windows</td>
+<td style="text-align: left;"><strong>64-bit</strong></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_windows_amd64.exe.tar.gz"><strong>unikmer_windows_amd64.exe.tar.gz</strong></a>, <br/> <a href="http://app.shenwei.me/data/unikmer/unikmer_windows_amd64.exe.tar.gz">中国镜像</a></td>
+<td style="text-align: left;"><a href="https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_windows_amd64.exe.tar.gz"><img alt="Github Releases (by Asset)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_windows_amd64.exe.tar.gz.svg?maxAge=3600" /></a></td>
 </tr>
 </tbody>
 </table>
@@ -1129,6 +1209,12 @@ echo "autoload -U compinit; compinit" &gt;&gt; ~/.zshrc
 <pre><code>unikmer autocompletion --shell fish --file ~/.config/fish/completions/unikmer.fish
 </code></pre>
 <h2 id="release-history">Release History</h2>
+<h3 id="v0191-2022-12-26"><a href="https://github.com/shenwei356/unikmer/releases/tag/v0.19.1">v0.19.1</a> - 2022-12-26 <a href="https://github.com/shenwei356/unikmer/releases/tag/v0.19.1"><img alt="Github Releases (by Release)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.1/total.svg" /></a></h3>
+<ul>
+<li><code>unikmer</code>: When environment variable <code>UNIKMER_DB</code> is set, explicitly setting <code>--data-dir</code> will overide the value of <code>UNIKMER_DB</code>.</li>
+<li><code>unikmer uniqs</code>: skip sequences shorter than K.</li>
+<li><code>unikmer count/encode</code>: <a href="https://github.com/bcgsc/ntHash/issues/41">limit the maximum k-mer size to 64</a>.</li>
+</ul>
 <h3 id="v0190-2022-04-25"><a href="https://github.com/shenwei356/unikmer/releases/tag/v0.19.0">v0.19.0</a> - 2022-04-25 <a href="https://github.com/shenwei356/unikmer/releases/tag/v0.19.0"><img alt="Github Releases (by Release)" src="https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg" /></a></h3>
 <ul>
 <li>rename command <code>genautocomplete</code> to <code>autocompletion</code>.</li>
@@ -1412,49 +1498,20 @@ echo "autoload -U compinit; compinit" &gt;&gt; ~/.zshrc
 <li>first release</li>
 </ul>
 
-              
-            </article>
-          </div>
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
         </div>
         
       </main>
       
         <footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Home
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../usage/" class="md-footer__link md-footer__link--next" aria-label="Next: Usage" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Usage
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -1476,10 +1533,12 @@ echo "autoload -U compinit; compinit" &gt;&gt; ~/.zshrc
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.b6ff8c07.min.js"}</script>
     
     
-      <script src="../assets/javascripts/bundle.5e13d264.min.js"></script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.81fa17fe.min.js"></script>
       
     
   </body>
