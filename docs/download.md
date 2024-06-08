@@ -5,21 +5,33 @@ statically-linked executable binary files are [freely available](https://github.
 
 ## Current Version
 
-### [v0.19.1](https://github.com/shenwei356/unikmer/releases/tag/v0.19.1) - 2022-12-26 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.1/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.1)
+### [v0.20.0](https://github.com/shenwei356/unikmer/releases/tag/v0.20.0) - 2023-11-11 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.20.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.20.0)
 
-- `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
-- `unikmer uniqs`: skip sequences shorter than K.
-- `unikmer count/encode`: [limit the maximum k-mer size to 64](https://github.com/bcgsc/ntHash/issues/41).
+- `unikmer`:
+    - update help messages
+    - **rename subcommand `uniqs` to `map`**.
+    - do not add the extension `.unik` if the value of flag `-o/--out-prefix` already has one.
+- `unikmer sort`:
+    - fix the bug of using both `-d/--repeated` and `-m/--chunk-size`, which seems to existed for 4 years.
+- `unikmer merge`:
+    - fix the bug of missing one record when taxid information is contained.
+- `unikmer num`:
+    - `-f/--force` also support sorted files.
+- `unikmer map`:
+    - fix a bug of missing some regions.
+- `unikmer locate`:
+    - fix seq ID error in output.
+    - deduplicate output.
 
 ### Links
 
 OS     |Arch      |File, 中国镜像                                                                                                                                                                                  |Download Count
 :------|:---------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Linux  |**64-bit**|[**unikmer_linux_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_linux_amd64.tar.gz)                  |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_amd64.tar.gz)
-Linux  |arm64|[**unikmer_linux_arm64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_arm64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_linux_arm64.tar.gz)                  |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_arm64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_linux_arm64.tar.gz)
-macOS  |**64-bit**|[**unikmer_darwin_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_darwin_amd64.tar.gz)               |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_amd64.tar.gz)
-macOS  |arm64|[**unikmer_darwin_arm64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_arm64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_darwin_arm64.tar.gz)               |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_arm64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_darwin_arm64.tar.gz)
-Windows|**64-bit**|[**unikmer_windows_amd64.exe.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_windows_amd64.exe.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_windows_amd64.exe.tar.gz)|[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_windows_amd64.exe.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.19.1/unikmer_windows_amd64.exe.tar.gz)
+Linux  |**64-bit**|[**unikmer_linux_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_linux_amd64.tar.gz)                  |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_amd64.tar.gz)
+Linux  |arm64|[**unikmer_linux_arm64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_arm64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_linux_arm64.tar.gz)                  |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_linux_arm64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_linux_arm64.tar.gz)
+macOS  |**64-bit**|[**unikmer_darwin_amd64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_amd64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_darwin_amd64.tar.gz)               |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_amd64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_amd64.tar.gz)
+macOS  |arm64|[**unikmer_darwin_arm64.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_arm64.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_darwin_arm64.tar.gz)               |[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_darwin_arm64.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_darwin_arm64.tar.gz)
+Windows|**64-bit**|[**unikmer_windows_amd64.exe.tar.gz**](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_windows_amd64.exe.tar.gz), <br/> [中国镜像](http://app.shenwei.me/data/unikmer/unikmer_windows_amd64.exe.tar.gz)|[![Github Releases (by Asset)](https://img.shields.io/github/downloads/shenwei356/unikmer/latest/unikmer_windows_amd64.exe.tar.gz.svg?maxAge=3600)](https://github.com/shenwei356/unikmer/releases/download/v0.20.0/unikmer_windows_amd64.exe.tar.gz)
 
 *Notes:*
 
@@ -119,6 +131,12 @@ fish:
     unikmer autocompletion --shell fish --file ~/.config/fish/completions/unikmer.fish
 
 ## Release History
+
+### [v0.19.1](https://github.com/shenwei356/unikmer/releases/tag/v0.19.1) - 2022-12-26 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.1/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.1)
+
+- `unikmer`: When environment variable `UNIKMER_DB` is set, explicitly setting `--data-dir` will overide the value of `UNIKMER_DB`.
+- `unikmer uniqs`: skip sequences shorter than K.
+- `unikmer count/encode`: [limit the maximum k-mer size to 64](https://github.com/bcgsc/ntHash/issues/41).
 
 ### [v0.19.0](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0) - 2022-04-25 [![Github Releases (by Release)](https://img.shields.io/github/downloads/shenwei356/unikmer/v0.19.0/total.svg)](https://github.com/shenwei356/unikmer/releases/tag/v0.19.0)
 
