@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/shenwei356/bio/taxdump"
@@ -215,7 +216,7 @@ Tips:
 		// merge
 
 		outFile := outFile0
-		if !isStdout(outFile) {
+		if !isStdout(outFile) && !strings.HasSuffix(outFile, extDataFile) {
 			outFile += extDataFile
 		}
 

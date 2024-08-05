@@ -1,5 +1,10 @@
 # Changelog
 
+- v0.20.0 - 2024-xx-xx
+  - `unikmer`:
+    - `-i, --infile-list` accepts stdin (`-`).
+  - `unikmer merge`:
+    - fix do not add the extension `.unik` if the value of flag `-o/--out-prefix` already has one.
 - v0.20.0 - 2023-11-11
   - `unikmer`:
     - update help messages
