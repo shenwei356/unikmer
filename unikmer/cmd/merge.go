@@ -154,7 +154,7 @@ Tips:
 			}
 			_files = append(_files, file)
 
-			if opt.SkipFlagCheck {
+			if opt.SkipFlagCheck && k != -1 {
 				continue
 			}
 
