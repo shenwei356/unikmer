@@ -61,7 +61,8 @@ type Options struct {
 	NodesFile        string
 	CacheLCA         bool
 
-	NoCheckFile bool
+	SkipFileCheck bool
+	SkipFlagCheck bool
 }
 
 func getOptions(cmd *cobra.Command) *Options {
@@ -102,7 +103,8 @@ func getOptions(cmd *cobra.Command) *Options {
 		DataDir:  dataDir,
 		CacheLCA: true, // getFlagBool(cmd, "cache-lca"),
 
-		NoCheckFile: getFlagBool(cmd, "nocheck-file"),
+		SkipFlagCheck: getFlagBool(cmd, "skip-flag-check"),
+		SkipFileCheck: getFlagBool(cmd, "skip-file-check"),
 	}
 }
 
@@ -243,7 +245,7 @@ func extendDegenerateSeq(s []byte) (dseqs [][]byte, err error) {
 }
 
 func checkFileSuffix(opt *Options, suffix string, files ...string) {
-	if opt.NoCheckFile {
+	if opt.SkipFlagCheck {
 		return
 	}
 

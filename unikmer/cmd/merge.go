@@ -65,7 +65,7 @@ Tips:
 		if opt.Verbose {
 			log.Info("checking input files ...")
 		}
-		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", true)
+		files := getFileListFromArgsAndFile(cmd, args, true, "infile-list", !opt.SkipFileCheck)
 		if opt.Verbose {
 			if len(files) == 1 && isStdin(files[0]) {
 				log.Info("no files given, reading from stdin")
@@ -148,7 +148,11 @@ Tips:
 
 		_files := make([]string, 0, len(files))
 		for _, file := range files {
-			if isStdout(file) {
+			if opt.SkipFlagCheck {
+				break
+			}
+
+			if isStdin(file) {
 				log.Warningf("skip stdin")
 				continue
 			}

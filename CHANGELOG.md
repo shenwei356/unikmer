@@ -1,8 +1,10 @@
 # Changelog
 
-- v0.20.0 - 2024-xx-xx
+- v0.21.0 - 2024-xx-xx
   - `unikmer`:
     - `-i, --infile-list` accepts stdin (`-`).
+    - new global flag `--skip-file-check`.
+    - change the global flag `--nocheck-file` to `--skip-flag-check`.
   - `unikmer merge`:
     - fix do not add the extension `.unik` if the value of flag `-o/--out-prefix` already has one.
 - v0.20.0 - 2023-11-11

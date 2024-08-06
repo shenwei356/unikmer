@@ -106,7 +106,9 @@ func init() {
 	RootCmd.PersistentFlags().BoolP("ignore-taxid", "I", false, "ignore taxonomy information")
 	RootCmd.PersistentFlags().StringP("data-dir", "", defaultDataDir, "directory containing NCBI Taxonomy files, including nodes.dmp, names.dmp, merged.dmp and delnodes.dmp")
 
-	RootCmd.PersistentFlags().BoolP("nocheck-file", "", false, "do not check binary file, when using process substitution or named pipe")
+	RootCmd.PersistentFlags().BoolP("skip-flag-check", "", false, "do not check binary file flags if you believe the files")
+
+	RootCmd.PersistentFlags().BoolP("skip-file-check", "", false, `skip checking input file existence when given files or a file list`)
 
 	RootCmd.CompletionOptions.DisableDefaultCmd = true
 	RootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
