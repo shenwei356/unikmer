@@ -148,15 +148,16 @@ Tips:
 
 		_files := make([]string, 0, len(files))
 		for _, file := range files {
-			if opt.SkipFlagCheck {
-				break
-			}
-
 			if isStdin(file) {
 				log.Warningf("skip stdin")
 				continue
 			}
 			_files = append(_files, file)
+
+			if opt.SkipFlagCheck {
+				continue
+			}
+
 			func() {
 				infh, r, _, err = inStream(file)
 				checkError(err)
