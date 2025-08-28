@@ -33,7 +33,7 @@ require (
 	github.com/shenwei356/natsort v0.0.0-20190418160752-600d539c017d // indirect
 	github.com/shenwei356/xopen v0.3.2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/ulikunitz/xz v0.5.11 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/zeebo/wyhash v0.0.1 // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 )
