@@ -1,10 +1,10 @@
 module github.com/shenwei356/unikmer
 
-go 1.17
+go 1.24
 
 require (
 	github.com/dustin/go-humanize v1.0.1
-	github.com/klauspost/compress v1.17.3
+	github.com/klauspost/compress v1.18.7
 	github.com/klauspost/pgzip v1.2.6
 	github.com/mattn/go-colorable v0.1.12
 	github.com/mitchellh/go-homedir v1.1.0
